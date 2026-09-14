@@ -7,14 +7,15 @@ them that they do not.
 ## Page shape, in order
 
 ```
-controls          fixed, top right: expand all / collapse all / slides / theme
+controls          fixed: expand/collapse / slides / theme / accent / read marks
 .doc              the 1160px canvas
-  header          eyebrow, h1, subtitle, meta
+  header          reading introduction + concise opening .slide-content
   nav             optional links to sibling documents
   toc             contents, once the article has more than about three chapters
   main
     .chapter      one per major section
-      .card       one per idea, numbered across the document
+      .card       concise .slide-content + reading header/body, one idea
+  .takeaway       reading conclusion + concise closing .slide-content
   footer          optional author and provenance
 ```
 
@@ -40,6 +41,10 @@ unit that gets a number, and the unit that becomes a slide.
 
 ```html
 <article class="card" id="card-slug">
+  <div class="slide-content">
+    <h2 class="slide-title">A concise speaker cue</h2>
+    <p class="slide-lead">One short supporting line.</p>
+  </div>
   <h3 class="card-head">
     <button type="button" class="card-toggle" aria-expanded="false">
       <span class="card-num" aria-hidden="true"></span>
@@ -87,10 +92,11 @@ second title; it is the answer to "why would I open this?".
 
 ## Choosing depth
 
-For every card, sort its material into three buckets before writing HTML.
+For every card, assign its live cue and reading depth before writing HTML.
 
 | Bucket | Where it goes | Test |
 |---|---|---|
+| Speaker cue | Direct child `.slide-content` | A claim and short points, not the reading paragraphs |
 | Spine | The card body, above any reveal | A reader who reads only this still gets the argument |
 | Depth | Inside a `.reveal` | Evidence, derivation, full output, alternatives, caveats |
 | Cut | Nowhere | It is context the reader already has, or it belongs in another document |

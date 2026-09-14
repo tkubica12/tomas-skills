@@ -2,20 +2,24 @@
 
 **One transferable HTML file: the live presentation and the detailed document.**
 Present the concise argument, then send listeners that same file. They find the
-same chapters and cards in the same order, with deeper explanations behind
-reveals—not a separate handout that drifts from the talk.
+same chapters and cards in the same order, but with fuller explanations and
+deeper reveals. Slides carry short speaker cues, not the document's paragraphs
+or interactive controls.
 
 Use **article + slides mode** for this combined experience. A separate
 slide-first deck is also available when the presentation needs its own narrative.
-Both support light/dark themes, keyboard navigation, offline use, and readable
-content without JavaScript.
+Both support light/dark themes, one switchable blue/orange/green accent,
+keyboard navigation, reduced-motion-aware point builds, offline use, and
+readable content without JavaScript.
 
 ## Try it
 
 > Use html-docs to explain an engineering decision as a short live presentation
 > and a detailed follow-up document with the same structure. Put supporting
-> reasoning in reveals. Build the single-file HTML export so I can present it
-> and send that exact file to everyone afterward.
+> reasoning in reveals. Give every card a concise slide surface, with at most
+> three short cues, plus a polished opening and memorable closing. Use
+> grayscale and one accent. Build the single-file HTML export so I can present
+> it and send that exact file to everyone afterward.
 
 - [Example and opening instructions](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/README.md)
 - [Downloadable talk + document](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.standalone.html)

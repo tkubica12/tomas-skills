@@ -2,46 +2,12 @@
    html-docs / deck runtime
    Shared stylesheet for standalone HTML presentations. Never edit per page.
 
-   Requires the canonical token block inline in the page <head>. The fallback
-   layer below only exists so a page is still legible if the inline block is
-   missing; unlayered inline tokens always win over this layer.
+   Requires canonical tokens inline in the head, synchronized with sync-head.js.
 
    Geometry: every slide is authored inside a fixed 1280 x 720 stage. The stage
    is scaled to the viewport, so a slide that fits while authoring fits on any
    projector.
    ========================================================================= */
-
-@layer tokens-fallback {
-  :root {
-    color-scheme: light;
-    --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
-    --border: #dee1e6; --border-strong: #c2c7cf;
-    --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
-    --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
-    --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
-    --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
-    --code-bg: #f5f6f8; --code-border: #e2e5ea;
-    --focus: #0078d4;
-    --shadow-1: 0 1px 2px rgba(16,19,23,.06);
-    --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
-    --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
-  }
-  [data-theme="dark"] {
-    color-scheme: dark;
-    --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
-    --border: #2b313a; --border-strong: #3d4550;
-    --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
-    --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
-    --accent-soft: #142430; --accent-border: #2c4f6d;
-    --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
-    --code-bg: #12151a; --code-border: #262c34;
-    --focus: #6cb8f0;
-    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-    --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
-  }
-}
 
 /* ---------- base ---------------------------------------------------- */
 
@@ -468,8 +434,14 @@ th {
 
 /* ---------- fragments ---------------------------------------------------- */
 
-.js .frag { opacity: 0.16; transition: opacity 0.18s ease; }
-.js .frag[data-shown] { opacity: 1; }
+.js .frag { visibility: hidden; opacity: 0; transition: opacity 0.16s ease; }
+.js .frag[data-shown] { visibility: visible; opacity: 1; }
+.slide:focus { outline: none; }
+.slide--title::before, .slide--end::before {
+  content: ""; width: 80px; height: 6px; margin-bottom: 32px; background: var(--accent); flex: none;
+}
+.slide--end { background: var(--surface); }
+.slide--title em, .slide--end em { color: var(--accent); font-style: normal; }
 
 /* ---------- chrome -------------------------------------------------------- */
 
@@ -546,7 +518,7 @@ th {
   border-radius: var(--radius);
   box-shadow: var(--shadow-2);
 }
-.deck-index::backdrop { background: rgba(8, 10, 13, 0.6); }
+.deck-index::backdrop { background: rgba(0, 0, 0, 0.6); }
 .deck-index h2 {
   margin: 0;
   padding: 20px 24px 12px;
@@ -589,7 +561,7 @@ th {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
-  .js .frag { opacity: 1; }
+  .js .frag { visibility: visible; opacity: 1; }
 }
 
 @media print {
@@ -607,7 +579,7 @@ th {
     break-after: page;
     border: 0;
   }
-  .js .frag { opacity: 1 !important; }
+  .js .frag { visibility: visible; opacity: 1 !important; }
   .js .reveal-body { display: block !important; }
   .deck-chrome, .js .deck-chrome { display: none !important; }
 }

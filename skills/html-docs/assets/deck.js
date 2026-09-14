@@ -11,15 +11,13 @@
   "use strict";
 
   const root = document.documentElement;
-  const THEME_KEY = "doc-theme";
-  /* Shared with the article runtime, so a presenter who prefers whole slides
-     gets the same behaviour in both document shapes. */
-  const REVEAL_KEY = "doc-reveal";
+  const preferences = window.HtmlDocs;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const STAGE_W = 1280;
   const STAGE_H = 720;
   /* Below this the body text stops being readable from the back of a room.
      A slide that still overflows here has to be split by the author. */
-  const MIN_FIT = 0.62;
+  const MIN_FIT = 0.85;
 
   const els = (sel, scope) => Array.from((scope || document).querySelectorAll(sel));
   const el = (sel, scope) => (scope || document).querySelector(sel);
@@ -32,6 +30,10 @@
 
   slides.forEach((slide, i) => {
     if (!slide.id) slide.id = "slide-" + (i + 1);
+    slide.tabIndex = -1;
+    slide.setAttribute("role", "group");
+    slide.setAttribute("aria-roledescription", "slide");
+    slide.setAttribute("aria-label", `${i + 1} of ${slides.length}: ${slideLabel(slide)}`);
   });
 
   let index = 0;
@@ -42,28 +44,7 @@
   /* "step" reveals fragments one at a time; "all" shows the whole slide and
      makes one advance mean one slide. Presenters who are talking to a build
      want the first; anyone reading or reviewing wants the second. */
-  let revealAll = false;
-  try { revealAll = localStorage.getItem(REVEAL_KEY) === "all"; } catch (e) { revealAll = false; }
-
-  /* ---------- theme ------------------------------------------------- */
-
-  function currentTheme() {
-    return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
-  }
-
-  function applyTheme(theme) {
-    root.setAttribute("data-theme", theme);
-    try {
-      localStorage.setItem(THEME_KEY, theme);
-    } catch (err) {
-      /* storage blocked; theme still applies for this page view */
-    }
-    els('[data-action="toggle-theme"]').forEach((button) => {
-      const next = theme === "dark" ? "light" : "dark";
-      button.textContent = next === "dark" ? "Dark" : "Light";
-      button.setAttribute("aria-label", "Switch to " + next + " theme");
-    });
-  }
+  let revealAll = preferences.read("animations") === "all";
 
   /* ---------- chrome ------------------------------------------------- */
 
@@ -79,7 +60,8 @@
       '<button type="button" data-deck="reveal" aria-pressed="true" ' +
       'aria-label="Animate points one at a time, or show each slide whole">Animations</button>' +
       '<button type="button" data-deck="full">Full screen</button>' +
-      '<button type="button" data-action="toggle-theme">Dark</button>';
+      '<button type="button" data-action="toggle-theme">Dark</button>' +
+      '<button type="button" data-action="toggle-accent">Accent: Blue</button>';
 
     const progress = document.createElement("div");
     progress.className = "deck-chrome deck-progress";
@@ -103,13 +85,8 @@
       dropPointerFocus(event, button);
     });
 
-    el('[data-action="toggle-theme"]', controls)
-      .addEventListener("click", (event) => {
-        applyTheme(currentTheme() === "dark" ? "light" : "dark");
-        dropPointerFocus(event, event.currentTarget);
-      });
-
     markReveal();
+    preferences.refresh();
   }
 
   /* ---------- reveal mode ---------------------------------------------- */
@@ -120,12 +97,14 @@
   function markReveal() {
     const button = el('[data-deck="reveal"]');
     if (!button) return;
-    button.setAttribute("aria-pressed", revealAll ? "false" : "true");
+    button.setAttribute("aria-pressed", revealAll || reduced.matches ? "false" : "true");
+    button.disabled = reduced.matches;
+    button.setAttribute("aria-label", reduced.matches ? "Animations off: reduced motion preference" : "Animate points one at a time");
   }
 
   function setReveal(next) {
     revealAll = !!next;
-    try { localStorage.setItem(REVEAL_KEY, revealAll ? "all" : "step"); } catch (e) { /* ignore */ }
+    preferences.write("animations", revealAll ? "all" : "step");
     markReveal();
     /* Returning to step mode restarts the build on the current slide rather
        than leaving it half-revealed, so the presenter gets a clean run-up. */
@@ -195,7 +174,9 @@
     slide.setAttribute("data-current", "");
 
     fragments(slide).forEach((frag, i) => {
-      if (revealAll || i < step) frag.setAttribute("data-shown", "");
+      const shown = revealAll || reduced.matches || i < step;
+      frag.setAttribute("aria-hidden", String(!shown));
+      if (shown) frag.setAttribute("data-shown", "");
       else frag.removeAttribute("data-shown");
     });
 
@@ -215,11 +196,13 @@
     index = Math.min(slides.length - 1, Math.max(0, next));
     step = (atEnd || revealAll) ? fragments(slides[index]).length : 0;
     render();
+    slides[index].tabIndex = -1;
+    slides[index].focus({ preventScroll: true });
   }
 
   function forward() {
     const total = fragments(slides[index]).length;
-    if (!revealAll && step < total) {
+    if (!revealAll && !reduced.matches && step < total) {
       step += 1;
       render();
       return;
@@ -228,7 +211,7 @@
   }
 
   function back() {
-    if (!revealAll && step > 0) {
+    if (!revealAll && !reduced.matches && step > 0) {
       step -= 1;
       render();
       return;
@@ -237,8 +220,8 @@
   }
 
   function toggleFullscreen() {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen().catch(() => {});
+    const action = document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen();
+    action.catch(() => { el(".deck-progress").textContent += " | Full screen unavailable"; });
   }
 
   /* ---------- slide index ------------------------------------------------ */
@@ -249,7 +232,11 @@
 
   function slideLabel(slide) {
     const title = el(".slide-title, h1, h2", slide);
-    if (title && title.textContent.trim()) return title.textContent.trim();
+    if (title && title.textContent.trim()) {
+      const copy = title.cloneNode(true);
+      els("br", copy).forEach(br => br.replaceWith(" "));
+      return copy.textContent.trim().replace(/\s+/g, " ");
+    }
     const text = (slide.textContent || "").replace(/\s+/g, " ").trim();
     if (text) return text.length > 64 ? text.slice(0, 63).trimEnd() + "\u2026" : text;
     return slide.id;
@@ -272,6 +259,8 @@
     if (!indexDialog) {
       indexDialog = document.createElement("dialog");
       indexDialog.className = "deck-index";
+      indexDialog.setAttribute("aria-label", "Slide index");
+      indexDialog.addEventListener("close", () => slides[index].focus({ preventScroll: true }));
       const items = slides.map((slide, i) =>
         '<li><button type="button" data-go="' + i + '">' +
         '<span class="idx-num">' + (i + 1) + "</span><span>" +
@@ -285,6 +274,7 @@
         if (!button) return;
         go(parseInt(button.getAttribute("data-go"), 10), false);
         indexDialog.close();
+        slides[index].focus({ preventScroll: true });
         /* Closing returns focus to the Slides button, which would otherwise
            keep the controls bar lit. */
         dropPointerFocus(event, document.activeElement);
@@ -317,12 +307,20 @@
   /* ---------- input --------------------------------------------------------- */
 
   document.addEventListener("keydown", (event) => {
-    if (el("dialog[open]") && event.key !== "Escape") return;
+    if (el("dialog[open]") || event.altKey || event.ctrlKey || event.metaKey ||
+        event.target.closest("input, select, textarea, [contenteditable]")) return;
+    if (event.target.closest("button, a") && [" ", "Enter"].includes(event.key)) return;
     const key = event.key;
-    if (key === "ArrowRight" || key === "PageDown" || key === " " || key === "Spacebar") {
+    if (key === "PageDown") {
+      event.preventDefault();
+      go(index + 1);
+    } else if (key === "PageUp") {
+      event.preventDefault();
+      go(index - 1, true);
+    } else if (key === "ArrowRight" || key === " " || key === "Spacebar") {
       event.preventDefault();
       forward();
-    } else if (key === "ArrowLeft" || key === "PageUp") {
+    } else if (key === "ArrowLeft") {
       event.preventDefault();
       back();
     } else if (key === "Home") {
@@ -343,7 +341,8 @@
     }
   });
 
-  document.addEventListener("mousemove", wakeChrome, { passive: true });
+  document.addEventListener("mousemove", () => wakeChrome(2400), { passive: true });
+  reduced.addEventListener("change", () => { markReveal(); render(); });
 
   document.addEventListener("click", (event) => {
     if (event.target.closest("button, a, input, select, textarea, dialog")) return;
@@ -371,7 +370,6 @@
   /* ---------- start ---------------------------------------------------------- */
 
   buildChrome();
-  applyTheme(currentTheme());
   scaleStage();
 
   const wanted = slides.findIndex((slide) => "#" + slide.id === location.hash);

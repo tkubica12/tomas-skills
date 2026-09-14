@@ -1,149 +1,103 @@
-# Slides mode
+# One narrative, two depths
 
-An article can be presented without becoming a deck. Slides mode is a **view
-over the same DOM**: there is no second markup tree, no export step, and no
-copy to keep in sync. What is on the page is what is on the screen.
+Article slides are **authored speaker cues**, not the reading card enlarged.
+The same HTML contains both. The runtime visits the opening, each chapter
+divider and its cards in document order, then the closing takeaway. Stable card
+IDs link the talk directly to its fuller explanation.
 
-Use it when the written article is the artefact and the talk is a walkthrough
-of it. When the talk has a different narrative from the document, build a
-standalone deck instead — see [`deck-authoring.md`](deck-authoring.md).
+## Required surfaces
 
-## Enabling it
-
-Slides mode exists if the controls bar contains the toggle:
+Start from `article.template.html`. Keep `article.css/js` for reading and
+`slides.css/js` for presentation. Put one direct `.slide-content` child inside
+the header, each card, and the closing takeaway:
 
 ```html
-<button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+<article class="card" id="card-headroom">
+  <div class="slide-content">
+    <h2 class="slide-title">Only spare capacity<br>drains the backlog.</h2>
+    <ul class="slide-points">
+      <li class="frag">New work keeps arriving.</li>
+      <li class="frag">Recovery needs room beyond it.</li>
+    </ul>
+  </div>
+  <h3 class="card-head">
+    <!-- Use the complete card-toggle markup from the template. -->
+  </h3>
+  <div class="card-body">
+    <p>Explain the relationship, its assumptions, and the consequences here.</p>
+  </div>
+</article>
 ```
 
-Remove that button and the whole slides runtime stays dormant. Do that for
-articles that will never be presented; it removes a control the reader does not
-need.
+The header's surface uses `slide-content slide-content--title`; the closing
+uses `slide-content slide-content--end`. Add an optional `.slide-eyebrow` and
+one `.slide-lead` line. Use `<em>` inside a title to emphasize a few words in
+the current accent, not italics. Titles and closing messages deserve generous
+whitespace, not a miniature agenda or a wall of takeaways.
 
-## What becomes a slide
+Only these authored surfaces are displayed during presentation. Card toggles,
+prose, reveals, tabs, and other reading controls are hidden. The summaries are
+hidden in reading mode, print, and the no-JavaScript fallback. **All essential
+information must therefore also exist in the reading body.**
 
-The runtime walks `main` and builds the slide list as:
+## Authoring budget
 
-1. Each `.chapter` that has a `.chapter-label` — rendered as a section divider.
-2. Each `.card` that is a direct child of that chapter, in document order.
-3. The closing `.takeaway`, if present.
+- One claim per slide; at most **45 words**, including diagram labels.
+- At most **three points, ten words each**; no paragraph over 18 words.
+- One diagram, short equation, or other substantial visual at most.
+- No reveal, tab, detail grid, link, button, media control, or other interaction
+  inside a slide surface. The only interactions are presentation chrome.
+- No automatic text shrinking. Shorten cues or split the idea if it clips.
+- Do not add unique facts only to the summary or lose necessary qualifications
+  when shortening a claim.
 
-If there are no chapters it falls back to every `.card` in `main`. Anything
-that is not a chapter, a card, or the takeaway is not a slide, so loose prose
-between cards will not be presented. Put everything inside a card.
+These are upper bounds, not targets. Most good slides use far less. Read the
+rendered slide as if sitting at the back of a meeting room.
 
-## Entering and leaving
+## Pacing without traps
 
-- The **Slides** button toggles the view: it is how you enter, and while
-  presenting it is how you get back to the article.
-- `?view=slides` in the URL opens straight into presentation, which is what you
-  send to someone who will present it, and what a screenshot script uses.
-- `Escape` also returns to the article.
-- The current slide id is written to the URL hash, so a specific slide is
-  linkable and reload-safe.
+Mark a short point `.frag` to show it on the next advance. Hidden points retain
+their layout space but are removed from the accessibility tree until shown.
+The title remains visible throughout; nothing moves automatically.
 
-Keys while presenting: `Right` / `PageDown` / `Space` forward, `Left` /
-`PageUp` back, `Home` / `End` to the ends, `O` for the slide index, `F` for
-full screen, `Escape` to exit. Click anywhere that is not a control advances;
-horizontal swipe works on touch.
+**Animations** or `A` switches between stepped points and complete slides.
+The choice is stored per document. `prefers-reduced-motion: reduce` always
+shows every point, removes transitions, and disables the stepping control.
+Changing that preference while presenting takes effect immediately.
 
-## Navigation chrome
+Page navigation always bypasses remaining points, so a long build cannot trap
+the presenter. Going backwards by whole slide displays all its points.
 
-While presenting, a small bar sits in the bottom-left corner: **Prev**,
-**Next**, **Index**. The **Slides** toggle stays in the top-right corner and is
-the way back to the article, so there is no separate exit button — one control
-owns entering and leaving.
+| Control | Action |
+|---|---|
+| Right / Space / Next / background click | Next point, then next slide |
+| Left / Prev | Previous point, then previous slide |
+| PageDown / PageUp | Next / previous whole slide |
+| Home / End | Opening / closing |
+| Index / O | Named slide-index dialog |
+| Animations / A | Stepped points / all points |
+| F | Full screen |
+| Escape / Slides | Return to reading at the current card |
 
-Both corners rest at the same low opacity so neither competes with the slide,
-and both go fully opaque on hover or keyboard focus. The pressed styling on the
-**Slides** toggle is suppressed while presenting: an accent pill in the corner
-of every slide pulls the eye, and it reappears once the bar is hovered, which
-is the moment it means something.
+Horizontal swipes move forwards/backwards. Keyboard actions respect native
+buttons and dialogs: Space on a focused button activates it, not the slide.
+Navigation moves focus to the current surface, which announces its position
+and title. Closing the index restores slide focus.
 
-Two things make the chrome findable anyway. It is **held up for about four
-seconds when slides mode opens**, so the reader sees where it is before it
-settles, and any mouse movement lifts it again for a couple of seconds. That is
-the discoverability compromise: a presenter who does not know the controls are
-there is shown them once, and a presenter who does know is never distracted.
+## Appearance and links
 
-**Index** opens a jump-to-slide dialog listing every slide with its number,
-title, and kind (`Chapter`, `Closing`). The current slide is highlighted.
-Clicking an entry jumps straight there. This is the control you use when
-someone asks a question about something four slides back.
+Both views share **Dark/Light** and **Accent** controls. Choose one document
+default with `data-default-accent="blue"` (or `orange`/`green`) and optionally
+`data-default-theme="light"` or `"dark"`. See [design system](design-system.md).
 
-The index labels itself from the markup: a card contributes its `.card-title`,
-a chapter divider its own heading. Nothing needs authoring for the index to
-work — but a card with a vague title produces a vague index entry, which is one
-more reason to write real titles.
+`?view=slides#card-headroom` opens that card's concise surface.
+`?view=slides&theme=dark&accent=orange#opening` opens an orange/dark title slide.
+Exiting presentation removes `view=slides` and opens the current reading card.
 
-## What the reader loses, and what you must therefore do
+## Sharing and review
 
-In slides mode the current card is fixed to the viewport and every other slide
-is hidden. Consequences you have to author around:
-
-- **Collapsed content is opened.** A card presented as a slide shows its body.
-  Reveals stay collapsed, so anything behind a reveal is *not* presented. If a
-  point matters to the talk, it belongs above the reveal.
-- **The expand-all and collapse-all controls disappear**, along with the table
-  of contents, the header, the footer, and the read-progress marks. They are
-  article furniture. Read tracking is also suspended while presenting, so
-  running through the deck never marks the article as read.
-- **Card numbers are frozen before the view switches.** CSS counters restart
-  when earlier siblings are `display: none`, so the runtime writes the resolved
-  number into `.card-num` on load. This is why you must never type a number
-  into the markup: a typed number and a frozen number will disagree the moment
-  a card is inserted.
-
-## Fitting
-
-Each slide is measured after it is shown. If the content is taller than the
-viewport the runtime shrinks the card's children with CSS `zoom`, starting from
-`available / needed` and then stepping down until the card genuinely fits,
-clamped at `0.5`.
-
-The first guess is deliberately not trusted. Margins between children and
-sub-pixel rounding survive the zoom, so a single computed ratio can be several
-percent too generous and leave content clipped with no warning. Converging
-against the real `scrollHeight` is what makes the fit honest.
-
-When the clamp is reached and the card still does not fit, the runtime writes to
-the console:
-
-```
-html-docs: slide content does not fit at readable size. Split this card: #card-...
-```
-
-**Treat that warning as a defect, not as a note.** A card shrunk below about
-70% is unreadable from the back of a room. The fix is always structural: split
-the card, move detail behind a reveal, or cut it. Do not respond by changing
-font sizes in the page.
-
-### Budget a card for the slide, not for the page
-
-A card that reads comfortably in the article can still be a bad slide, because
-in slides mode it has to fit a single screen with no scrolling.
-
-- **A full-width figure gets its own card.** A 16:9 diagram consumes almost the
-  whole slide by itself. Prose *plus* a figure in one card forces the fit down
-  far enough to hurt, even when it does not trip the clamp. Put the argument in
-  one card and the picture in the next; the reading experience is unharmed and
-  the slide becomes legible.
-- The same applies to a long table or a tall code block sharing a card with
-  several paragraphs.
-
-Validation catches the failure case: see [`validation.md`](validation.md), which
-asserts zero console warnings *and* zero clipped cards while stepping through
-every slide. It cannot tell you that a card that merely shrank to 0.72 would
-have read better as two cards. Look at it.
-
-## Presenting checklist
-
-Before handing an article over to be presented:
-
-1. Open with `?view=slides` and step through every slide with `End` and the
-   arrow keys.
-2. Confirm the console is silent — no overflow warnings.
-3. Confirm no slide depends on content that is behind a reveal.
-4. Check a section divider, the longest card, and the takeaway in both themes.
-5. Check at 1920x1080 as well as at the laptop size, since the room projector
-   is usually the former.
+Run the single-file exporter when sharing is requested. Present and distribute
+the same generated HTML; do not maintain a second deck or edit the export.
+Validate source and isolated export across all six palettes at laptop and
+projector sizes, then inspect screenshots of the opening, diagram, busiest
+slide, and closing. A clean console is not evidence of good composition.

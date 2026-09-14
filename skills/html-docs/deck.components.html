@@ -1,56 +1,107 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-default-accent="blue">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Deck components</title>
 <meta name="description" content="Every slide type and component of the html-docs deck runtime.">
+<meta name="doc-id" content="html-docs-deck-components">
 
-<script>
-(function () {
-  var d = document.documentElement;
-  d.classList.add("js");
-  var p = new URLSearchParams(location.search);
-  var t = p.get("theme");
-  if (t !== "light" && t !== "dark") {
-    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+<script data-doc-bootstrap>
+/* Inline in the head before styles with sync-head.js. No deferred bootstrap. */
+(() => {
+  "use strict";
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const id = document.querySelector('meta[name="doc-id"]')?.content ||
+    location.pathname.replace(/\.standalone(?=\.html$)/i, "");
+  const prefix = "html-docs:" + id + ":";
+  const choices = { theme: ["light", "dark"], accent: ["blue", "orange", "green"] };
+  const read = (name) => {
+    try { return localStorage.getItem(prefix + name); }
+    catch { return null; /* Storage may be unavailable for local files. */ }
+  };
+  const write = (name, value) => {
+    try { localStorage.setItem(prefix + name, value); }
+    catch { /* The current view still works without persistence. */ }
+  };
+  function refresh() {
+    for (const name of Object.keys(choices)) {
+      const current = root.getAttribute("data-" + name);
+      const next = choices[name][(choices[name].indexOf(current) + 1) % choices[name].length];
+      document.querySelectorAll('[data-action="toggle-' + name + '"]').forEach(button => {
+        button.textContent = name === "theme" ? (next === "dark" ? "Dark" : "Light") :
+          "Accent: " + current[0].toUpperCase() + current.slice(1);
+        button.setAttribute("aria-label", name === "theme" ? "Switch to " + next + " theme" :
+          "Accent: " + current + ". Switch to " + next);
+      });
+    }
   }
-  if (t !== "light" && t !== "dark") {
-    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  for (const [name, values] of Object.entries(choices)) {
+    const fallback = name === "theme" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : values[0];
+    const value = [params.get(name), read(name), root.getAttribute("data-default-" + name), fallback]
+      .find(candidate => values.includes(candidate));
+    root.setAttribute("data-" + name, value);
   }
-  d.setAttribute("data-theme", t);
+  root.classList.add("js");
+  if (params.get("view") === "slides") root.setAttribute("data-view", "slides");
+  window.HtmlDocs = { read, write, refresh };
+  document.addEventListener("DOMContentLoaded", refresh);
+  document.addEventListener("click", event => {
+    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
+    if (!button) return;
+    const name = button.getAttribute("data-action").slice(7);
+    const values = choices[name];
+    const next = values[(values.indexOf(root.getAttribute("data-" + name)) + 1) % values.length];
+    root.setAttribute("data-" + name, next);
+    write(name, next);
+    // Replace a URL override too, so reloading preserves a deliberate change.
+    const url = new URL(location.href);
+    if (url.searchParams.has(name)) {
+      url.searchParams.set(name, next);
+      history.replaceState(null, "", url.href);
+    }
+    refresh();
+  });
 })();
 </script>
 
-<style>
+<style data-doc-tokens>
+/* Canonical tokens. Inline with sync-head.js; one accent family at a time. */
 :root {
   color-scheme: light;
-  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
-  --border: #dee1e6; --border-strong: #c2c7cf;
-  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
-  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
-  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
-  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
-  --code-bg: #f5f6f8; --code-border: #e2e5ea;
-  --focus: #0078d4;
-  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
-  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f2f2f2; --surface-3: #e8e8e8;
+  --border: #dedede; --border-strong: #b8b8b8;
+  --text: #161616; --text-muted: #565656; --text-faint: #686868;
+  --accent-light: #0068bd; --accent-dark: #69b8ff;
+  --accent: var(--accent-light);
+  --accent-strong: var(--accent);
+  --accent-quiet: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  --accent-border: color-mix(in srgb, var(--accent) 36%, var(--bg));
+  --warn: var(--accent); --warn-soft: var(--accent-soft); --warn-border: var(--accent-border);
+  --code-bg: var(--surface-2); --code-border: var(--border);
+  --focus: var(--accent);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.04), 0 12px 28px rgba(0,0,0,.06);
   --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
 }
-[data-theme="dark"] {
+[data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
-  --border: #2b313a; --border-strong: #3d4550;
-  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
-  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
-  --accent-soft: #142430; --accent-border: #2c4f6d;
-  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
-  --code-bg: #12151a; --code-border: #262c34;
-  --focus: #6cb8f0;
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+  --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
+  --border: #363636; --border-strong: #595959;
+  --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
+  --accent: var(--accent-dark);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+}
+[data-accent="orange"], :root:not([data-accent])[data-default-accent="orange"] {
+  --accent-light: #a94000; --accent-dark: #ffae72;
+}
+[data-accent="green"], :root:not([data-accent])[data-default-accent="green"] {
+  --accent-light: #137344; --accent-dark: #6cd6a0;
 }
 </style>
 
@@ -141,9 +192,9 @@
     </div>
   </section>
 
-  <section class="slide" id="s-steps">
+  <section class="slide" id="s-sequence">
     <div class="slide-head">
-      <h2 class="slide-title">Steps and sequence</h2>
+      <h2 class="slide-title">Sequence</h2>
     </div>
     <div class="slide-body">
       <ol class="sequence">
@@ -151,7 +202,15 @@
         <li><span class="seq-title">Containers</span><span class="seq-note">Portable units, orchestrated.</span></li>
         <li><span class="seq-title">Managed platform</span><span class="seq-note">Operations absorbed.</span></li>
       </ol>
-      <ol class="steps" style="margin-top: 28px">
+    </div>
+  </section>
+
+  <section class="slide" id="s-steps">
+    <div class="slide-head">
+      <h2 class="slide-title">Steps</h2>
+    </div>
+    <div class="slide-body">
+      <ol class="steps">
         <li><h3>Provision</h3><p>Create the resource group and the workload identity.</p></li>
         <li><h3>Deploy</h3><p>Push the image and roll out the first revision.</p></li>
       </ol>
@@ -171,16 +230,6 @@
   --resource-group rg-demo \
   --source .</code></pre>
       </div>
-      <div class="reveal">
-        <button type="button" class="reveal-toggle">Show the full output</button>
-        <div class="reveal-body">
-          <div class="code">
-            <pre><code>Creating resource group rg-demo
-Building image demo:latest
-Deployment succeeded</code></pre>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -190,7 +239,7 @@ Deployment succeeded</code></pre>
     </div>
     <div class="slide-body">
       <figure class="figure">
-        <img src="assets/sample-diagram.svg" alt="Source feeds a processing stage, which writes to a sink." width="1600" height="420">
+        <img src="assets/sample-diagram.svg" alt="Source feeds a processing stage, which writes to a sink." width="960" height="240">
         <figcaption>Data path from source through processing to sink.</figcaption>
       </figure>
     </div>
@@ -198,18 +247,34 @@ Deployment succeeded</code></pre>
 
   <section class="slide" id="s-callouts">
     <div class="slide-head">
-      <h2 class="slide-title">Callouts</h2>
-      <p class="slide-lead">Same six meanings as the article. Use one per slide at most.</p>
+      <h2 class="slide-title">Callout: rule</h2>
     </div>
     <div class="slide-body">
       <aside class="callout callout--rule">
         <p class="callout-label">Rule</p>
         <p>A durable rule to remember.</p>
       </aside>
+    </div>
+  </section>
+
+  <section class="slide" id="s-warning">
+    <div class="slide-head">
+      <h2 class="slide-title">Callout: warning</h2>
+      <p class="slide-lead">The label conveys risk; the accent stays consistent.</p>
+    </div>
+    <div class="slide-body">
       <aside class="callout callout--warning">
         <p class="callout-label">Warning</p>
         <p>A practical risk, or a way to break something.</p>
       </aside>
+    </div>
+  </section>
+
+  <section class="slide" id="s-source">
+    <div class="slide-head">
+      <h2 class="slide-title">Callout: source</h2>
+    </div>
+    <div class="slide-body">
       <aside class="callout callout--source">
         <p class="callout-label">Source</p>
         <p>Provenance of a claim, with a date or a version.</p>
@@ -245,7 +310,7 @@ Deployment succeeded</code></pre>
   </section>
 
   <section class="slide slide--end" id="s-end">
-    <p>Author inside the 1280 by 720 box, and the deck will fit every screen it meets.</p>
+    <p>Make one point.<br><em>Leave room to think.</em></p>
   </section>
 
 </main>

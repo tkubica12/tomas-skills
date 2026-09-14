@@ -78,8 +78,15 @@ The subtitle in the header says what the reader gets and who it is for, in one
 or two sentences. Not what the article is about — what the reader walks away
 able to do or decide.
 
-The closing `.takeaway` is exactly one sentence: the sentence you would want
-quoted back to you. It is not a summary and it is not a call to action.
+The reading paragraph in `.takeaway` is one sentence worth remembering.
+Its separate closing slide distills that message into a few large words,
+not a recap wall. Likewise, a title slide should establish the central idea
+without displaying the reading introduction.
+
+Slides support a speaker, while the reference must stand alone. Write short
+cue phrases for `.slide-content`; write explanatory prose for `.card-body`.
+Do not repeat a long paragraph on the slide or put important facts only in
+the slide summary. Optional fragments control pacing, not comprehension.
 
 ## Terminology
 

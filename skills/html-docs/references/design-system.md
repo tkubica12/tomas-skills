@@ -1,164 +1,131 @@
 # Design system
 
-The visual language is fixed. It exists so that every document from this skill
-looks like it came from the same hand, and so that an author never spends
-attention on colour.
+## Grayscale plus one accent
 
-## Palette
+Black, white, and neutral gray supply the structure. **One accent family is
+active across the entire document**, including both reading and presentation:
 
-Black, white, and grey, with a single accent: Microsoft blue `#0078D4` in
-light theme, lightened to `#4AA3E8` in dark theme. One warning hue. Nothing
-else. No second accent, no category colours, no charts with a rainbow legend.
+| Accent | Light | Dark |
+|---|---|---|
+| Blue (default) | `#0068bd` | `#69b8ff` |
+| Orange | `#a94000` | `#ffae72` |
+| Green | `#137344` | `#6cd6a0` |
 
-The canonical values live in `assets/tokens.css`. That file is the
-**source of truth**; it is never linked by a page.
+Do not color-code categories, combine accent families, or add red/yellow
+warning colors. A warning uses the selected accent; its explicit **Warning**
+label, not color alone, conveys its meaning. Charts distinguish series with
+labels, patterns, line styles, or grayscale.
 
-## Why tokens are inlined, and why that is not duplication
+The only source of palette values is `assets/tokens.css`. Layout stylesheets
+have no fallback palette. Never override tokens or invent colors in a page.
 
-Each document carries its own copy of the token block in an inline `<style>` in
-the head, immediately after the theme bootstrap script. Two reasons:
+## Canonical head and first paint
 
-1. The theme must be correct on first paint. A linked stylesheet can arrive
-   after the first frame, which produces a white flash before a dark page.
-2. The palette travels with the content. The complete single-file export also
-   inlines layout and behavior; inline tokens alone do not make a linked source
-   self-contained.
+Copy the template's head, including these marked inline blocks:
 
-`article.css` and `deck.css` therefore contain **no palette values in the
-normal cascade**. They open with:
-
-```css
-@layer tokens-fallback {
-  :root { /* full light palette */ }
-  [data-theme="dark"] { /* full dark palette */ }
-}
+```html
+<script data-doc-bootstrap>...</script>
+<style data-doc-tokens>...</style>
 ```
 
-An unlayered rule always beats a layered rule regardless of source order and
-specificity. So the page's inline `<style>` wins over the stylesheet's fallback
-no matter which loads first. That is the whole trick; do not "simplify" it by
-removing the layer.
+The first block is `assets/appearance.js`, executed synchronously before
+styles. It resolves appearance and adds `.js` before anything is painted.
+The second is `assets/tokens.css`, copied verbatim. Neither depends on an
+extra request before first paint. Linked runtime assets follow them.
 
-## Rules
+Use the built-in synchronizer after a shared head asset changes:
 
-- **Never change a token value in a page.** If a colour is wrong, it is wrong
-  for every document, so fix `assets/tokens.css` and re-copy the block
-  into the templates. Then say so to the user.
-- **Never introduce a new colour literal in page markup.** Not in an inline
-  `style`, not in an SVG `fill`, not in a `<mark>`. Diagrams use
-  `currentColor`, `var(--accent)`, `var(--border)`, `var(--text-muted)`, and
-  `var(--surface-2)`.
-- **No emoji.** Arrows come from CSS `content: "\2192"` on `.arrow-list li` and
-  `.sequence li`. Status is expressed with a labelled callout, not a glyph.
-- **No decorative imagery.** Every figure carries information.
+```powershell
+node assets\sync-head.js my-document.html
+node assets\sync-head.js --check my-document.html
+```
 
-## Token reference
+Pass multiple source files to synchronize or check a whole collection. Missing
+markers fail explicitly. Do not synchronize generated standalone exports;
+regenerate them from their sources instead.
 
-| Group | Tokens | Use |
-|---|---|---|
-| Surfaces | `--bg`, `--surface`, `--surface-2`, `--surface-3` | Page, card, quiet block, quietest block |
-| Lines | `--border`, `--border-strong` | Hairlines, and lines that need to read as structure |
-| Text | `--text`, `--text-muted`, `--text-faint` | Body, secondary, metadata |
-| Accent | `--accent`, `--accent-strong`, `--accent-quiet`, `--accent-soft`, `--accent-border` | Links, labels, the verdict callout, focus |
-| Warning | `--warn`, `--warn-soft`, `--warn-border` | The warning callout only |
-| Code | `--code-bg`, `--code-border` | Code blocks and inline code |
-| Shape | `--radius`, `--radius-sm`, `--canvas` | Corners, and the article reading width |
-| Type | `--font-sans`, `--font-mono` | System stacks; no web fonts, ever |
-| Depth | `--shadow-1`, `--shadow-2` | Rest and raised |
+## Defaults and reader preferences
 
-`--canvas` is `1160px`: the article measure. Do not widen it to fit a table;
-make the table narrower or put it behind a reveal.
+```html
+<html lang="en" data-default-accent="blue" data-default-theme="light">
+```
 
-## Typography
+Omit `data-default-theme` to follow the operating system initially. Blue,
+orange, and green are the only valid accent choices. The runtime resolves:
 
-System font stacks only. No `@font-face`, no Google Fonts, no icon font. The
-document must render identically offline and on a locked-down corporate
-machine.
+1. Valid `?theme=light|dark` and `?accent=blue|orange|green` overrides.
+2. The reader's choice saved for this document.
+3. The authored defaults.
+4. System theme and blue accent.
 
-Weights in use: 400 body, 500–560 for labels and card titles, 620–700 for
-headings. Do not add italics for emphasis; restructure the sentence instead.
+Give every document a stable, unique `<meta name="doc-id" content="...">`.
+Appearance and animation settings use `html-docs:<doc-id>:<setting>` in local
+storage. Without an ID, pathname is the fallback, with `.standalone` removed.
+Independent documents do not inherit each other's choices. Local storage
+access can be unavailable under browser policy; the current view still works.
 
-## Theming
+**Dark/Light** switches theme. **Accent** cycles blue, orange, green, with an
+accessible label naming the current and next choice. Changes update any
+matching query override so reload does not undo the selection. All components
+use the same resolved tokens. Nothing is sent to a server.
 
-The theme bootstrap in the head runs before first paint and resolves, in order:
+Without JavaScript, authored defaults still work through CSS; presentation
+summaries stay hidden and detailed reference content remains readable.
 
-1. `?theme=light` or `?theme=dark` in the URL — for sharing a specific
-   rendering, and for screenshots.
-2. `localStorage["doc-theme"]` — the reader's last choice, shared across every
-   document produced by this skill.
-3. `prefers-color-scheme`.
+## Semantic tokens
 
-It also adds `class="js"` to `<html>` synchronously. Every rule that hides
-content is scoped under `.js`, which is what makes the no-JavaScript rendering
-complete rather than collapsed. Do not move the bootstrap below the token block
-and do not defer it.
+| Purpose | Tokens |
+|---|---|
+| Surfaces | `--bg`, `--surface`, `--surface-2`, `--surface-3` |
+| Text | `--text`, `--text-muted`, `--text-faint` |
+| Structure | `--border`, `--border-strong` |
+| Accent | `--accent`, `--accent-strong`, `--accent-quiet`, `--accent-soft`, `--accent-border` |
+| Warning aliases | `--warn`, `--warn-soft`, `--warn-border` |
+| Focus | `--focus` |
+| Code | `--code-bg`, `--code-border` |
+| Type | `--font-sans`, `--font-mono` |
+| Shape | `--radius`, `--radius-sm`, `--canvas` |
+| Depth | `--shadow-1`, `--shadow-2` |
 
-## Diagrams
+System fonts only: no font downloads, icon fonts, emoji, or decorative imagery.
+The reading canvas is 1160px. Do not widen it to rescue a dense table.
+Accent `<em>` in slide titles is a deliberate semantic emphasis; the shared
+CSS renders it upright.
 
-An SVG referenced from `<img src="...">` is a separate document. It cannot read
-`currentColor`, it cannot read the page's custom properties, and it will not
-inherit the page's `data-theme` attribute. A diagram authored against the light
-palette therefore appears as a bright plate on a dark page.
+## Diagrams that actually follow the controls
 
-The fix is to give the SVG its own internal stylesheet keyed on
-`prefers-color-scheme`:
+Prefer **inline SVG** for document diagrams. It inherits the resolved theme
+and accent in the source and standalone export:
 
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" role="img" aria-label="...">
-  <style>
-    .bg  { fill: #ffffff; }
-    .box { fill: #ffffff; stroke: #c2c7cf; }
-    .t   { fill: #14171a; }
-    @media (prefers-color-scheme: dark) {
-      .bg  { fill: #0e1013; }
-      .box { fill: #1b1f26; stroke: #3d4550; }
-      .t   { fill: #eceef1; }
-    }
-    text { font-family: "Segoe UI", -apple-system, Roboto, Arial, sans-serif; }
-  </style>
-  <rect class="bg" width="1600" height="420"/>
-  ...
+```html
+<svg viewBox="0 0 640 180" role="img" aria-labelledby="flow-title flow-desc">
+  <title id="flow-title">A bounded buffer before a worker</title>
+  <desc id="flow-desc">Arrivals wait until the worker can complete them.</desc>
+  <rect x="20" y="30" width="220" height="100" rx="12"
+        fill="var(--surface)" stroke="var(--accent)"/>
+  <text x="130" y="88" text-anchor="middle" fill="var(--text)">Buffer</text>
+  <path d="M260 80H380" stroke="var(--accent)" stroke-width="3"/>
+  <rect x="400" y="30" width="220" height="100" rx="12"
+        fill="var(--surface-2)" stroke="var(--border-strong)"/>
+  <text x="510" y="88" text-anchor="middle" fill="var(--text)">Worker</text>
 </svg>
 ```
 
-This tracks the page's own toggle, not just the operating system, because the
-browser propagates the embedding element's used `color-scheme` into the embedded
-document — and the token block sets `color-scheme` on both `[data-theme="light"]`
-and `[data-theme="dark"]`. Test with the browser emulating dark while the page
-is set to light: the diagram should stay light. No JavaScript is involved,
-and the file still opens correctly on its own.
+Use unique title/description/marker IDs, a tight viewBox, legible labels, and
+enough clearance between labels and geometry. Test all six palettes with a
+browser system theme deliberately opposite the document's theme.
 
-For a small diagram directly embedded as inline `<svg>`, use the page's
-`var(--text)`, `var(--accent)`, and surface/border tokens directly. Include a
-`viewBox`, an accessible title and description, and responsive dimensions.
-Inline SVG inherits the page theme and needs no separate file or lightbox.
+An SVG loaded through `<img>` is a separate document: it **cannot inherit
+the runtime accent**. Keep such images neutral, as in
+`assets/sample-diagram.svg`. Its embedded `prefers-color-scheme` follows the
+embedding page's `color-scheme`. Use inline SVG when color carries emphasis;
+do not hard-code blue into an external diagram. Match image width/height
+attributes to the SVG's aspect ratio.
 
-Give every element a class and swap only colours in the dark block. Do not
-duplicate geometry per theme.
+## Motion and print
 
-Two practicalities when writing SVG by hand:
-
-- **Trim the `viewBox` to the drawing.** The browser fits the image by whichever
-  axis binds first, so blank space inside the `viewBox` shrinks the whole
-  diagram inside its frame. If you move the `viewBox` origin, move the
-  background `rect`'s `x`/`y` to match, and update the `img` `width`/`height`.
-- **Leave clearance around hand-placed labels.** You cannot measure text, so a
-  `text-anchor="middle"` label beside a box will silently overlap it. Budget
-  roughly 60% of the font size per character, and keep about 20px of clear space
-  on each side. Check the rendered result; do not trust the coordinates.
-
-`assets/sample-diagram.svg` is a minimal working example of all of the above.
-
-## Motion
-
-Transitions are short and confined to opacity and transform. Everything is
-wrapped so that `prefers-reduced-motion: reduce` disables it. Nothing moves
-without a user action; there is no autoplay, no scroll-triggered animation, and
-no entrance effect.
-
-## Print
-
-Both runtimes carry a print block. The article prints as a flat document with
-every reveal expanded and all chrome removed. The deck prints one landscape
-page per slide. Check print output with `page.pdf()` when the user says the
-document will be shared as a PDF.
+Only short, user-driven point reveals animate. Reduced motion removes the
+transition and shows all points. No autoplay, looping motion, or scroll effects.
+Article print shows the full reading reference, not the duplicate summaries.
+Deck print shows every slide with all fragments. Inspect an actual PDF when
+PDF is a requested output; HTML validation alone does not verify pagination.

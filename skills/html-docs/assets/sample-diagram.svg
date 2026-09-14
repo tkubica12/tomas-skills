@@ -1,46 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 250 1600 420" width="1600" height="420"
-     role="img" aria-label="Placeholder diagram: a source feeds a processing stage, which feeds a sink.">
-  <!-- Theme-aware figure. An external SVG loaded through <img> is a separate
-       document and cannot read the page's custom properties, but the browser
-       does propagate the embedding page's used color-scheme into it. Because
-       the page sets color-scheme on [data-theme], prefers-color-scheme here
-       follows the page's own toggle rather than the operating system. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" width="960" height="240" role="img" aria-label="A source feeds processing, which writes to a sink.">
   <style>
-    .bg   { fill: #ffffff; }
-    .box  { fill: #ffffff; stroke: #c2c7cf; }
-    .hot  { fill: #eaf3fb; stroke: #0078d4; }
-    .flow { stroke: #0078d4; }
-    .head { fill: #0078d4; }
-    .t    { fill: #14171a; }
-    .tm   { fill: #565c66; }
+    .box { fill: #f2f2f2; stroke: #565656; }
+    .text { fill: #161616; }
+    .line { stroke: #565656; }
     @media (prefers-color-scheme: dark) {
-      .bg   { fill: #0e1013; }
-      .box  { fill: #1b1f26; stroke: #3d4550; }
-      .hot  { fill: #142430; stroke: #4aa3e8; }
-      .flow { stroke: #4aa3e8; }
-      .head { fill: #4aa3e8; }
-      .t    { fill: #eceef1; }
-      .tm   { fill: #a7aeb8; }
+      .box { fill: #232323; stroke: #b5b5b5; }
+      .text { fill: #f2f2f2; }
+      .line { stroke: #b5b5b5; }
     }
-    text { font-family: "Segoe UI", -apple-system, Roboto, Arial, sans-serif; }
+    text { font: 28px system-ui, sans-serif; text-anchor: middle; }
   </style>
-
-  <rect class="bg" x="0" y="250" width="1600" height="420"/>
-
-  <rect class="box" x="120" y="300" width="360" height="180" rx="12" stroke-width="3"/>
-  <rect class="hot" x="620" y="300" width="360" height="180" rx="12" stroke-width="3"/>
-  <rect class="box" x="1120" y="300" width="360" height="180" rx="12" stroke-width="3"/>
-
-  <path class="flow" d="M480 390 h120 M980 390 h120" stroke-width="4" fill="none"/>
-  <path class="head" d="M600 375 l24 15 -24 15 z M1100 375 l24 15 -24 15 z"/>
-
-  <g class="t" font-size="34" text-anchor="middle">
-    <text x="300" y="402">Source</text>
-    <text x="800" y="402">Processing</text>
-    <text x="1300" y="402">Sink</text>
+  <g class="box" stroke-width="2">
+    <rect x="20" y="60" width="220" height="120" rx="12"/>
+    <rect x="370" y="60" width="220" height="120" rx="12"/>
+    <rect x="720" y="60" width="220" height="120" rx="12"/>
   </g>
-
-  <text class="tm" x="800" y="600" font-size="26" text-anchor="middle">
-    Placeholder figure used by the component galleries. Replace with a real screenshot or diagram.
-  </text>
+  <g class="line" fill="none" stroke-width="3">
+    <path d="M240 120 H350 M334 110 L350 120 L334 130"/>
+    <path d="M590 120 H700 M684 110 L700 120 L684 130"/>
+  </g>
+  <g class="text">
+    <text x="130" y="130">Source</text>
+    <text x="480" y="130">Processing</text>
+    <text x="830" y="130">Sink</text>
+  </g>
 </svg>

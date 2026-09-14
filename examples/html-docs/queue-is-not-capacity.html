@@ -22,62 +22,113 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 -->
-<html lang="en">
+<html lang="en" data-default-accent="blue">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A queue is not extra capacity</title>
 <meta name="description" content="An engineering decision about bounded queues, recovery headroom, and admitting only work that can still finish usefully.">
 <meta name="doc-id" content="queue-is-not-capacity">
-<script>
-(function () {
-  var d = document.documentElement;
-  d.classList.add("js");
-  var p = new URLSearchParams(location.search);
-  var t = p.get("theme");
-  if (t !== "light" && t !== "dark") {
-    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+<script data-doc-bootstrap>
+/* Inline in the head before styles with sync-head.js. No deferred bootstrap. */
+(() => {
+  "use strict";
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const id = document.querySelector('meta[name="doc-id"]')?.content ||
+    location.pathname.replace(/\.standalone(?=\.html$)/i, "");
+  const prefix = "html-docs:" + id + ":";
+  const choices = { theme: ["light", "dark"], accent: ["blue", "orange", "green"] };
+  const read = (name) => {
+    try { return localStorage.getItem(prefix + name); }
+    catch { return null; /* Storage may be unavailable for local files. */ }
+  };
+  const write = (name, value) => {
+    try { localStorage.setItem(prefix + name, value); }
+    catch { /* The current view still works without persistence. */ }
+  };
+  function refresh() {
+    for (const name of Object.keys(choices)) {
+      const current = root.getAttribute("data-" + name);
+      const next = choices[name][(choices[name].indexOf(current) + 1) % choices[name].length];
+      document.querySelectorAll('[data-action="toggle-' + name + '"]').forEach(button => {
+        button.textContent = name === "theme" ? (next === "dark" ? "Dark" : "Light") :
+          "Accent: " + current[0].toUpperCase() + current.slice(1);
+        button.setAttribute("aria-label", name === "theme" ? "Switch to " + next + " theme" :
+          "Accent: " + current + ". Switch to " + next);
+      });
+    }
   }
-  if (t !== "light" && t !== "dark") {
-    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  for (const [name, values] of Object.entries(choices)) {
+    const fallback = name === "theme" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : values[0];
+    const value = [params.get(name), read(name), root.getAttribute("data-default-" + name), fallback]
+      .find(candidate => values.includes(candidate));
+    root.setAttribute("data-" + name, value);
   }
-  d.setAttribute("data-theme", t);
-  if (p.get("view") === "slides") d.setAttribute("data-view", "slides");
+  root.classList.add("js");
+  if (params.get("view") === "slides") root.setAttribute("data-view", "slides");
+  window.HtmlDocs = { read, write, refresh };
+  document.addEventListener("DOMContentLoaded", refresh);
+  document.addEventListener("click", event => {
+    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
+    if (!button) return;
+    const name = button.getAttribute("data-action").slice(7);
+    const values = choices[name];
+    const next = values[(values.indexOf(root.getAttribute("data-" + name)) + 1) % values.length];
+    root.setAttribute("data-" + name, next);
+    write(name, next);
+    // Replace a URL override too, so reloading preserves a deliberate change.
+    const url = new URL(location.href);
+    if (url.searchParams.has(name)) {
+      url.searchParams.set(name, next);
+      history.replaceState(null, "", url.href);
+    }
+    refresh();
+  });
 })();
 </script>
-<style>
+<style data-doc-tokens>
+/* Canonical tokens. Inline with sync-head.js; one accent family at a time. */
 :root {
   color-scheme: light;
-  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
-  --border: #dee1e6; --border-strong: #c2c7cf;
-  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
-  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
-  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
-  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
-  --code-bg: #f5f6f8; --code-border: #e2e5ea;
-  --focus: #0078d4;
-  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
-  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f2f2f2; --surface-3: #e8e8e8;
+  --border: #dedede; --border-strong: #b8b8b8;
+  --text: #161616; --text-muted: #565656; --text-faint: #686868;
+  --accent-light: #0068bd; --accent-dark: #69b8ff;
+  --accent: var(--accent-light);
+  --accent-strong: var(--accent);
+  --accent-quiet: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  --accent-border: color-mix(in srgb, var(--accent) 36%, var(--bg));
+  --warn: var(--accent); --warn-soft: var(--accent-soft); --warn-border: var(--accent-border);
+  --code-bg: var(--surface-2); --code-border: var(--border);
+  --focus: var(--accent);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.04), 0 12px 28px rgba(0,0,0,.06);
   --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
 }
-[data-theme="dark"] {
+[data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
-  --border: #2b313a; --border-strong: #3d4550;
-  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
-  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
-  --accent-soft: #142430; --accent-border: #2c4f6d;
-  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
-  --code-bg: #12151a; --code-border: #262c34;
-  --focus: #6cb8f0;
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+  --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
+  --border: #363636; --border-strong: #595959;
+  --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
+  --accent: var(--accent-dark);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+}
+[data-accent="orange"], :root:not([data-accent])[data-default-accent="orange"] {
+  --accent-light: #a94000; --accent-dark: #ffae72;
+}
+[data-accent="green"], :root:not([data-accent])[data-default-accent="green"] {
+  --accent-light: #137344; --accent-dark: #6cd6a0;
 }
 </style>
 <link rel="stylesheet" href="../../skills/html-docs/assets/article.css">
+<link rel="stylesheet" href="../../skills/html-docs/assets/slides.css">
 <script src="../../skills/html-docs/assets/article.js" defer></script>
+<script src="../../skills/html-docs/assets/slides.js" defer></script>
 </head>
 <body>
 <div class="controls" role="group" aria-label="Article controls">
@@ -85,9 +136,15 @@ SOFTWARE.
   <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
   <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
   <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+  <button type="button" class="ctrl" data-action="toggle-accent">Accent: Blue</button>
 </div>
 <div class="doc">
-  <header class="doc-header">
+  <header class="doc-header" id="opening">
+    <div class="slide-content slide-content--title">
+      <p class="slide-eyebrow">An engineering decision</p>
+      <h2 class="slide-title">A queue is not<br><em>extra capacity.</em></h2>
+      <p class="slide-lead">Buffer the burst. Budget the recovery.</p>
+    </div>
     <p class="eyebrow">Engineering decision · asynchronous work</p>
     <h1>A queue is not extra capacity</h1>
     <p class="subtitle">Accept a burst without promising an endless wait. Choose a queue limit, a recovery budget, and an honest response when useful work no longer fits.</p>
@@ -109,6 +166,11 @@ SOFTWARE.
     <section class="chapter" id="ch-capacity">
       <h2 class="chapter-label">Capacity and waiting</h2>
       <article class="card card--lead" id="card-premise" data-open>
+        <div class="slide-content">
+          <p class="slide-eyebrow">The illusion</p>
+          <h2 class="slide-title">Fast acceptance.<br><em>Unchanged capacity.</em></h2>
+          <p class="slide-lead">The wait moved. The work did not.</p>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="true">
             <span class="card-num" aria-hidden="true"></span>
@@ -135,6 +197,27 @@ SOFTWARE.
         </div>
       </article>
       <article class="card" id="card-flow">
+        <div class="slide-content">
+          <h2 class="slide-title">A waiting room.<br><em>Not a wider exit.</em></h2>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" width="960" height="220" role="img" aria-labelledby="slide-flow-title">
+            <title id="slide-flow-title">Buffering stores work; completion remains the bottleneck.</title>
+            <g fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="2">
+              <rect x="10" y="40" width="240" height="140" rx="12"/>
+              <rect x="360" y="40" width="240" height="140" rx="12" fill="var(--accent-soft)" stroke="var(--accent)"/>
+              <rect x="710" y="40" width="240" height="140" rx="12"/>
+            </g>
+            <g stroke="var(--accent)" fill="none" stroke-width="4">
+              <path d="M250 110 H338 M320 98 L338 110 L320 122"/>
+              <path d="M600 110 H688 M670 98 L688 110 L670 122"/>
+            </g>
+            <g fill="var(--text)" font-family="var(--font-sans)" font-size="34" text-anchor="middle">
+              <text x="130" y="105">Admit</text><text x="480" y="105">Buffer</text><text x="830" y="105">Complete</text>
+            </g>
+            <g fill="var(--text-muted)" font-family="var(--font-sans)" font-size="22" text-anchor="middle">
+              <text x="130" y="143">Burst</text><text x="480" y="143">Bounded</text><text x="830" y="143">Bottleneck</text>
+            </g>
+          </svg>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -185,6 +268,14 @@ SOFTWARE.
         </div>
       </article>
       <article class="card" id="card-headroom">
+        <div class="slide-content">
+          <p class="slide-eyebrow">Recovery</p>
+          <h2 class="slide-title">Only spare capacity<br><em>drains the backlog.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">Completions must outrun new arrivals.</li>
+            <li class="frag">Full utilization leaves nothing for recovery.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -218,6 +309,14 @@ SOFTWARE.
     <section class="chapter" id="ch-failure">
       <h2 class="chapter-label">The hidden cost of acceptance</h2>
       <article class="card" id="card-age">
+        <div class="slide-content">
+          <h2 class="slide-title">Watch the oldest<br><em>unfinished promise.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">Queue depth counts work.</li>
+            <li class="frag">Job age exposes delay.</li>
+            <li class="frag">Include in-flight jobs.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -245,6 +344,13 @@ SOFTWARE.
         </div>
       </article>
       <article class="card" id="card-retries">
+        <div class="slide-content">
+          <h2 class="slide-title">Retries are<br><em>more arrivals.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">One identity per logical job.</li>
+            <li class="frag">One finite retry budget.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -274,6 +380,15 @@ SOFTWARE.
     <section class="chapter" id="ch-contract">
       <h2 class="chapter-label">A bounded promise</h2>
       <article class="card" id="card-admission">
+        <div class="slide-content">
+          <p class="slide-eyebrow">Admission</p>
+          <h2 class="slide-title">Bound the promise,<br><em>not just the queue.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">Useful completion deadline.</li>
+            <li class="frag">Hard storage limit.</li>
+            <li class="frag">Honest rejection.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -296,6 +411,14 @@ SOFTWARE.
         </div>
       </article>
       <article class="card" id="card-outcomes">
+        <div class="slide-content">
+          <h2 class="slide-title">Every job needs<br><em>a visible ending.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">Completed.</li>
+            <li class="frag">Failed.</li>
+            <li class="frag">Explicitly expired.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -321,6 +444,14 @@ SOFTWARE.
         </div>
       </article>
       <article class="card" id="card-rehearsal">
+        <div class="slide-content">
+          <p class="slide-eyebrow">The decision test</p>
+          <h2 class="slide-title">Prove recovery<br><em>under continuing load.</em></h2>
+          <ul class="slide-points">
+            <li class="frag">Burst. Slow dependency. Worker restart.</li>
+            <li class="frag">Account for every accepted job.</li>
+          </ul>
+        </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
             <span class="card-num" aria-hidden="true"></span>
@@ -353,7 +484,14 @@ SOFTWARE.
       </article>
     </section>
   </main>
-  <p class="takeaway" id="closing">A queue buys time only when you have the capacity to repay it.</p>
+  <section class="takeaway" id="closing">
+    <p>A queue buys time only when you have the capacity to repay it.</p>
+    <div class="slide-content slide-content--end">
+      <p class="slide-eyebrow">The key message</p>
+      <h2 class="slide-title">Buffer the burst.<br><em>Budget the recovery.</em></h2>
+      <p class="slide-lead">A queue buys time, not capacity.</p>
+    </div>
+  </section>
   <footer class="doc-footer">
     <span>Original fictional example. Calculations use stated assumptions, not observed production results.</span>
     <a href="#ch-capacity">Back to the argument</a>

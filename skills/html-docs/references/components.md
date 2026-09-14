@@ -11,7 +11,7 @@ than working from memory. The deck subset is in
 
 | Component | Article | Deck |
 |---|---|---|
-| reveal | yes | yes |
+| reveal | reading only | no |
 | tabs | yes | no |
 | detail grid | yes | no |
 | sequence | yes | yes |
@@ -26,7 +26,7 @@ than working from memory. The deck subset is in
 
 ## Reveal
 
-Progressive disclosure inside a card or a slide. The default state is closed;
+Progressive disclosure inside a reading card, never a slide. The default state is closed;
 add `data-open` to the `.reveal` and `aria-expanded="true"` to the toggle when
 it should start open.
 
@@ -191,7 +191,8 @@ markup.
 | `callout--author` | Author | First-person context or experience |
 
 At most one callout per card, and at most one per slide. A page of callouts is
-a page with no emphasis.
+a page with no emphasis. Warning labels use the current accent, not a separate
+red or yellow palette.
 
 ## Code
 
@@ -244,10 +245,17 @@ One sentence that closes the article, after the last chapter. The template
 places it immediately after `main`; slides mode discovers either placement.
 
 ```html
-<p class="takeaway">The deployment path, not the platform, was the constraint.</p>
+<section class="takeaway" id="closing">
+  <p>The deployment path, not the platform, was the constraint.</p>
+  <div class="slide-content slide-content--end">
+    <h2 class="slide-title">Fix the path.<br><em>Not the platform.</em></h2>
+  </div>
+</section>
 ```
 
-Exactly one per article. It is the sentence you would want quoted back to you.
+Exactly one per article. The reading sentence closes the argument; the
+authored surface gives the presenter a short final message. See
+[slides mode](slides-mode.md) for the surface contract.
 
 ## Deck-only components
 

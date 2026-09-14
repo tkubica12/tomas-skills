@@ -6,50 +6,20 @@
    and readable in the HTML with JavaScript disabled.
 
    Provides: card and reveal collapsing, expand/collapse all, tabs, detail-grid
-   dialogs, image lightbox with zoom and pan, theme toggle, optional slides mode.
+   dialogs, image lightbox with zoom and pan, and local reading progress.
+   Appearance and optional presentation are separate shared runtimes.
    ========================================================================= */
 
 (() => {
   "use strict";
 
   const root = document.documentElement;
-  const THEME_KEY = "doc-theme";
-  /* Below this the body text stops being readable from the back of a room.
-     A card that still overflows here has to be split by the author. */
-  const MIN_ZOOM = 0.5;
 
   const els = (sel, scope) => Array.from((scope || document).querySelectorAll(sel));
   const el = (sel, scope) => (scope || document).querySelector(sel);
 
-  /* Slides state is declared first: the page may already be in slides mode on
-     first paint (?view=slides), and component setup below calls fitCurrentSlide. */
-  const slidesEnabled = !!el('[data-action="toggle-slides"]');
-  let slides = [];
-  let slideIndex = 0;
-  let slideDialog = null;
-  let chromeTimer = null;
-
-  /* ---------- theme ------------------------------------------------- */
-
-  function currentTheme() {
-    return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
-  }
-
-  function applyTheme(theme) {
-    root.setAttribute("data-theme", theme);
-    try {
-      localStorage.setItem(THEME_KEY, theme);
-    } catch (err) {
-      /* storage blocked; theme still applies for this page view */
-    }
-    els('[data-action="toggle-theme"]').forEach((btn) => {
-      const next = theme === "dark" ? "light" : "dark";
-      btn.textContent = next === "dark" ? "Dark" : "Light";
-      btn.setAttribute("aria-label", "Switch to " + next + " theme");
-    });
-  }
-
-  applyTheme(currentTheme());
+  window.HtmlDocs.refresh();
+  if (!el('[data-action="toggle-slides"]')) root.removeAttribute("data-view");
 
   /* ---------- collapsibles ------------------------------------------ */
 
@@ -79,7 +49,6 @@
     toggle.addEventListener("click", () => {
       const open = !container.hasAttribute("data-open");
       setOpen(container, toggle, open);
-      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
     });
   }
 
@@ -116,8 +85,6 @@
     b.addEventListener("click", () => setAllCards(true)));
   els('[data-action="collapse-all"]').forEach((b) =>
     b.addEventListener("click", () => setAllCards(false)));
-  els('[data-action="toggle-theme"]').forEach((b) =>
-    b.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark")));
 
   /* ---------- read tracking -------------------------------------------- */
 
@@ -156,6 +123,10 @@
   }
 
   const dwell = new Map();
+  document.addEventListener("html-docs:present", () => {
+    dwell.forEach(id => clearTimeout(id));
+    dwell.clear();
+  });
 
   function clearDwell(card) {
     if (!dwell.has(card)) return;
@@ -256,7 +227,6 @@
         panels[i].hidden = !active;
       });
       if (focus) tabs[index].focus();
-      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
     }
 
     let selected = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
@@ -471,277 +441,6 @@
       dialog.showModal();
     });
   });
-
-  /* ---------- slides mode --------------------------------------------- */
-
-  function buildSlides() {
-    const list = [];
-    const chapters = els("main .chapter");
-    if (chapters.length) {
-      chapters.forEach((chapter) => {
-        if (el(":scope > .chapter-label", chapter)) list.push(chapter);
-        els(":scope > .card", chapter).forEach((card) => list.push(card));
-      });
-    } else {
-      els("main .card").forEach((card) => list.push(card));
-    }
-    const takeaway = el(".takeaway");
-    if (takeaway) list.push(takeaway);
-    list.forEach((node, i) => {
-      if (!node.id) node.id = "slide-" + (i + 1);
-    });
-    return list;
-  }
-
-  function ensureSlideUi() {
-    if (el(".slide-progress")) return;
-    const nav = document.createElement("div");
-    nav.className = "slide-ui slide-nav";
-    nav.innerHTML =
-      '<button type="button" data-slide="prev" aria-label="Previous slide">Prev</button>' +
-      '<button type="button" data-slide="next" aria-label="Next slide">Next</button>' +
-      '<button type="button" data-slide="index" aria-label="Jump to a slide">Index</button>';
-    const progress = document.createElement("div");
-    progress.className = "slide-ui slide-progress";
-    progress.setAttribute("aria-live", "polite");
-    document.body.appendChild(nav);
-    document.body.appendChild(progress);
-
-    nav.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-slide]");
-      if (!button) return;
-      const kind = button.getAttribute("data-slide");
-      if (kind === "prev") go(slideIndex - 1);
-      else if (kind === "next") go(slideIndex + 1);
-      else if (kind === "index") openSlideIndex();
-      dropPointerFocus(event, button);
-    });
-  }
-
-  /* ---------- slide index ---------------------------------------------- */
-
-  function slideLabel(node) {
-    /* Inside a card the wrapping <h3> comes first in document order, so ask for
-       .card-title explicitly; a chapter slide contains its cards, so there the
-       document-order match is the chapter's own heading. */
-    const title = (node.classList.contains("card") && el(".card-title", node)) ||
-      el(".card-title, .chapter-title, h2, h3", node);
-    if (title && title.textContent.trim()) return title.textContent.trim();
-    const text = (node.textContent || "").replace(/\s+/g, " ").trim();
-    if (text) return text.length > 64 ? text.slice(0, 63).trimEnd() + "\u2026" : text;
-    return node.id;
-  }
-
-  function slideKind(node) {
-    if (node.classList.contains("chapter")) return "Chapter";
-    if (node.classList.contains("takeaway")) return "Closing";
-    return "";
-  }
-
-  function markSlideIndex() {
-    if (!slideDialog) return;
-    els("button", slideDialog).forEach((button, i) =>
-      button.setAttribute("aria-current", i === slideIndex ? "true" : "false"));
-  }
-
-  function openSlideIndex() {
-    if (!slideDialog) {
-      slideDialog = document.createElement("dialog");
-      slideDialog.className = "slide-index";
-      const escape = (text) =>
-        text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      slideDialog.innerHTML = "<h2>Slides</h2><ol>" + slides.map((node, i) =>
-        '<li><button type="button" data-go="' + i + '">' +
-        '<span class="idx-num">' + (i + 1) + "</span><span>" +
-        escape(slideLabel(node)) +
-        (slideKind(node) ? ' <span class="idx-kind">' + slideKind(node) + "</span>" : "") +
-        "</span></button></li>").join("") + "</ol>";
-      document.body.appendChild(slideDialog);
-      slideDialog.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-go]");
-        if (!button) return;
-        go(parseInt(button.getAttribute("data-go"), 10));
-        slideDialog.close();
-        /* Closing returns focus to the Index button, which would otherwise
-           keep the nav bar lit. */
-        dropPointerFocus(event, document.activeElement);
-      });
-    }
-    markSlideIndex();
-    slideDialog.showModal();
-    const current = el('button[aria-current="true"]', slideDialog);
-    if (current) current.focus();
-  }
-
-  function fitSlide(node) {
-    if (!node || !node.classList.contains("card")) return;
-    const kids = Array.from(node.children);
-    if (!kids.length) return;
-    const apply = (value) => kids.forEach((kid) => kid.style.setProperty("--slide-zoom", String(value)));
-
-    apply(1);
-    if (node.scrollHeight <= node.clientHeight + 1) return;
-
-    /* Converge instead of trusting one ratio: margins between children and
-       sub-pixel rounding both survive the zoom, so a single computed guess
-       reliably leaves a few pixels of content clipped. */
-    let zoom = Math.max(MIN_ZOOM, (node.clientHeight / node.scrollHeight) * 0.98);
-    apply(zoom);
-    let guard = 0;
-    while (node.scrollHeight > node.clientHeight + 1 && zoom > MIN_ZOOM && guard < 20) {
-      zoom = Math.max(MIN_ZOOM, zoom - 0.02);
-      apply(zoom);
-      guard += 1;
-    }
-    if (node.scrollHeight > node.clientHeight + 1) {
-      console.warn("html-docs: slide content does not fit at readable size. Split this card: #" + node.id);
-    }
-  }
-
-  function fitCurrentSlide() {
-    fitSlide(slides[slideIndex]);
-  }
-
-  function go(index) {
-    if (!slides.length) return;
-    slideIndex = Math.min(slides.length - 1, Math.max(0, index));
-    slides.forEach((node) => node.removeAttribute("data-slide-current"));
-    const node = slides[slideIndex];
-    node.setAttribute("data-slide-current", "");
-    if (node.classList.contains("card")) {
-      const toggle = el(":scope > .card-head > .card-toggle", node);
-      if (toggle) setOpen(node, toggle, true);
-    }
-    const progress = el(".slide-progress");
-    if (progress) progress.textContent = (slideIndex + 1) + " / " + slides.length;
-    markSlideIndex();
-    fitSlide(node);
-    syncUrl();
-  }
-
-  function syncUrl() {
-    const params = new URLSearchParams(location.search);
-    const inSlides = root.getAttribute("data-view") === "slides";
-    if (inSlides) params.set("view", "slides");
-    else params.delete("view");
-    const query = params.toString();
-    const hash = inSlides && slides[slideIndex] ? "#" + slides[slideIndex].id : location.hash;
-    history.replaceState(null, "", location.pathname + (query ? "?" + query : "") + hash);
-  }
-
-  /* The presenting chrome rests near-invisible so it stays out of a recording.
-     That only works if the reader has been shown it once, so it is held up for
-     several seconds on entry and lifted again whenever the mouse moves. */
-  function wakeChrome(ms) {
-    root.setAttribute("data-chrome", "awake");
-    clearTimeout(chromeTimer);
-    chromeTimer = setTimeout(() => root.removeAttribute("data-chrome"), ms);
-  }
-
-  /* A pointer click leaves the button focused, and :focus-within holds the
-     whole bar at full opacity for the rest of the talk. Keyboard activation
-     reports detail 0 and keeps its focus ring. */
-  function dropPointerFocus(event, node) {
-    if (event.detail > 0 && node && node.blur) node.blur();
-  }
-
-  function setView(view) {
-    const inSlides = view === "slides";
-    if (inSlides) {
-      slides = buildSlides();
-      ensureSlideUi();
-      root.setAttribute("data-view", "slides");
-      const target = slides.findIndex((node) => "#" + node.id === location.hash);
-      go(target >= 0 ? target : slideIndex);
-      wakeChrome(4200);
-    } else {
-      const node = slides[slideIndex];
-      root.removeAttribute("data-view");
-      slides.forEach((item) => {
-        item.removeAttribute("data-slide-current");
-        Array.from(item.children).forEach((kid) => kid.style.removeProperty("--slide-zoom"));
-      });
-      syncUrl();
-      if (node) node.scrollIntoView({ block: "start" });
-    }
-    els('[data-action="toggle-slides"]').forEach((button) =>
-      button.setAttribute("aria-pressed", inSlides ? "true" : "false"));
-  }
-
-  if (slidesEnabled) {
-    els('[data-action="toggle-slides"]').forEach((button) => {
-      button.setAttribute("aria-pressed", "false");
-      button.addEventListener("click", (event) => {
-        setView(root.getAttribute("data-view") === "slides" ? "article" : "slides");
-        dropPointerFocus(event, button);
-      });
-    });
-
-    document.addEventListener("keydown", (event) => {
-      const inSlides = root.getAttribute("data-view") === "slides";
-      if (!inSlides) return;
-      if (el("dialog[open]")) return;
-      const key = event.key;
-      if (key === "ArrowRight" || key === "PageDown" || key === " " || key === "Spacebar") {
-        event.preventDefault();
-        go(slideIndex + 1);
-      } else if (key === "ArrowLeft" || key === "PageUp") {
-        event.preventDefault();
-        go(slideIndex - 1);
-      } else if (key === "Home") {
-        event.preventDefault();
-        go(0);
-      } else if (key === "End") {
-        event.preventDefault();
-        go(slides.length - 1);
-      } else if (key === "f" || key === "F") {
-        event.preventDefault();
-        if (document.fullscreenElement) document.exitFullscreen();
-        else document.documentElement.requestFullscreen().catch(() => {});
-      } else if (key === "o" || key === "O") {
-        event.preventDefault();
-        openSlideIndex();
-      } else if (key === "Escape") {
-        setView("article");
-      }
-    });
-
-    /* The slide chrome sits at 0.12 opacity so it never competes with the
-       content, which also makes it easy to miss. Any pointer movement brings
-       it part-way up for a moment; hovering still takes it to full strength. */
-    document.addEventListener("mousemove", () => {
-      if (root.getAttribute("data-view") !== "slides") return;
-      wakeChrome(2400);
-    }, { passive: true });
-
-    document.addEventListener("click", (event) => {
-      if (root.getAttribute("data-view") !== "slides") return;
-      if (event.target.closest("button, a, input, select, textarea, dialog")) return;
-      go(slideIndex + 1);
-    });
-
-    let touchX = null;
-    document.addEventListener("touchstart", (event) => {
-      if (root.getAttribute("data-view") !== "slides") return;
-      touchX = event.changedTouches[0].clientX;
-    }, { passive: true });
-    document.addEventListener("touchend", (event) => {
-      if (root.getAttribute("data-view") !== "slides" || touchX === null) return;
-      const delta = event.changedTouches[0].clientX - touchX;
-      touchX = null;
-      if (Math.abs(delta) < 45) return;
-      go(delta < 0 ? slideIndex + 1 : slideIndex - 1);
-    }, { passive: true });
-
-    window.addEventListener("resize", () => {
-      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
-    });
-
-    const wanted = new URLSearchParams(location.search).get("view");
-    if (wanted === "slides" || root.getAttribute("data-view") === "slides") {
-      setView("slides");
-    }
-  }
 
   /* ---------- deep links ------------------------------------------------ */
 

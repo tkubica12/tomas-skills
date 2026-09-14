@@ -1,22 +1,20 @@
 # Validation
 
-Validate the editable source and the file actually delivered. Automated checks
-catch broken behavior and clipping; visual inspection catches cramped slides
-and diagrams with overlapping labels.
+Validate the source and the actual standalone deliverable. Browser checks
+detect broken behavior and clipping; screenshots detect cramped composition.
 
-## Requirements
+## Setup
 
-The exporter needs only Node.js. The validator additionally needs Playwright
-and Chromium, or a compatible installed Chromium-based browser.
-
-Try existing packages and browser installations first:
+The exporter and head synchronizer need only Node.js. Validation additionally
+needs Playwright and Chromium or a compatible installed browser. Try existing
+packages first:
 
 ```powershell
 node assets\validate.js my-document.html
 ```
 
-The validator searches common Playwright installations and browser caches.
-Override either location when needed:
+The validator searches common global Playwright installations and browser
+caches. Override either when necessary:
 
 ```powershell
 $env:PLAYWRIGHT_MODULE = "<existing-node-modules>\playwright"
@@ -24,84 +22,84 @@ $env:PLAYWRIGHT_CHROMIUM = "<installed-browser>\chrome.exe"
 node assets\validate.js my-document.html --shots validation\source
 ```
 
-An installed Edge executable can also be supplied as `PLAYWRIGHT_CHROMIUM`.
-If dependencies are missing, use the environment's approved package registry
-and browser-installation policy. Inspect its effective registry and available
-versions before installing. Do not bypass a managed feed or blocked browser
-download.
+An installed Edge executable also works. For missing dependencies, inspect the
+effective registry, query versions from the environment's approved feed, and
+follow browser-installation policy. Never bypass a managed package feed or a
+blocked browser download.
 
-## Source checks
+## Automated checks
 
 ```powershell
+node assets\sync-head.js --check my-document.html
 node assets\validate.js my-document.html --shots validation\source
+node assets\validate.js my-document.html --viewport 1920x1080
 ```
 
-Exit code 0 means every automated check passed. The checker covers:
+Each browser run checks all six light/dark x blue/orange/green combinations,
+with networking disabled and system theme opposite the requested theme:
 
-- Console warnings/errors, failed requests, theme bootstrap, title/description,
-  one `h1`, image loading and accessibility attributes, emoji, inline colors.
-- With JavaScript disabled: card/reveal/panel/slide visibility and text coverage.
-- Articles: card state, tab labels, expand/collapse, theme toggle, slides entry,
-  navigation, slide overflow, and `Escape` exit.
-- Decks: stage fit, slide overflow, authored IDs, end navigation, index, theme.
+- Appearance toggles, warning/accent coherence, document metadata and unique IDs.
+- Presentable articles: opening/closing and one authored surface per card.
+- Article slide limits: 45 words, three points, ten words per point,
+  18 words per paragraph, no interactive reading content.
+- Card and reveal behavior and matching expanded state.
+- Exact narrative order and whole-slide traversal, including chapter dividers.
+- Slide clipping, deck readability floor and 65-word budget.
+- Fragment accessibility, reduced-motion navigation, named index and focus return.
+- Console warnings/errors, failed requests, required network requests, images.
+- No-JavaScript visibility and full article reference-text parity, excluding
+  intentionally hidden presentation summaries.
 
-The screenshots are light/dark article views or the deck's current slide.
-They are **not** a complete slide-by-slide visual review.
+Exit code 0 means every assertion passed. `--shots` captures reading and every
+presentation surface with points revealed in each palette. It does not make a
+visual judgment. Keep validation screenshots/logs outside public deliverables,
+except a deliberately selected showcase image.
 
-## Isolated standalone checks
-
-Export, then copy only the generated HTML and validator to a fresh validation
-folder. Keep that folder outside public deliverables; do not leave an `assets`
-directory beside the export.
+## Isolated export
 
 ```powershell
 node assets\bundle.js my-document.html
-# Run from the document folder; use a new folder name for each isolated check.
 New-Item -ItemType Directory validation\isolated | Out-Null
 Copy-Item my-document.standalone.html validation\isolated
 Copy-Item assets\validate.js validation\isolated
-node validation\isolated\validate.js validation\isolated\my-document.standalone.html --shots validation\export
+node validation\isolated\validate.js validation\isolated\my-document.standalone.html
 ```
 
-Also open the isolated export with browser networking disabled. Verify that it
-has no required remote stylesheets, scripts, fonts, images, or other assets.
-External citation links are allowed but must not be needed to read the content.
-Repeat with JavaScript disabled: all detailed prose must remain readable.
+Use a fresh folder containing only the export and validator, not an assets
+directory. The validator's offline browser proves references are resolved;
+its no-JavaScript pass proves the detailed reading content survives without
+the runtime. The exporter wraps deferred scripts because an inline script's
+`defer` attribute alone does not delay execution.
 
-The exporter wraps deferred scripts because `defer` is ignored on an inline
-script. If expand-all, theme, and slides all fail only in the export, check that
-the wrapper survived rather than working around each symptom.
+## Human browser review
 
-## Browser review
+1. Read the collapsed card titles and expanded prose. Verify assumptions,
+   sources, fictional inputs, and the reasoning behind each cue.
+2. Inspect opening, divider, diagram, busiest slide, and closing in all six
+   palettes at laptop and projector sizes. Diagrams must inherit the selected
+   accent; no independent warning or category colors.
+3. Test `?view=slides#card-id`, reload, theme/accent persistence, keyboard focus,
+   native Space on controls, index selection, fragments and whole-slide skips.
+4. Check narrow reading layouts and browser zoom. A landscape presentation
+   viewport is recommended; shorten surfaces rather than add tiny typography.
+5. Disable JavaScript: complete reading content, not duplicated summaries,
+   must remain available. Print an actual PDF if PDF is requested.
 
-1. Read the collapsed article: card titles must carry the argument.
-2. Open each reveal. Verify the promised explanation is present and readable.
-3. In **both themes**, inspect article, chapter divider, diagram, busiest card,
-   and closing takeaway.
-4. Enter slides using the toggle and `?view=slides`. Traverse every slide at
-   1440×900 and 1920×1080. Check the index, keyboard navigation, and return to
-   the document. No slide should depend on opening a reveal.
-5. Measure the fit as well as overflow. A slide squeezed below about 70% needs
-   less content, even if it technically fits.
-6. Check links, provenance, and explicit assumptions. Fictional inputs must not
-   look like production measurements.
-7. If a PDF was requested, exit slides before printing an article; check the
-   actual PDF. For a deck use landscape printing.
-
-Fix clipping by splitting cards or moving detail behind reveals, never by
-changing the runtime or adding per-page typography overrides.
+The opening and final message should look intentionally composed. Other slides
+must provide space for the speaker, not require the audience to read paragraphs.
+Article slides never auto-shrink; deck bodies may fit only as low as 0.85.
+Passing overflow alone is not sufficient.
 
 ## Shared-runtime regressions
 
-If shared CSS or JavaScript changes, validate all reference fixtures and
-visually compare their themes:
+Validate every fixture after changes:
 
 ```powershell
+node assets\sync-head.js --check article.template.html article.components.html deck.template.html deck.components.html
 node assets\validate.js article.template.html
 node assets\validate.js article.components.html
 node assets\validate.js deck.template.html
 node assets\validate.js deck.components.html
 ```
 
-Document the runtime change and re-export affected deliverables. Do not publish
-screenshots, dependency folders, or validation logs as part of the skill.
+Regenerate affected standalone outputs and refresh representative screenshots.

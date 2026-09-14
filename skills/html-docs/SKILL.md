@@ -6,22 +6,23 @@ license: MIT
 
 # One document, two ways to use it
 
-Build a readable HTML document with progressive disclosure and a presentation
-view over **the same content, in the same order**. After the meeting, listeners
-receive the same file and open the explanations behind each point. There is no
-second narrative to keep synchronized.
+Build **one transferable HTML file with two deliberately different depths**:
+concise speaker cues for presenting, and explanatory prose for reading.
+Both follow the same chapters and cards in the same order. After the meeting,
+listeners receive that file and open the evidence behind each point.
 
 ## Choose the shape
 
 | Need | Shape | Runtime |
 |---|---|---|
-| Live presentation **and** detailed document or follow-up handout | **Article with slides mode** — the preferred combined deliverable | `assets/article.css` + `assets/article.js` |
-| Analysis, design note, briefing, tutorial, report | **Article**, optionally with slides mode | Same article runtime |
+| Live presentation **and** detailed document or follow-up handout | **Article with slides mode** — the preferred combined deliverable | `article.css/js` + `slides.css/js` |
+| Analysis, design note, briefing, tutorial, report | **Article**, optionally with slides mode | Same assets; omit Slides control for reading only |
 | Explicitly slide-first talk, or a presentation with a different narrative from the document | **Deck**, fixed 16:9 stage | `assets/deck.css` + `assets/deck.js` |
 
 Do not select a separate deck merely because the request says “talk” or
 “presentation.” When people should read the details afterward, use article
-slides mode. Do not duplicate the article into a second set of slides.
+slides mode. Author a short `.slide-content` inside each card, alongside its
+full `.card-body`; do not create a separate document or repeat the body on screen.
 
 ## Requirements
 
@@ -30,6 +31,13 @@ slides mode. Do not duplicate the article into a second set of slides.
 - No framework, CDN, runtime fetch, web font, or required network asset.
 - Start from the appropriate template. Preserve its theme bootstrap and
   canonical inline tokens from `assets/tokens.css`; do not invent a palette.
+- Black, white, grayscale, and **one accent at a time**: blue by default,
+  orange or green alternatives. Set `data-default-accent` on the document,
+  never individual components. Both views share the runtime accent control.
+- Slides support the speaker: one claim, at most three short cues, no long
+  prose, reveals, tabs, links, or other interactive content. Include an
+  intentional opening and a memorable closing. Only optional point-by-point
+  fragments animate; reduced motion reveals everything without animation.
 - Use the documented components. Do not modify shared CSS or JavaScript to
   accommodate one document; shorten or restructure its content instead.
 - No emoji. Use CSS-drawn controls and arrows.
@@ -55,7 +63,9 @@ document-folder/
   my-document.html
   assets/
     article.css  article.js
+    slides.css   slides.js
     deck.css     deck.js
+    appearance.js  sync-head.js
     tokens.css   bundle.js   validate.js
     sample-diagram.svg
   LICENSE
@@ -79,16 +89,18 @@ file, including during export.
 
 1. **Plan the argument.** Choose chapter and card titles for an article, or
    slide titles for a deck. Titles assert claims; chapter labels are signposts.
-2. **Separate the live argument from its depth.** Each article card carries one
-   concise point. Evidence, assumptions, worked calculations, and alternatives
-   go in reveals under that same point. Essential reasoning stays on the
-   surface. A full-width figure gets its own card.
+2. **Write both depths intentionally.** Each `.slide-content` has at most
+   45 words including diagram labels, one title, and at most three points of
+   ten words each. Its `.card-body` explains the claim in prose; reveals hold
+   evidence, assumptions, calculations, and alternatives. The reading body
+   must stand alone without the presentation summary. Never squeeze it onto
+   the slide. Keep one diagram or other substantial visual per slide.
 3. **Read the relevant references before writing.**
    - [Design system](references/design-system.md): head, tokens, themes, SVGs.
    - [Article structure](references/article-structure.md): chapters, cards,
      stable IDs, depth, read progress.
    - [Components](references/components.md): exact component markup.
-   - [Slides mode](references/slides-mode.md): article presentation and fitting.
+   - [Slides mode](references/slides-mode.md): authored cues and navigation.
    - [Deck authoring](references/deck-authoring.md): slide-first layouts and
      fragments.
    - [Writing rules](references/writing-rules.md): direct prose and claim
@@ -97,15 +109,26 @@ file, including during export.
    [Article components](article.components.html) and
    [deck components](deck.components.html) are local working references.
    Keep card numbers empty and IDs stable. Keep the article's **Slides**
-   control for a combined talk and handout.
+   control for a combined talk and handout. Set a unique `doc-id` to scope
+   theme, accent, animations, and read marks to this document.
 5. **Check claims.** Identify assumptions and fictional examples explicitly.
    Give measured numbers their source and conditions; date time-sensitive
    claims. Do not invent benchmarks, quotations, or experience. Write
    explanatory prose, not narration about how the document was made.
 6. **Validate source, then export and validate the deliverable.** Follow the
    [validation checklist](references/validation.md). Inspect screenshots in
-   light/dark themes and presentation mode, including the longest card and
-   diagram at laptop and projector sizes. Fix overflow by restructuring.
+   all six light/dark × blue/orange/green combinations, including opening,
+   closing, and diagram at laptop and projector sizes. A slide must look
+   spacious, not merely pass an overflow check.
+
+When canonical head assets change, synchronize sources before exporting:
+
+```powershell
+node assets\sync-head.js my-document.html
+```
+
+This copies `appearance.js` and `tokens.css` into the template's marked head
+blocks. Never hand-edit those copies. `--check` detects stale copies.
 
 ## Export the file people receive
 
@@ -138,7 +161,7 @@ travels with it.
 ## Handoff
 
 Report the editable source and shareable export paths, chapter/card or slide
-count, validation results, and any deliberately omitted material. For article
-slides: **Slides** toggles views; arrows advance; **Index** or `O` jumps;
-`Escape` returns to reading. Dark/light theme and read marks stay local to the
-browser. Decks additionally support fragments and the **Animations** toggle.
+count, validation results, and any deliberately omitted material. **Slides**
+toggles article views; arrows/Space advance points; PageDown/PageUp skip whole
+slides; **Index** or `O` jumps; `Escape` returns to reading. Both shapes have
+theme/accent and **Animations** controls. Preferences stay local to the browser.
