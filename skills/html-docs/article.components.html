@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Article components</title>
+<meta name="description" content="Every component of the html-docs article runtime, with the exact markup each one requires.">
+
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+  if (p.get("view") === "slides") d.setAttribute("data-view", "slides");
+})();
+</script>
+
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+
+<link rel="stylesheet" href="assets/article.css">
+<script src="assets/article.js" defer></script>
+</head>
+
+<body>
+
+<div class="controls" role="group" aria-label="Article controls">
+  <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
+  <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
+  <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+</div>
+
+<div class="doc">
+
+  <header class="doc-header">
+    <p class="eyebrow">Reference</p>
+    <h1>Article components</h1>
+    <p class="subtitle">Every component the article runtime styles, with the exact markup it expects. Copy from here rather than inventing structure.</p>
+    <p class="meta">Component reference; all scenarios are illustrative.</p>
+  </header>
+
+  <nav class="doc-nav" aria-label="Related material">
+    <a href="article.template.html">Blank article template</a>
+    <a href="deck.components.html">Deck components</a>
+  </nav>
+
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">Contents</p>
+    <ol>
+      <li><a href="#ch-structure">Structure</a></li>
+      <li><a href="#ch-alternatives">Alternatives and detail</a></li>
+      <li><a href="#ch-shape">Shaped content</a></li>
+      <li><a href="#ch-evidence">Evidence</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section class="chapter" id="ch-structure">
+      <h2 class="chapter-label">Structure</h2>
+
+      <article class="card card--lead" id="card-how-to-read" data-open>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="true">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">How to read this page</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>This is a lead card. It carries <code>card--lead</code>, so it is not numbered and never renders <code>00</code>. It is the only card open on load.</p>
+          <p>Every other card below demonstrates one component. Open a card, then read its markup in the source.</p>
+        </div>
+      </article>
+
+      <article class="card" id="card-card">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Card</span>
+              <span class="card-sub">The fundamental unit: one card is one major idea.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>The header is a real button with <code>aria-expanded</code>. The number is generated by a CSS counter, so inserting a card never renumbers by hand.</p>
+          <p>The second header line is a subtitle. Use it when the title alone does not make a collapsed card understandable.</p>
+        </div>
+      </article>
+
+      <article class="card" id="card-reveal">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Reveal</span>
+              <span class="card-sub">Optional depth inside a card.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>Use a reveal for troubleshooting, evidence, derivations, and side arguments. The content stays inline in the HTML, so it prints and searches.</p>
+
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Show the failure path</button>
+            <div class="reveal-body">
+              <p>Reveal body text stays at normal reading size. Optional does not mean fine print.</p>
+              <ul class="arrow-list">
+                <li>Check the resource provider registration first.</li>
+                <li>Then confirm the role assignment has propagated.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Show a second reveal</button>
+            <div class="reveal-body">
+              <p>Reveals are independent of each other and of the card.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="chapter" id="ch-alternatives">
+      <h2 class="chapter-label">Alternatives and detail</h2>
+
+      <article class="card" id="card-tabs">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Tabs</span>
+              <span class="card-sub">Only for true alternatives: two ways to do the same thing.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="tabs">
+            <div class="tablist" role="tablist" aria-label="Ways to create the resource">
+              <button type="button" role="tab" id="tab-portal" aria-controls="panel-portal" aria-selected="true">Portal</button>
+              <button type="button" role="tab" id="tab-cli" aria-controls="panel-cli" aria-selected="false" tabindex="-1">CLI</button>
+              <button type="button" role="tab" id="tab-sdk" aria-controls="panel-sdk" aria-selected="false" tabindex="-1">SDK</button>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-portal" aria-labelledby="tab-portal" data-tab-label="Portal">
+              <p>Open the resource blade, select <strong>Create</strong>, and complete the basics tab.</p>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-cli" aria-labelledby="tab-cli" data-tab-label="CLI" hidden>
+              <div class="code">
+                <p class="code-label">bash</p>
+                <pre><code>az group create --name rg-demo --location westeurope</code></pre>
+              </div>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="panel-sdk" aria-labelledby="tab-sdk" data-tab-label="SDK" hidden>
+              <p>Call the management client and await the long-running operation.</p>
+            </div>
+          </div>
+          <p>Without JavaScript, the tab strip is hidden and every panel is shown stacked with its label, so nothing is lost.</p>
+        </div>
+      </article>
+
+      <article class="card" id="card-detail-grid">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Detail grid</span>
+              <span class="card-sub">Two or four tiles, each with a short summary and a longer detail.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="detail-grid">
+            <div class="detail-tile">
+              <button type="button" class="detail-open">
+                <span class="detail-title">Cost</span>
+                <span class="detail-summary">Predictable at steady state, spiky during migration.</span>
+                <span class="detail-more" aria-hidden="true">Details</span>
+              </button>
+              <div class="detail-body">
+                <p>Migration doubles the running footprint for the cutover window. Budget for the overlap rather than the end state.</p>
+              </div>
+            </div>
+            <div class="detail-tile">
+              <button type="button" class="detail-open">
+                <span class="detail-title">Operations</span>
+                <span class="detail-summary">Fewer moving parts, different failure modes.</span>
+                <span class="detail-more" aria-hidden="true">Details</span>
+              </button>
+              <div class="detail-body">
+                <p>The platform absorbs patching and node health. In exchange, diagnosis moves from the host to the platform log surface.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="chapter" id="ch-shape">
+      <h2 class="chapter-label">Shaped content</h2>
+
+      <article class="card" id="card-sequence">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Sequence and steps</span>
+              <span class="card-sub">An ordered evolution, and a lifecycle to execute.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <h4>Sequence</h4>
+          <ol class="sequence">
+            <li><span class="seq-title">Virtual machines</span><span class="seq-note">Full control, full responsibility.</span></li>
+            <li><span class="seq-title">Containers</span><span class="seq-note">Portable units, orchestrated.</span></li>
+            <li><span class="seq-title">Managed platform</span><span class="seq-note">Operations absorbed.</span></li>
+          </ol>
+
+          <h4>Steps</h4>
+          <ol class="steps">
+            <li>
+              <h4>Provision</h4>
+              <p>Create the resource group and the workload identity.</p>
+            </li>
+            <li>
+              <h4>Deploy</h4>
+              <p>Push the image and roll out the first revision.</p>
+            </li>
+            <li>
+              <h4>Verify</h4>
+              <p>Confirm the health probe returns 200 before shifting traffic.</p>
+            </li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="card" id="card-lists">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Summary grid and arrow list</span>
+              <span class="card-sub">Final synthesis, and practical next actions.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="summary-label">Latency</span>
+              <p>Median request time drops once the cold start is removed.</p>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Cost</span>
+              <p>Steady state is cheaper; the migration window is not.</p>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Risk</span>
+              <p>The rollback path must be rehearsed before the cutover.</p>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Effort</span>
+              <p>Most of the work is in configuration, not in code.</p>
+            </div>
+          </div>
+
+          <h4>Next actions</h4>
+          <ul class="arrow-list">
+            <li>Run the readiness assessment against the staging subscription.</li>
+            <li>Record the current baseline latency before changing anything.</li>
+            <li>Agree the rollback trigger with the service owner.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="card" id="card-callouts">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Callouts</span>
+              <span class="card-sub">A fixed set of six meanings. Use them sparingly.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <aside class="callout callout--note">
+            <p class="callout-label">Note</p>
+            <p>Side information worth surfacing.</p>
+          </aside>
+          <aside class="callout callout--rule">
+            <p class="callout-label">Rule</p>
+            <p>A durable rule to remember.</p>
+          </aside>
+          <aside class="callout callout--warning">
+            <p class="callout-label">Warning</p>
+            <p>A practical risk, or a way to break something.</p>
+          </aside>
+          <aside class="callout callout--verdict">
+            <p class="callout-label">Verdict</p>
+            <p>A conclusion.</p>
+          </aside>
+          <aside class="callout callout--source">
+            <p class="callout-label">Source</p>
+            <p>Provenance of a claim, with a date or a version.</p>
+          </aside>
+          <aside class="callout callout--author">
+            <p class="callout-label">Author</p>
+            <p>A personal viewpoint, marked as one.</p>
+          </aside>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="chapter" id="ch-evidence">
+      <h2 class="chapter-label">Evidence</h2>
+
+      <article class="card" id="card-code">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Code and tables</span>
+              <span class="card-sub">Commands, transcripts, and small comparisons.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="code">
+            <p class="code-label">infra/main.bicep</p>
+            <pre><code>resource app 'Microsoft.App/containerApps@2024-03-01' = {
+  name: appName
+  location: location
+  properties: {
+    managedEnvironmentId: environment.id
+    configuration: { ingress: { external: true, targetPort: 8080 } }
+  }
+}</code></pre>
+          </div>
+
+          <div class="code">
+            <pre><code>$ az containerapp show --name demo --query properties.runningStatus --output tsv
+Running</code></pre>
+          </div>
+
+          <table>
+            <thead>
+              <tr><th>Option</th><th>Control</th><th>Operational load</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Virtual machines</td><td>Full</td><td>High</td></tr>
+              <tr><td>Container apps</td><td>Application level</td><td>Low</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card" id="card-figure">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Figures</span>
+              <span class="card-sub">Screenshots and diagrams, zoomable in place.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <figure class="figure">
+            <a class="zoom" href="assets/sample-diagram.svg">
+              <img src="assets/sample-diagram.svg" alt="Source feeds a processing stage, which writes to a sink." loading="lazy" width="1600" height="420">
+            </a>
+            <figcaption>Data path from source through processing to sink. Click to zoom.</figcaption>
+          </figure>
+
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Show the screenshot evidence</button>
+            <div class="reveal-body">
+              <p>Screenshot-heavy evidence belongs in a reveal so the main article stays readable.</p>
+              <figure class="figure">
+                <a class="zoom" href="assets/sample-diagram.svg">
+                  <img src="assets/sample-diagram.svg" alt="The same diagram, used here as a stand-in for a portal screenshot." loading="lazy" width="1600" height="420">
+                </a>
+                <figcaption>Placeholder standing in for a portal screenshot.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <p class="takeaway">Reuse these structures exactly; a deviating structure produces unstyled controls, because the shared CSS and script key off it.</p>
+
+  <footer class="doc-footer">
+    <a href="article.template.html">Blank article template</a>
+    <a href="deck.components.html">Deck components</a>
+  </footer>
+
+</div>
+
+</body>
+</html>

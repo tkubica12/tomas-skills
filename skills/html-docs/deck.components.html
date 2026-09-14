@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck components</title>
+<meta name="description" content="Every slide type and component of the html-docs deck runtime.">
+
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+})();
+</script>
+
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+
+<link rel="stylesheet" href="assets/deck.css">
+<script src="assets/deck.js" defer></script>
+</head>
+
+<body>
+
+<main class="deck-stage">
+
+  <section class="slide slide--title" id="s-title">
+    <h1>Deck components</h1>
+    <p class="slide-sub">Every slide type the deck runtime styles, with the markup each one expects.</p>
+    <p class="slide-meta">Component reference; all scenarios are illustrative.</p>
+  </section>
+
+  <section class="slide slide--section" id="s-section">
+    <h2>Slide types</h2>
+    <p class="slide-lead">Title, section, content, and closing.</p>
+  </section>
+
+  <section class="slide" id="s-arrow">
+    <div class="slide-head">
+      <h2 class="slide-title">Arrow list with fragments</h2>
+      <p class="slide-lead">Each item appears on its own advance.</p>
+    </div>
+    <div class="slide-body">
+      <ul class="arrow-list">
+        <li class="frag">Fragments keep the room with you instead of ahead of you.</li>
+        <li class="frag">Advancing past the last fragment moves to the next slide.</li>
+        <li class="frag">Going back re-hides them one at a time.</li>
+      </ul>
+    </div>
+    <p class="slide-note">Fragments are dimmed rather than removed, so nothing shifts position.</p>
+  </section>
+
+  <section class="slide" id="s-two-col">
+    <div class="slide-head">
+      <h2 class="slide-title">Two columns</h2>
+    </div>
+    <div class="slide-body">
+      <div class="two-col">
+        <div>
+          <span class="col-label">Before</span>
+          <ul>
+            <li>Manual deployment from a workstation.</li>
+            <li>Configuration lives in a wiki page.</li>
+            <li>Rollback is a phone call.</li>
+          </ul>
+        </div>
+        <div>
+          <span class="col-label">After</span>
+          <ul>
+            <li>Pipeline deployment from a signed artifact.</li>
+            <li>Configuration lives in the repository.</li>
+            <li>Rollback is a pipeline stage.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s-summary">
+    <div class="slide-head">
+      <h2 class="slide-title">Summary grid</h2>
+      <p class="slide-lead">Two to six labelled takeaways.</p>
+    </div>
+    <div class="slide-body">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">Latency</span>
+          Median request time drops once the cold start is removed.
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Cost</span>
+          Steady state is cheaper; the migration window is not.
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Risk</span>
+          The rollback path must be rehearsed before the cutover.
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Effort</span>
+          Most of the work is in configuration, not in code.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s-steps">
+    <div class="slide-head">
+      <h2 class="slide-title">Steps and sequence</h2>
+    </div>
+    <div class="slide-body">
+      <ol class="sequence">
+        <li><span class="seq-title">Virtual machines</span><span class="seq-note">Full control, full responsibility.</span></li>
+        <li><span class="seq-title">Containers</span><span class="seq-note">Portable units, orchestrated.</span></li>
+        <li><span class="seq-title">Managed platform</span><span class="seq-note">Operations absorbed.</span></li>
+      </ol>
+      <ol class="steps" style="margin-top: 28px">
+        <li><h3>Provision</h3><p>Create the resource group and the workload identity.</p></li>
+        <li><h3>Deploy</h3><p>Push the image and roll out the first revision.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="slide" id="s-code">
+    <div class="slide-head">
+      <h2 class="slide-title">Code</h2>
+      <p class="slide-lead">Short, projected, and readable from the back row.</p>
+    </div>
+    <div class="slide-body">
+      <div class="code">
+        <p class="code-label">bash</p>
+        <pre><code>az containerapp up \
+  --name demo \
+  --resource-group rg-demo \
+  --source .</code></pre>
+      </div>
+      <div class="reveal">
+        <button type="button" class="reveal-toggle">Show the full output</button>
+        <div class="reveal-body">
+          <div class="code">
+            <pre><code>Creating resource group rg-demo
+Building image demo:latest
+Deployment succeeded</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s-figure">
+    <div class="slide-head">
+      <h2 class="slide-title">Figure</h2>
+    </div>
+    <div class="slide-body">
+      <figure class="figure">
+        <img src="assets/sample-diagram.svg" alt="Source feeds a processing stage, which writes to a sink." width="1600" height="420">
+        <figcaption>Data path from source through processing to sink.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="slide" id="s-callouts">
+    <div class="slide-head">
+      <h2 class="slide-title">Callouts</h2>
+      <p class="slide-lead">Same six meanings as the article. Use one per slide at most.</p>
+    </div>
+    <div class="slide-body">
+      <aside class="callout callout--rule">
+        <p class="callout-label">Rule</p>
+        <p>A durable rule to remember.</p>
+      </aside>
+      <aside class="callout callout--warning">
+        <p class="callout-label">Warning</p>
+        <p>A practical risk, or a way to break something.</p>
+      </aside>
+      <aside class="callout callout--source">
+        <p class="callout-label">Source</p>
+        <p>Provenance of a claim, with a date or a version.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="slide" id="s-quote">
+    <div class="slide-body" style="display: flex; align-items: center">
+      <blockquote class="quote">
+        The constraint was never the platform. It was the deployment path.
+        <span class="quote-attrib">Fictional quotation for this component example</span>
+      </blockquote>
+    </div>
+  </section>
+
+  <section class="slide" id="s-table">
+    <div class="slide-head">
+      <h2 class="slide-title">Table</h2>
+    </div>
+    <div class="slide-body">
+      <table>
+        <thead>
+          <tr><th>Option</th><th>Control</th><th>Operational load</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Virtual machines</td><td>Full</td><td>High</td></tr>
+          <tr><td>Container apps</td><td>Application level</td><td>Low</td></tr>
+          <tr><td>Functions</td><td>Function level</td><td>Lowest</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="slide slide--end" id="s-end">
+    <p>Author inside the 1280 by 720 box, and the deck will fit every screen it meets.</p>
+  </section>
+
+</main>
+
+</body>
+</html>

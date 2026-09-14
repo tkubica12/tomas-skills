@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARTICLE TITLE</title>
+<meta name="description" content="ONE SENTENCE SUMMARY">
+<!-- Stable key for read-progress storage. Keep it if this document may be
+     served from more than one path; delete it and the pathname is used. -->
+<meta name="doc-id" content="SLUG">
+
+<!-- 1. Theme bootstrap. Must be the first script in <head>. -->
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+  if (p.get("view") === "slides") d.setAttribute("data-view", "slides");
+})();
+</script>
+
+<!-- 2. Canonical design tokens. Copied verbatim from assets/tokens.css.
+     Never edit these values in a page. -->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+
+<!-- 3. Shared assets. Adjust the relative path to the assets folder. -->
+<link rel="stylesheet" href="assets/article.css">
+<script src="assets/article.js" defer></script>
+</head>
+
+<body>
+
+<!-- 4. Controls. Remove the slides button when slides mode is not wanted. -->
+<div class="controls" role="group" aria-label="Article controls">
+  <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
+  <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
+  <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+</div>
+
+<div class="doc">
+
+  <!-- 5. Header -->
+  <header class="doc-header">
+    <p class="eyebrow">EYEBROW</p>
+    <h1>ARTICLE TITLE</h1>
+    <p class="subtitle">One or two sentences that state what the reader gets and who it is for.</p>
+    <!-- Optional: add a supplied author or a relevant, accurate date here. -->
+  </header>
+
+  <!-- 6. Optional navigation: add only links to material that exists. -->
+
+  <!-- 7. Table of contents. Add it once the article has several chapters. -->
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">Contents</p>
+    <ol>
+      <li><a href="#ch-first">FIRST CHAPTER</a></li>
+    </ol>
+  </nav>
+
+  <!-- 8. Main content -->
+  <main>
+
+    <section class="chapter" id="ch-first">
+      <h2 class="chapter-label">FIRST CHAPTER</h2>
+
+      <!-- Lead card: unnumbered, open on load. Only this card carries data-open. -->
+      <article class="card card--lead" id="card-orientation" data-open>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="true">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">State the central claim</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>Set the scene in a few sentences. State the problem and the outcome.</p>
+        </div>
+      </article>
+
+      <!-- Numbered card. Numbers come from CSS; leave card-num empty. -->
+      <article class="card" id="card-first-point">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">First point</span>
+              <span class="card-sub">Optional line that stays visible while collapsed.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>One card is one major idea. Keep the core path short.</p>
+
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Show the evidence</button>
+            <div class="reveal-body">
+              <p>Depth, troubleshooting, screenshots, and side arguments live here.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <!-- 9. Closing takeaway: one sentence, top level, after the last chapter. -->
+  <p class="takeaway">End on the single point the reader should carry away.</p>
+
+  <!-- 10. Footer -->
+  <footer class="doc-footer">
+    <span>Optional author or provenance.</span>
+  </footer>
+
+</div>
+
+</body>
+</html>

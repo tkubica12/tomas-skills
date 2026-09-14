@@ -1,0 +1,87 @@
+/*
+ * Canonical design tokens for html-docs.
+ *
+ * This file is the SOURCE OF TRUTH. It is not linked by any page.
+ * Copy the contents of the two blocks below verbatim into the page's inline
+ * <style> element in <head>, before the shared stylesheet link. Inline tokens
+ * exist so theme colors are correct on first paint, before any CSS file loads.
+ *
+ * A page must never edit these values or add its own palette. To change the
+ * design language, change this file and re-copy it into every page.
+ *
+ * Palette rule: black, white, and grayscale plus a single Microsoft blue accent
+ * family (#0078D4). No gradients. No decorative color.
+ */
+
+:root {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f5f6f8;
+  --surface-3: #eaecf0;
+  --border: #dee1e6;
+  --border-strong: #c2c7cf;
+
+  --text: #14171a;
+  --text-muted: #565c66;
+  --text-faint: #767d87;
+
+  --accent: #0078d4;
+  --accent-strong: #005a9e;
+  --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb;
+  --accent-border: #a9d0ef;
+
+  --warn: #8a5300;
+  --warn-soft: #fdf5e8;
+  --warn-border: #e6c99a;
+
+  --code-bg: #f5f6f8;
+  --code-border: #e2e5ea;
+
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16, 19, 23, 0.06);
+  --shadow-2: 0 2px 4px rgba(16, 19, 23, 0.06), 0 12px 28px rgba(16, 19, 23, 0.08);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --canvas: 1160px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas,
+    "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1013;
+  --surface: #15181d;
+  --surface-2: #1b1f26;
+  --surface-3: #232830;
+  --border: #2b313a;
+  --border-strong: #3d4550;
+
+  --text: #eceef1;
+  --text-muted: #a7aeb8;
+  --text-faint: #868e99;
+
+  --accent: #4aa3e8;
+  --accent-strong: #7cc0f3;
+  --accent-quiet: #2f80c4;
+  --accent-soft: #142430;
+  --accent-border: #2c4f6d;
+
+  --warn: #e0b055;
+  --warn-soft: #241d10;
+  --warn-border: #574627;
+
+  --code-bg: #12151a;
+  --code-border: #262c34;
+
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.45);
+}

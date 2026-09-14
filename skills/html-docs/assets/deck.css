@@ -1,0 +1,613 @@
+/* =========================================================================
+   html-docs / deck runtime
+   Shared stylesheet for standalone HTML presentations. Never edit per page.
+
+   Requires the canonical token block inline in the page <head>. The fallback
+   layer below only exists so a page is still legible if the inline block is
+   missing; unlayered inline tokens always win over this layer.
+
+   Geometry: every slide is authored inside a fixed 1280 x 720 stage. The stage
+   is scaled to the viewport, so a slide that fits while authoring fits on any
+   projector.
+   ========================================================================= */
+
+@layer tokens-fallback {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+    --border: #dee1e6; --border-strong: #c2c7cf;
+    --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+    --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+    --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+    --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+    --code-bg: #f5f6f8; --code-border: #e2e5ea;
+    --focus: #0078d4;
+    --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+    --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+    --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+    --border: #2b313a; --border-strong: #3d4550;
+    --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+    --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+    --accent-soft: #142430; --accent-border: #2c4f6d;
+    --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+    --code-bg: #12151a; --code-border: #262c34;
+    --focus: #6cb8f0;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+  }
+}
+
+/* ---------- base ---------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+.js body { overflow: hidden; }
+
+a { color: var(--accent); text-underline-offset: 2px; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* ---------- stage ----------------------------------------------------- */
+
+.deck-stage {
+  position: relative;
+  width: 1280px;
+  margin: 0 auto;
+  font-size: 24px;
+}
+
+.js .deck-stage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  height: 720px;
+  margin: 0;
+  transform: translate(-50%, -50%) scale(var(--deck-scale, 1));
+  transform-origin: center center;
+}
+
+/* ---------- slide ------------------------------------------------------ */
+
+.slide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 1280px;
+  height: 720px;
+  padding: 54px 72px 62px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.js .slide { position: absolute; inset: 0; display: none; }
+.js .slide[data-current] { display: flex; }
+
+html:not(.js) .slide {
+  border: 1px solid var(--border);
+  margin: 0 0 20px;
+}
+
+.slide-title {
+  margin: 0 0 6px;
+  font-size: 44px;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  font-weight: 650;
+}
+
+.slide-lead {
+  margin: 0 0 22px;
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.slide-title + .slide-body { margin-top: 26px; }
+
+.slide-head {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 26px;
+}
+.slide-head .slide-title { margin: 0; }
+.slide-head .slide-lead { margin: 8px 0 0; }
+
+.slide-body {
+  flex: 1;
+  min-height: 0;
+  font-size: 26px;
+  zoom: var(--fit, 1);
+}
+
+.slide-note {
+  margin: 18px 0 0;
+  font-size: 18px;
+  color: var(--text-faint);
+}
+
+.slide-eyebrow {
+  margin: 0 0 18px;
+  font-size: 17px;
+  font-weight: 620;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Title, section, and closing slides center their content. */
+.slide--title, .slide--section, .slide--end { justify-content: center; }
+
+.slide--title h1 {
+  margin: 0 0 18px;
+  font-size: 68px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 680;
+}
+.slide--title .slide-sub {
+  margin: 0 0 32px;
+  max-width: 24em;
+  font-size: 28px;
+  color: var(--text-muted);
+}
+.slide--title .slide-meta {
+  margin: 0;
+  font-size: 19px;
+  color: var(--text-faint);
+}
+
+.slide--section {
+  background: var(--surface-2);
+}
+.slide--section h2 {
+  margin: 0;
+  font-size: 56px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 620;
+}
+.slide--section .slide-lead { margin-top: 16px; font-size: 26px; }
+
+.slide--end { background: var(--accent-soft); }
+.slide--end p {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.28;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  max-width: 22em;
+}
+
+/* ---------- layout helpers ---------------------------------------------- */
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  align-items: start;
+}
+.two-col--wide-left { grid-template-columns: 1.4fr 1fr; }
+.two-col--wide-right { grid-template-columns: 1fr 1.4fr; }
+
+.col-label {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.slide-body p { margin: 0 0 0.7em; }
+.slide-body p:last-child { margin-bottom: 0; }
+.slide-body ul, .slide-body ol { margin: 0 0 0.7em; padding-left: 1.2em; }
+.slide-body li { margin: 0.32em 0; }
+.slide-body h3 { margin: 0 0 10px; font-size: 27px; }
+.slide-body strong { font-weight: 650; }
+
+/* ---------- shared components -------------------------------------------- */
+
+.arrow-list { margin: 0; padding: 0; list-style: none; }
+.arrow-list > li {
+  position: relative;
+  margin: 0 0 14px;
+  padding-left: 38px;
+}
+.arrow-list > li::before {
+  content: "\2192";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.summary-item {
+  padding: 18px 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 23px;
+}
+.summary-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.steps > li {
+  position: relative;
+  counter-increment: step;
+  margin: 0 0 16px;
+  padding-left: 58px;
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: -2px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: 50%;
+}
+.steps h3, .steps h4 { margin: 0 0 2px; font-size: 25px; }
+.steps p { font-size: 22px; color: var(--text-muted); }
+
+.sequence {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sequence > li {
+  position: relative;
+  padding: 18px 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-quiet);
+  border-radius: var(--radius-sm);
+}
+.sequence > li:last-child { border-left-color: var(--accent-strong); background: var(--accent-soft); }
+.sequence > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--border-strong);
+  border-top: 2px solid var(--border-strong);
+  transform: translateY(-50%) rotate(45deg);
+}
+.seq-title { display: block; font-weight: 620; font-size: 23px; margin-bottom: 4px; }
+.seq-note { display: block; font-size: 20px; color: var(--text-muted); }
+
+.callout {
+  margin: 0 0 16px;
+  padding: 16px 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 23px;
+}
+.callout:last-child { margin-bottom: 0; }
+.callout-label {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.callout--warning {
+  background: var(--warn-soft);
+  border-color: var(--warn-border);
+  border-left-color: var(--warn);
+}
+.callout--warning .callout-label { color: var(--warn); }
+.callout--verdict {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  border-left-color: var(--accent-strong);
+}
+.callout--source, .callout--author { border-left-color: var(--border-strong); }
+.callout--source .callout-label, .callout--author .callout-label { color: var(--text-muted); }
+
+/* note is the base appearance; the modifier exists so that every callout in a
+   document names its meaning explicitly */
+.callout--note { border-left-color: var(--accent); }
+.callout--rule { border-left-color: var(--text); background: var(--surface-3); }
+.callout--rule .callout-label { color: var(--text); }
+
+.code { margin: 0 0 16px; }
+.code:last-child { margin-bottom: 0; }
+.code-label {
+  display: inline-block;
+  margin: 0 0 -1px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.code pre {
+  margin: 0;
+  padding: 18px 22px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 21px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+.code pre code { font-size: inherit; }
+.code:not(:has(.code-label)) pre { border-radius: var(--radius-sm); }
+
+:not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.06em 0.32em;
+}
+
+.figure { margin: 0; }
+.figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 470px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.figure figcaption {
+  margin-top: 10px;
+  font-size: 18px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.quote {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.34;
+  font-weight: 500;
+}
+.quote-attrib {
+  display: block;
+  margin-top: 18px;
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 22px;
+}
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+th {
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 620;
+}
+
+/* Backup detail kept off the slide until asked for. */
+.reveal { margin: 16px 0 0; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.reveal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 21px;
+  text-align: left;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.reveal-toggle::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+.reveal[data-open] > .reveal-toggle::before { transform: rotate(45deg); }
+.reveal-body { padding: 0 18px 16px 39px; font-size: 22px; }
+.js .reveal-body { display: none; }
+.js .reveal[data-open] > .reveal-body { display: block; }
+
+/* ---------- fragments ---------------------------------------------------- */
+
+.js .frag { opacity: 0.16; transition: opacity 0.18s ease; }
+.js .frag[data-shown] { opacity: 1; }
+
+/* ---------- chrome -------------------------------------------------------- */
+
+.deck-chrome { display: none; }
+.js .deck-chrome { display: flex; position: fixed; z-index: 30; }
+
+.deck-controls {
+  top: 14px;
+  right: 16px;
+  gap: 6px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  opacity: 0.16;
+  transition: opacity 0.35s ease;
+}
+/* Pointer movement brings the controls part-way up so they can be found
+   without knowing where to hover. Declared before the hover rule because the
+   two selectors weigh the same, and hover must always reach full opacity. */
+[data-chrome="awake"] .deck-controls { opacity: 0.75; }
+.deck-controls:hover, .deck-controls:focus-within { opacity: 1; }
+
+.deck-controls button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.deck-controls button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.deck-controls button:hover { background: var(--surface-2); color: var(--text); }
+
+.deck-progress {
+  bottom: 12px;
+  right: 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.deck-bar {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  display: block !important;
+}
+.deck-bar span {
+  display: block;
+  height: 100%;
+  width: var(--deck-progress, 0%);
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* ---------- slide index ---------------------------------------------------- */
+
+.deck-index {
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.deck-index::backdrop { background: rgba(8, 10, 13, 0.6); }
+.deck-index h2 {
+  margin: 0;
+  padding: 20px 24px 12px;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.deck-index ol {
+  margin: 0;
+  padding: 0 12px 16px;
+  list-style: none;
+  overflow: auto;
+  max-height: calc(100vh - 190px);
+}
+.deck-index button {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.deck-index button:hover { background: var(--surface-2); }
+.deck-index button[aria-current="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+.deck-index .idx-num { font-family: var(--font-mono); color: var(--text-faint); }
+.deck-index .idx-kind { color: var(--text-faint); font-size: 13px; }
+
+/* ---------- motion, print --------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .js .frag { opacity: 1; }
+}
+
+@media print {
+  @page { size: 297mm 167mm; margin: 0; }
+  .js body { overflow: visible; }
+  .js .deck-stage {
+    position: static;
+    transform: none;
+    width: auto;
+    height: auto;
+  }
+  .js .slide, .js .slide[data-current] {
+    position: relative;
+    display: flex !important;
+    break-after: page;
+    border: 0;
+  }
+  .js .frag { opacity: 1 !important; }
+  .js .reveal-body { display: block !important; }
+  .deck-chrome, .js .deck-chrome { display: none !important; }
+}

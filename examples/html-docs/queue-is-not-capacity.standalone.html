@@ -1,0 +1,2245 @@
+<!doctype html>
+<!--
+MIT License
+
+Copyright (c) 2026 Tomáš Kubica
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A queue is not extra capacity</title>
+<meta name="description" content="An engineering decision about bounded queues, recovery headroom, and admitting only work that can still finish usefully.">
+<meta name="doc-id" content="queue-is-not-capacity">
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+  if (p.get("view") === "slides") d.setAttribute("data-view", "slides");
+})();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+<style>
+/* =========================================================================
+   html-docs / article runtime
+   Shared stylesheet for dynamic articles. Never edit per page.
+
+   Requires the canonical token block inline in the page <head>. The fallback
+   layer below only exists so a page is still legible if the inline block is
+   missing; unlayered inline tokens always win over this layer.
+   ========================================================================= */
+
+@layer tokens-fallback {
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+    --border: #dee1e6; --border-strong: #c2c7cf;
+    --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+    --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+    --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+    --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+    --code-bg: #f5f6f8; --code-border: #e2e5ea;
+    --focus: #0078d4;
+    --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+    --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+    --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+    --border: #2b313a; --border-strong: #3d4550;
+    --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+    --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+    --accent-soft: #142430; --accent-border: #2c4f6d;
+    --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+    --code-bg: #12151a; --code-border: #262c34;
+    --focus: #6cb8f0;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+  }
+}
+
+/* ---------- base ---------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 0 24px 96px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.62;
+  counter-reset: card;
+}
+
+.doc {
+  max-width: var(--canvas);
+  margin: 0 auto;
+}
+
+p { margin: 0 0 1em; }
+p:last-child { margin-bottom: 0; }
+
+a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+a:hover { color: var(--accent-strong); }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+h1, h2, h3, h4 { line-height: 1.24; font-weight: 650; }
+
+hr { border: 0; border-top: 1px solid var(--border); margin: 40px 0; }
+
+ul, ol { margin: 0 0 1em; padding-left: 1.3em; }
+li { margin: 0.28em 0; }
+
+strong { font-weight: 650; }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+:not(pre) > code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.08em 0.34em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: 0.96em;
+}
+th, td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ---------- controls bar -------------------------------------------- */
+
+.controls {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 40;
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(8px);
+}
+
+.ctrl {
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.ctrl:hover { background: var(--surface-2); color: var(--text); }
+.ctrl[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+/* ---------- header, nav, toc ---------------------------------------- */
+
+.doc-header { padding: 84px 0 8px; }
+
+.eyebrow {
+  margin: 0 0 14px;
+  font-size: 0.74rem;
+  font-weight: 620;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.doc-header h1 {
+  margin: 0 0 14px;
+  font-size: clamp(2.1rem, 4.6vw, 3.1rem);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0 0 14px;
+  max-width: 74ch;
+  font-size: 1.14rem;
+  color: var(--text-muted);
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-faint);
+}
+
+.doc-nav, .doc-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 18px 0;
+  font-size: 0.9rem;
+}
+.doc-nav { border-bottom: 1px solid var(--border); margin-bottom: 44px; }
+.doc-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 64px;
+  color: var(--text-muted);
+}
+
+.toc {
+  margin: 0 0 48px;
+  padding: 20px 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.toc-label {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.toc ol { margin: 0; padding-left: 1.2em; }
+.toc li { margin: 0.2em 0; }
+
+/* ---------- chapter -------------------------------------------------- */
+
+.chapter { margin: 0 0 56px; }
+
+.chapter-label {
+  margin: 0 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.76rem;
+  font-weight: 620;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------- card ------------------------------------------------------ */
+
+.card {
+  margin: 0 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+.card:last-child { margin-bottom: 0; }
+.card[data-open] { box-shadow: var(--shadow-2); }
+
+.card:not(.card--lead) { counter-increment: card; }
+
+.card-head { margin: 0; font-size: 1rem; }
+
+.card-toggle {
+  display: grid;
+  grid-template-columns: 46px 1fr 18px 24px;
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 20px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.card-toggle:hover { background: var(--surface-2); }
+
+.card-num {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding-top: 0.34em;
+}
+.card:not(.card--lead) .card-num:empty::before {
+  content: counter(card, decimal-leading-zero);
+}
+.card--lead .card-toggle { grid-template-columns: 46px 1fr 18px 24px; }
+
+/* Read marker. Space is reserved whether or not the card is marked, so
+   marking one never shifts the layout. Unread is invisible until the head is
+   hovered, which hints that the mark exists without decorating every row. */
+.card-read {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-top: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.card-head:hover .card-read { opacity: 0.3; }
+.card[data-read="true"] .card-read,
+.card[data-read="true"] .card-head:hover .card-read {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+/* Drawn rather than typed: a check glyph in this range reads as an emoji to
+   text extractors, and drawing it keeps the weight matched to the border. */
+.card[data-read="true"] .card-read::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--accent);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(42deg);
+}
+
+.card-titles { display: block; min-width: 0; }
+
+.card-title {
+  display: block;
+  font-size: 1.22rem;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.card-sub {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.96rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.card-mark {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.card-mark::before, .card-mark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 1.5px;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.card-mark::after { transform: translate(-50%, -50%) rotate(90deg); }
+.card[data-open] .card-mark { border-color: var(--accent-border); color: var(--accent); }
+.card[data-open] .card-mark::after { opacity: 0; transform: translate(-50%, -50%) rotate(0deg); }
+
+.card-body { padding: 0 20px 22px 78px; }
+
+.js .card-body { display: none; }
+.js .card[data-open] > .card-body { display: block; animation: doc-open 0.18s ease; }
+
+@keyframes doc-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.card-body > h4 {
+  margin: 26px 0 10px;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+}
+.card-body > h4:first-child { margin-top: 0; }
+
+/* ---------- reveal ---------------------------------------------------- */
+
+.reveal {
+  margin: 20px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.reveal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 0.98rem;
+  text-align: left;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.reveal-toggle::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+.reveal[data-open] > .reveal-toggle::before { transform: rotate(45deg); }
+.reveal-toggle:hover { background: var(--surface-3); }
+
+.reveal-body {
+  padding: 2px 16px 16px 33px;
+  font-size: 1rem;
+}
+.js .reveal-body { display: none; }
+.js .reveal[data-open] > .reveal-body { display: block; animation: doc-open 0.18s ease; }
+
+/* ---------- tabs ------------------------------------------------------ */
+
+.tabs { margin: 22px 0; }
+
+.tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: -1px;
+}
+
+.tablist [role="tab"] {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 9px 15px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+}
+.tablist [role="tab"]:hover { color: var(--text); background: var(--surface-2); }
+.tablist [role="tab"][aria-selected="true"] {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  border-bottom-color: var(--accent-soft);
+  font-weight: 600;
+}
+
+.tabpanel {
+  padding: 18px 20px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) var(--radius-sm);
+}
+
+html:not(.js) .tablist { display: none; }
+html:not(.js) .tabpanel[hidden] { display: block; }
+html:not(.js) .tabpanel { margin-bottom: 8px; border-radius: var(--radius-sm); }
+html:not(.js) .tabpanel[data-tab-label]::before {
+  content: attr(data-tab-label);
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.74rem;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+/* ---------- detail grid ---------------------------------------------- */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.detail-tile {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.detail-open {
+  display: block;
+  width: 100%;
+  padding: 16px 18px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.detail-open:hover { background: var(--surface-3); }
+
+.detail-title {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 620;
+  margin-bottom: 5px;
+}
+.detail-summary { display: block; color: var(--text-muted); font-size: 0.98rem; }
+.detail-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.detail-more::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.6px solid currentColor;
+  border-top: 1.6px solid currentColor;
+  transform: rotate(45deg);
+}
+html:not(.js) .detail-more { display: none; }
+
+.detail-body { padding: 0 18px 16px; }
+.js .detail-body { display: none; }
+
+/* ---------- dialog ---------------------------------------------------- */
+
+.doc-dialog {
+  width: min(720px, calc(100vw - 40px));
+  max-height: calc(100vh - 80px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.doc-dialog::backdrop { background: rgba(8, 10, 13, 0.55); }
+
+.doc-dialog-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 12px;
+}
+.doc-dialog-head h2 { margin: 0; font-size: 1.2rem; }
+
+.doc-dialog-body {
+  padding: 0 22px 24px;
+  overflow: auto;
+  max-height: calc(100vh - 190px);
+}
+.js .doc-dialog-body .detail-body { display: block; padding: 0; }
+
+.doc-dialog-close {
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.doc-dialog-close:hover { color: var(--text); background: var(--surface-2); }
+
+/* ---------- sequence -------------------------------------------------- */
+
+.sequence {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: seq;
+}
+.sequence > li {
+  position: relative;
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-quiet);
+  border-radius: var(--radius-sm);
+}
+.sequence > li:last-child { border-left-color: var(--accent-strong); background: var(--accent-soft); }
+.sequence > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -9px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.6px solid var(--border-strong);
+  border-top: 1.6px solid var(--border-strong);
+  transform: translateY(-50%) rotate(45deg);
+}
+.seq-title {
+  display: block;
+  font-weight: 620;
+  font-size: 0.98rem;
+  margin-bottom: 4px;
+}
+.seq-note { display: block; font-size: 0.9rem; color: var(--text-muted); }
+
+/* ---------- steps ------------------------------------------------------ */
+
+.steps {
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps > li {
+  position: relative;
+  counter-increment: step;
+  margin: 0 0 14px;
+  padding-left: 46px;
+}
+.steps > li:last-child { margin-bottom: 0; }
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: 50%;
+}
+.steps h3, .steps h4 { margin: 4px 0 4px; font-size: 1.02rem; }
+
+/* ---------- summary grid ---------------------------------------------- */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+.summary-item {
+  padding: 16px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.summary-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ---------- arrow list -------------------------------------------------- */
+
+.arrow-list {
+  margin: 20px 0;
+  padding: 0;
+  list-style: none;
+}
+.arrow-list > li {
+  position: relative;
+  margin: 0 0 9px;
+  padding-left: 28px;
+}
+.arrow-list > li::before {
+  content: "\2192";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- callouts ---------------------------------------------------- */
+
+.callout {
+  margin: 22px 0;
+  padding: 14px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.98rem;
+}
+.callout-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.callout--warning {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+  border-color: var(--warn-border);
+  border-left-color: var(--warn);
+}
+.callout--warning .callout-label { color: var(--warn); }
+.callout--verdict { background: var(--accent-soft); border-color: var(--accent-border); border-left-color: var(--accent-strong); }
+.callout--source, .callout--author { border-left-color: var(--border-strong); }
+.callout--source .callout-label, .callout--author .callout-label { color: var(--text-muted); }
+.callout--source { font-size: 0.92rem; color: var(--text-muted); }
+
+/* note is the base appearance; the modifier exists so that every callout in a
+   document names its meaning explicitly */
+.callout--note { border-left-color: var(--accent); }
+.callout--rule { border-left-color: var(--text); background: var(--surface-3); }
+.callout--rule .callout-label { color: var(--text); }
+
+/* ---------- code -------------------------------------------------------- */
+
+.code { margin: 22px 0; }
+
+.code-label {
+  margin: 0 0 -1px;
+  display: inline-block;
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.code pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+.code pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+.code:not(:has(.code-label)) pre { border-radius: var(--radius-sm); }
+
+/* ---------- figures ------------------------------------------------------ */
+
+.figure { margin: 24px 0; }
+.figure a.zoom {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+  line-height: 0;
+}
+.figure img { display: block; width: 100%; height: auto; }
+.figure figcaption {
+  margin-top: 9px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- lightbox ------------------------------------------------------ */
+
+.lightbox {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+.lightbox::backdrop { background: rgba(6, 8, 10, 0.9); }
+
+.lightbox-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+.lightbox-stage[data-panning] { cursor: grabbing; }
+.lightbox-stage img {
+  max-width: 96vw;
+  max-height: 92vh;
+  transform: translate(var(--lb-x, 0px), var(--lb-y, 0px)) scale(var(--lb-scale, 1));
+  transform-origin: center center;
+  transition: transform 0.08s linear;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox-bar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+}
+.lightbox-bar button {
+  font: inherit;
+  font-size: 0.8rem;
+  min-width: 38px;
+  padding: 7px 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lightbox-bar button:hover { background: var(--surface-2); color: var(--text); }
+
+.lightbox-caption {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(80ch, 90vw);
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  text-align: center;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.lightbox-caption:empty { display: none; }
+
+/* ---------- takeaway ------------------------------------------------------ */
+
+.takeaway {
+  margin: 56px 0 0;
+  padding: 28px 32px;
+  font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+  line-height: 1.45;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* ---------- slides mode ---------------------------------------------------- */
+
+.slide-ui { display: none; }
+
+[data-view="slides"] body {
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+}
+[data-view="slides"] .doc { max-width: none; }
+[data-view="slides"] .doc-header,
+[data-view="slides"] .doc-nav,
+[data-view="slides"] .doc-footer,
+[data-view="slides"] .toc,
+[data-view="slides"] .takeaway:not([data-slide-current]) { display: none; }
+[data-view="slides"] .chapter { margin: 0; }
+[data-view="slides"] .chapter-label { display: none; }
+[data-view="slides"] .card { display: none; margin: 0; }
+
+[data-view="slides"] .controls {
+  opacity: 0.22;
+  transition: opacity 0.35s ease;
+}
+/* Declared before the hover rule: both selectors weigh the same, so whichever
+   comes last would win, and hover must always be able to reach full opacity. */
+[data-view="slides"][data-chrome="awake"] .controls { opacity: 0.75; }
+[data-view="slides"] .controls:hover,
+[data-view="slides"] .controls:focus-within { opacity: 1; }
+[data-view="slides"] .ctrl[data-action="expand-all"],
+[data-view="slides"] .ctrl[data-action="collapse-all"],
+[data-view="slides"] .ctrl[data-action="clear-read"] { display: none; }
+/* While presenting, the Slides toggle is the way back to the article, but it
+   must not glow: an accent pill in the corner of every slide pulls the eye.
+   It reads as pressed only once the bar is hovered. */
+[data-view="slides"] .ctrl[aria-pressed="true"] {
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+[data-view="slides"] .controls:hover .ctrl[aria-pressed="true"],
+[data-view="slides"] .controls:focus-within .ctrl[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+[data-view="slides"] .slide-ui {
+  display: flex;
+  position: fixed;
+  z-index: 60;
+}
+[data-view="slides"] .slide-nav {
+  opacity: 0.22;
+  transition: opacity 0.35s ease;
+}
+[data-view="slides"][data-chrome="awake"] .slide-nav { opacity: 0.75; }
+[data-view="slides"] .slide-nav:hover,
+[data-view="slides"] .slide-nav:focus-within { opacity: 1; }
+[data-view="slides"] .slide-progress {
+  bottom: 14px;
+  right: 18px;
+  gap: 10px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+[data-view="slides"] .slide-nav {
+  bottom: 12px;
+  left: 18px;
+  gap: 6px;
+}
+.slide-nav button {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+}
+.slide-nav button:hover { color: var(--text); background: var(--surface-3); }
+
+/* Slide index. Same shape as the deck's, so the two document types behave
+   identically once you are presenting. */
+.slide-index {
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.slide-index::backdrop { background: rgba(8, 10, 13, 0.6); }
+.slide-index h2 {
+  margin: 0;
+  padding: 20px 24px 12px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.slide-index ol {
+  margin: 0;
+  padding: 0 12px 16px;
+  list-style: none;
+  overflow: auto;
+  max-height: calc(100vh - 190px);
+}
+.slide-index button {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.slide-index button:hover { background: var(--surface-2); }
+.slide-index button[aria-current="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+.slide-index .idx-num { font-family: var(--font-mono); color: var(--text-faint); }
+.slide-index .idx-kind { color: var(--text-faint); font-size: 0.8rem; }
+
+[data-view="slides"] .card[data-slide-current] > * { zoom: var(--slide-zoom, 1); }
+
+[data-view="slides"] .card[data-slide-current] {
+  display: block;
+  position: fixed;
+  inset: 0;
+  padding: 5vh 6vw 9vh;
+  overflow: hidden;
+  background: var(--bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-view="slides"] .card[data-slide-current] .card-toggle {
+  grid-template-columns: 62px 1fr;
+  padding: 0 0 18px;
+  cursor: default;
+  border-bottom: 1px solid var(--border);
+}
+[data-view="slides"] .card[data-slide-current] .card-toggle:hover { background: transparent; }
+[data-view="slides"] .card[data-slide-current] .card-mark,
+[data-view="slides"] .card[data-slide-current] .card-read { display: none; }
+[data-view="slides"] .card[data-slide-current] .card-num { font-size: 1rem; padding-top: 0.5em; }
+[data-view="slides"] .card[data-slide-current] .card-title { font-size: 2.1rem; }
+[data-view="slides"] .card[data-slide-current] .card-sub { font-size: 1.1rem; }
+[data-view="slides"] .card[data-slide-current] .card-body {
+  display: block;
+  padding: 26px 0 0 62px;
+  font-size: 1.16rem;
+}
+[data-view="slides"] .card[data-slide-current] .reveal-body { display: none; }
+[data-view="slides"] .card[data-slide-current] .reveal[data-open] > .reveal-body { display: block; }
+
+[data-view="slides"] .chapter[data-slide-current] > .chapter-label {
+  display: grid;
+  align-content: center;
+  position: fixed;
+  inset: 0;
+  padding: 0 8vw;
+  margin: 0;
+  border: 0;
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: var(--bg);
+}
+
+[data-view="slides"] .takeaway[data-slide-current] {
+  display: grid;
+  align-content: center;
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 0 10vw;
+  border: 0;
+  border-radius: 0;
+  font-size: clamp(1.6rem, 3.6vw, 2.6rem);
+  background: var(--accent-soft);
+}
+
+/* ---------- responsive ------------------------------------------------------ */
+
+@media (max-width: 760px) {
+  body { padding: 0 16px 72px; font-size: 16px; }
+  .doc-header { padding-top: 96px; }
+  .card-toggle { grid-template-columns: 34px 1fr 22px; gap: 9px; padding: 15px 14px; }
+  .card-body { padding: 0 16px 18px 16px; }
+  .detail-grid, .summary-grid { grid-template-columns: minmax(0, 1fr); }
+  .sequence { grid-auto-flow: row; }
+  .sequence > li:not(:last-child)::after {
+    top: auto; right: auto; bottom: -9px; left: 22px;
+    transform: rotate(135deg);
+  }
+  .controls { top: auto; bottom: 12px; right: 12px; left: 12px; justify-content: center; }
+}
+
+/* ---------- motion, print -------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  body { padding: 0; font-size: 11pt; }
+  .controls, .slide-ui, .doc-nav, .doc-footer { display: none; }
+  .js .card-body, .js .reveal-body, .js .detail-body { display: block !important; }
+  html:not(.js) .tabpanel[hidden], .tabpanel[hidden] { display: block !important; }
+  .card { break-inside: avoid; box-shadow: none; }
+  .card-mark, .detail-more { display: none; }
+  a { color: inherit; text-decoration: underline; }
+}
+</style>
+<script>
+(function () {
+  function boot() {
+/* =========================================================================
+   html-docs / article runtime
+   Shared script for dynamic articles. Never edit per page.
+
+   This script adds behavior only. Every piece of content is already present
+   and readable in the HTML with JavaScript disabled.
+
+   Provides: card and reveal collapsing, expand/collapse all, tabs, detail-grid
+   dialogs, image lightbox with zoom and pan, theme toggle, optional slides mode.
+   ========================================================================= */
+
+(() => {
+  "use strict";
+
+  const root = document.documentElement;
+  const THEME_KEY = "doc-theme";
+  /* Below this the body text stops being readable from the back of a room.
+     A card that still overflows here has to be split by the author. */
+  const MIN_ZOOM = 0.5;
+
+  const els = (sel, scope) => Array.from((scope || document).querySelectorAll(sel));
+  const el = (sel, scope) => (scope || document).querySelector(sel);
+
+  /* Slides state is declared first: the page may already be in slides mode on
+     first paint (?view=slides), and component setup below calls fitCurrentSlide. */
+  const slidesEnabled = !!el('[data-action="toggle-slides"]');
+  let slides = [];
+  let slideIndex = 0;
+  let slideDialog = null;
+  let chromeTimer = null;
+
+  /* ---------- theme ------------------------------------------------- */
+
+  function currentTheme() {
+    return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+
+  function applyTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (err) {
+      /* storage blocked; theme still applies for this page view */
+    }
+    els('[data-action="toggle-theme"]').forEach((btn) => {
+      const next = theme === "dark" ? "light" : "dark";
+      btn.textContent = next === "dark" ? "Dark" : "Light";
+      btn.setAttribute("aria-label", "Switch to " + next + " theme");
+    });
+  }
+
+  applyTheme(currentTheme());
+
+  /* ---------- collapsibles ------------------------------------------ */
+
+  function setOpen(container, toggle, open) {
+    if (open) {
+      container.setAttribute("data-open", "");
+    } else {
+      container.removeAttribute("data-open");
+    }
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function initCollapsible(container, toggleSel, bodySel) {
+    const toggle = el(toggleSel, container);
+    const body = el(bodySel, container);
+    if (!toggle || !body) return;
+
+    if (!body.id) {
+      body.id = (container.id || "sec-" + Math.random().toString(36).slice(2, 8)) + "-body";
+    }
+    toggle.setAttribute("aria-controls", body.id);
+
+    const startOpen = container.hasAttribute("data-open") ||
+      toggle.getAttribute("aria-expanded") === "true";
+    setOpen(container, toggle, startOpen);
+
+    toggle.addEventListener("click", () => {
+      const open = !container.hasAttribute("data-open");
+      setOpen(container, toggle, open);
+      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
+    });
+  }
+
+  /* Card numbers are a CSS counter so the page numbers itself without JS. In
+     slides mode non-current cards are display:none, which restarts the counter,
+     so freeze the numbers into the DOM once. The :empty rule in the stylesheet
+     then stops the counter from rendering a second value. */
+  let cardNumber = 0;
+  els(".card").forEach((card) => {
+    if (!card.id) {
+      card.id = "card-" + Math.random().toString(36).slice(2, 8);
+      card.setAttribute("data-auto-id", "");
+    }
+    const num = el(":scope > .card-head > .card-toggle > .card-num", card);
+    if (num && !card.classList.contains("card--lead")) {
+      cardNumber += 1;
+      num.textContent = cardNumber < 10 ? "0" + cardNumber : String(cardNumber);
+    }
+    initCollapsible(card, ":scope > .card-head > .card-toggle", ":scope > .card-body");
+  });
+
+  els(".reveal").forEach((reveal) => {
+    initCollapsible(reveal, ":scope > .reveal-toggle", ":scope > .reveal-body");
+  });
+
+  function setAllCards(open) {
+    els(".card").forEach((card) => {
+      const toggle = el(":scope > .card-head > .card-toggle", card);
+      if (toggle) setOpen(card, toggle, open);
+    });
+  }
+
+  els('[data-action="expand-all"]').forEach((b) =>
+    b.addEventListener("click", () => setAllCards(true)));
+  els('[data-action="collapse-all"]').forEach((b) =>
+    b.addEventListener("click", () => setAllCards(false)));
+  els('[data-action="toggle-theme"]').forEach((b) =>
+    b.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark")));
+
+  /* ---------- read tracking -------------------------------------------- */
+
+  /* A card is marked once it has been open and on screen long enough to have
+     actually been read. That is a different claim from "was clicked", which is
+     why this is measured rather than wired to the toggle. State is per
+     document and survives reloads, so a long article can be resumed. */
+
+  const cards = els(".card");
+
+  const READ_KEY = "doc-read:" + (() => {
+    const meta = el('meta[name="doc-id"]');
+    if (meta && meta.content) return meta.content;
+    return location.pathname.split("/").pop() || "index";
+  })();
+
+  /* Auto-generated ids are random per load, so they cannot key stored state.
+     Those cards fall back to their position. Authored ids survive edits. */
+  const cardKey = (card) =>
+    card.hasAttribute("data-auto-id") ? "n" + cards.indexOf(card) : card.id;
+
+  let readSet = new Set();
+  try {
+    readSet = new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]"));
+  } catch (e) { readSet = new Set(); }
+
+  function persistRead() {
+    try { localStorage.setItem(READ_KEY, JSON.stringify(Array.from(readSet))); }
+    catch (e) { /* private mode; marks simply do not persist */ }
+  }
+
+  function paintRead() {
+    cards.forEach((card) => {
+      card.setAttribute("data-read", readSet.has(cardKey(card)) ? "true" : "false");
+    });
+  }
+
+  const dwell = new Map();
+
+  function clearDwell(card) {
+    if (!dwell.has(card)) return;
+    clearTimeout(dwell.get(card));
+    dwell.delete(card);
+  }
+
+  function startDwell(card) {
+    if (dwell.has(card)) return;
+    dwell.set(card, setTimeout(() => {
+      dwell.delete(card);
+      readSet.add(cardKey(card));
+      persistRead();
+      paintRead();
+    }, 900));
+  }
+
+  function scanRead() {
+    /* Slides mode shows one card at a time, full screen. Counting that as
+       reading would mark the whole article read the moment it is presented. */
+    if (root.getAttribute("data-view") === "slides") return;
+    const vh = window.innerHeight;
+    if (!vh) return;
+    cards.forEach((card) => {
+      if (readSet.has(cardKey(card))) return;
+      if (!card.hasAttribute("data-open")) { clearDwell(card); return; }
+      const box = card.getBoundingClientRect();
+      const visible = Math.min(box.bottom, vh) - Math.max(box.top, 0);
+      if (visible <= 0) { clearDwell(card); return; }
+      /* A card shorter than the viewport counts once half of it is showing.
+         A taller one counts only once its end has been reached, which is the
+         only honest signal that the reader passed through the whole thing. */
+      const enough = box.height > vh * 0.9
+        ? box.bottom <= vh + 24
+        : visible >= box.height * 0.5;
+      if (enough) startDwell(card); else clearDwell(card);
+    });
+  }
+
+  let scanQueued = false;
+  function queueScan() {
+    if (scanQueued) return;
+    scanQueued = true;
+    requestAnimationFrame(() => { scanQueued = false; scanRead(); });
+  }
+
+  if (cards.length) {
+    cards.forEach((card) => {
+      const toggle = el(":scope > .card-head > .card-toggle", card);
+      const mark = toggle && el(":scope > .card-mark", toggle);
+      if (!toggle || !mark) return;
+      const dot = document.createElement("span");
+      dot.className = "card-read";
+      dot.setAttribute("aria-hidden", "true");
+      toggle.insertBefore(dot, mark);
+    });
+
+    const controls = el(".controls");
+    if (controls) {
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "ctrl";
+      clear.setAttribute("data-action", "clear-read");
+      clear.textContent = "Clear marks";
+      clear.addEventListener("click", () => {
+        readSet.clear();
+        dwell.forEach((id) => clearTimeout(id));
+        dwell.clear();
+        persistRead();
+        paintRead();
+        queueScan();
+      });
+
+      controls.prepend(clear);
+    }
+
+    paintRead();
+    addEventListener("scroll", queueScan, { passive: true });
+    addEventListener("resize", queueScan, { passive: true });
+    document.addEventListener("click", (event) => {
+      if (event.target.closest(".card-toggle, [data-action]")) queueScan();
+    });
+    queueScan();
+  }
+
+  /* ---------- tabs ---------------------------------------------------- */
+
+  els(".tabs").forEach((group) => {
+    const tabs = els('[role="tab"]', group);
+    const panels = els('[role="tabpanel"]', group);
+    if (!tabs.length || tabs.length !== panels.length) return;
+
+    function select(index, focus) {
+      tabs.forEach((tab, i) => {
+        const active = i === index;
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+        tab.tabIndex = active ? 0 : -1;
+        panels[i].hidden = !active;
+      });
+      if (focus) tabs[index].focus();
+      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
+    }
+
+    let selected = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
+    if (selected < 0) selected = 0;
+    select(selected, false);
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => {
+        selected = i;
+        select(i, false);
+      });
+      tab.addEventListener("keydown", (event) => {
+        const last = tabs.length - 1;
+        let next = null;
+        if (event.key === "ArrowRight") next = i === last ? 0 : i + 1;
+        else if (event.key === "ArrowLeft") next = i === 0 ? last : i - 1;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = last;
+        if (next === null) return;
+        event.preventDefault();
+        selected = next;
+        select(next, true);
+      });
+    });
+  });
+
+  /* ---------- detail grid dialog ---------------------------------------- */
+
+  let detailDialog = null;
+  let detailAnchor = null;
+  let detailSource = null;
+
+  function ensureDetailDialog() {
+    if (detailDialog) return detailDialog;
+    detailDialog = document.createElement("dialog");
+    detailDialog.className = "doc-dialog";
+    detailDialog.innerHTML =
+      '<div class="doc-dialog-head"><h2></h2>' +
+      '<button type="button" class="doc-dialog-close">Close</button></div>' +
+      '<div class="doc-dialog-body"></div>';
+    document.body.appendChild(detailDialog);
+    el(".doc-dialog-close", detailDialog).addEventListener("click", () => detailDialog.close());
+    detailDialog.addEventListener("close", restoreDetail);
+    return detailDialog;
+  }
+
+  function restoreDetail() {
+    if (detailSource && detailAnchor && detailAnchor.parentNode) {
+      detailAnchor.parentNode.insertBefore(detailSource, detailAnchor);
+      detailAnchor.remove();
+    }
+    detailSource = null;
+    detailAnchor = null;
+  }
+
+  els(".detail-tile").forEach((tile) => {
+    const button = el(".detail-open", tile);
+    const body = el(".detail-body", tile);
+    const title = el(".detail-title", tile);
+    if (!button || !body) return;
+
+    if (!body.id) body.id = "detail-" + Math.random().toString(36).slice(2, 8);
+    button.setAttribute("aria-controls", body.id);
+    button.setAttribute("aria-haspopup", "dialog");
+
+    button.addEventListener("click", () => {
+      const dialog = ensureDetailDialog();
+      restoreDetail();
+      el(".doc-dialog-head h2", dialog).textContent = title ? title.textContent : "Detail";
+      detailSource = body;
+      detailAnchor = document.createComment("detail-anchor");
+      body.parentNode.insertBefore(detailAnchor, body);
+      el(".doc-dialog-body", dialog).replaceChildren(body);
+      dialog.showModal();
+    });
+  });
+
+  /* ---------- lightbox --------------------------------------------------- */
+
+  let lightbox = null;
+  let lbScale = 1;
+  let lbX = 0;
+  let lbY = 0;
+
+  function lbApply() {
+    const stage = el(".lightbox-stage", lightbox);
+    stage.style.setProperty("--lb-scale", String(lbScale));
+    stage.style.setProperty("--lb-x", lbX + "px");
+    stage.style.setProperty("--lb-y", lbY + "px");
+  }
+
+  function lbZoom(factor) {
+    lbScale = Math.min(8, Math.max(1, lbScale * factor));
+    if (lbScale === 1) {
+      lbX = 0;
+      lbY = 0;
+    }
+    lbApply();
+  }
+
+  function ensureLightbox() {
+    if (lightbox) return lightbox;
+    lightbox = document.createElement("dialog");
+    lightbox.className = "lightbox";
+    lightbox.innerHTML =
+      '<div class="lightbox-stage"><img alt=""></div>' +
+      '<p class="lightbox-caption"></p>' +
+      '<div class="lightbox-bar">' +
+      '<button type="button" data-lb="out" aria-label="Zoom out">&minus;</button>' +
+      '<button type="button" data-lb="reset">Reset</button>' +
+      '<button type="button" data-lb="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-lb="close">Close</button>' +
+      "</div>";
+    document.body.appendChild(lightbox);
+
+    const stage = el(".lightbox-stage", lightbox);
+
+    lightbox.addEventListener("click", (event) => {
+      const action = event.target.closest("[data-lb]");
+      if (!action) return;
+      const kind = action.getAttribute("data-lb");
+      if (kind === "in") lbZoom(1.4);
+      else if (kind === "out") lbZoom(1 / 1.4);
+      else if (kind === "reset") { lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+      else lightbox.close();
+    });
+
+    lightbox.addEventListener("keydown", (event) => {
+      if (event.key === "+" || event.key === "=") { event.preventDefault(); lbZoom(1.4); }
+      else if (event.key === "-") { event.preventDefault(); lbZoom(1 / 1.4); }
+      else if (event.key === "0") { event.preventDefault(); lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+    });
+
+    stage.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      lbZoom(event.deltaY < 0 ? 1.12 : 1 / 1.12);
+    }, { passive: false });
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    const pointers = new Map();
+    let pinchStart = 0;
+    let pinchScale = 1;
+
+    stage.addEventListener("pointerdown", (event) => {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      stage.setPointerCapture(event.pointerId);
+      if (pointers.size === 2) {
+        const [a, b] = Array.from(pointers.values());
+        pinchStart = Math.hypot(a.x - b.x, a.y - b.y);
+        pinchScale = lbScale;
+        dragging = false;
+        return;
+      }
+      if (lbScale > 1) {
+        dragging = true;
+        startX = event.clientX - lbX;
+        startY = event.clientY - lbY;
+        stage.setAttribute("data-panning", "");
+      }
+    });
+
+    stage.addEventListener("pointermove", (event) => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointers.size === 2 && pinchStart > 0) {
+        const [a, b] = Array.from(pointers.values());
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        lbScale = Math.min(8, Math.max(1, pinchScale * (dist / pinchStart)));
+        if (lbScale === 1) { lbX = 0; lbY = 0; }
+        lbApply();
+        return;
+      }
+      if (!dragging) return;
+      lbX = event.clientX - startX;
+      lbY = event.clientY - startY;
+      lbApply();
+    });
+
+    const endPointer = (event) => {
+      pointers.delete(event.pointerId);
+      if (pointers.size < 2) pinchStart = 0;
+      if (pointers.size === 0) {
+        dragging = false;
+        stage.removeAttribute("data-panning");
+      }
+    };
+    stage.addEventListener("pointerup", endPointer);
+    stage.addEventListener("pointercancel", endPointer);
+
+    return lightbox;
+  }
+
+  els("a.zoom").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      const dialog = ensureLightbox();
+      const image = el(".lightbox-stage img", dialog);
+      const source = el("img", link);
+      image.src = link.getAttribute("href");
+      image.alt = source ? source.alt : "";
+      const figure = link.closest("figure");
+      const caption = figure ? el("figcaption", figure) : null;
+      el(".lightbox-caption", dialog).textContent = caption ? caption.textContent : "";
+      lbScale = 1;
+      lbX = 0;
+      lbY = 0;
+      lbApply();
+      dialog.showModal();
+    });
+  });
+
+  /* ---------- slides mode --------------------------------------------- */
+
+  function buildSlides() {
+    const list = [];
+    const chapters = els("main .chapter");
+    if (chapters.length) {
+      chapters.forEach((chapter) => {
+        if (el(":scope > .chapter-label", chapter)) list.push(chapter);
+        els(":scope > .card", chapter).forEach((card) => list.push(card));
+      });
+    } else {
+      els("main .card").forEach((card) => list.push(card));
+    }
+    const takeaway = el(".takeaway");
+    if (takeaway) list.push(takeaway);
+    list.forEach((node, i) => {
+      if (!node.id) node.id = "slide-" + (i + 1);
+    });
+    return list;
+  }
+
+  function ensureSlideUi() {
+    if (el(".slide-progress")) return;
+    const nav = document.createElement("div");
+    nav.className = "slide-ui slide-nav";
+    nav.innerHTML =
+      '<button type="button" data-slide="prev" aria-label="Previous slide">Prev</button>' +
+      '<button type="button" data-slide="next" aria-label="Next slide">Next</button>' +
+      '<button type="button" data-slide="index" aria-label="Jump to a slide">Index</button>';
+    const progress = document.createElement("div");
+    progress.className = "slide-ui slide-progress";
+    progress.setAttribute("aria-live", "polite");
+    document.body.appendChild(nav);
+    document.body.appendChild(progress);
+
+    nav.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-slide]");
+      if (!button) return;
+      const kind = button.getAttribute("data-slide");
+      if (kind === "prev") go(slideIndex - 1);
+      else if (kind === "next") go(slideIndex + 1);
+      else if (kind === "index") openSlideIndex();
+      dropPointerFocus(event, button);
+    });
+  }
+
+  /* ---------- slide index ---------------------------------------------- */
+
+  function slideLabel(node) {
+    /* Inside a card the wrapping <h3> comes first in document order, so ask for
+       .card-title explicitly; a chapter slide contains its cards, so there the
+       document-order match is the chapter's own heading. */
+    const title = (node.classList.contains("card") && el(".card-title", node)) ||
+      el(".card-title, .chapter-title, h2, h3", node);
+    if (title && title.textContent.trim()) return title.textContent.trim();
+    const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+    if (text) return text.length > 64 ? text.slice(0, 63).trimEnd() + "\u2026" : text;
+    return node.id;
+  }
+
+  function slideKind(node) {
+    if (node.classList.contains("chapter")) return "Chapter";
+    if (node.classList.contains("takeaway")) return "Closing";
+    return "";
+  }
+
+  function markSlideIndex() {
+    if (!slideDialog) return;
+    els("button", slideDialog).forEach((button, i) =>
+      button.setAttribute("aria-current", i === slideIndex ? "true" : "false"));
+  }
+
+  function openSlideIndex() {
+    if (!slideDialog) {
+      slideDialog = document.createElement("dialog");
+      slideDialog.className = "slide-index";
+      const escape = (text) =>
+        text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      slideDialog.innerHTML = "<h2>Slides</h2><ol>" + slides.map((node, i) =>
+        '<li><button type="button" data-go="' + i + '">' +
+        '<span class="idx-num">' + (i + 1) + "</span><span>" +
+        escape(slideLabel(node)) +
+        (slideKind(node) ? ' <span class="idx-kind">' + slideKind(node) + "</span>" : "") +
+        "</span></button></li>").join("") + "</ol>";
+      document.body.appendChild(slideDialog);
+      slideDialog.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-go]");
+        if (!button) return;
+        go(parseInt(button.getAttribute("data-go"), 10));
+        slideDialog.close();
+        /* Closing returns focus to the Index button, which would otherwise
+           keep the nav bar lit. */
+        dropPointerFocus(event, document.activeElement);
+      });
+    }
+    markSlideIndex();
+    slideDialog.showModal();
+    const current = el('button[aria-current="true"]', slideDialog);
+    if (current) current.focus();
+  }
+
+  function fitSlide(node) {
+    if (!node || !node.classList.contains("card")) return;
+    const kids = Array.from(node.children);
+    if (!kids.length) return;
+    const apply = (value) => kids.forEach((kid) => kid.style.setProperty("--slide-zoom", String(value)));
+
+    apply(1);
+    if (node.scrollHeight <= node.clientHeight + 1) return;
+
+    /* Converge instead of trusting one ratio: margins between children and
+       sub-pixel rounding both survive the zoom, so a single computed guess
+       reliably leaves a few pixels of content clipped. */
+    let zoom = Math.max(MIN_ZOOM, (node.clientHeight / node.scrollHeight) * 0.98);
+    apply(zoom);
+    let guard = 0;
+    while (node.scrollHeight > node.clientHeight + 1 && zoom > MIN_ZOOM && guard < 20) {
+      zoom = Math.max(MIN_ZOOM, zoom - 0.02);
+      apply(zoom);
+      guard += 1;
+    }
+    if (node.scrollHeight > node.clientHeight + 1) {
+      console.warn("html-docs: slide content does not fit at readable size. Split this card: #" + node.id);
+    }
+  }
+
+  function fitCurrentSlide() {
+    fitSlide(slides[slideIndex]);
+  }
+
+  function go(index) {
+    if (!slides.length) return;
+    slideIndex = Math.min(slides.length - 1, Math.max(0, index));
+    slides.forEach((node) => node.removeAttribute("data-slide-current"));
+    const node = slides[slideIndex];
+    node.setAttribute("data-slide-current", "");
+    if (node.classList.contains("card")) {
+      const toggle = el(":scope > .card-head > .card-toggle", node);
+      if (toggle) setOpen(node, toggle, true);
+    }
+    const progress = el(".slide-progress");
+    if (progress) progress.textContent = (slideIndex + 1) + " / " + slides.length;
+    markSlideIndex();
+    fitSlide(node);
+    syncUrl();
+  }
+
+  function syncUrl() {
+    const params = new URLSearchParams(location.search);
+    const inSlides = root.getAttribute("data-view") === "slides";
+    if (inSlides) params.set("view", "slides");
+    else params.delete("view");
+    const query = params.toString();
+    const hash = inSlides && slides[slideIndex] ? "#" + slides[slideIndex].id : location.hash;
+    history.replaceState(null, "", location.pathname + (query ? "?" + query : "") + hash);
+  }
+
+  /* The presenting chrome rests near-invisible so it stays out of a recording.
+     That only works if the reader has been shown it once, so it is held up for
+     several seconds on entry and lifted again whenever the mouse moves. */
+  function wakeChrome(ms) {
+    root.setAttribute("data-chrome", "awake");
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(() => root.removeAttribute("data-chrome"), ms);
+  }
+
+  /* A pointer click leaves the button focused, and :focus-within holds the
+     whole bar at full opacity for the rest of the talk. Keyboard activation
+     reports detail 0 and keeps its focus ring. */
+  function dropPointerFocus(event, node) {
+    if (event.detail > 0 && node && node.blur) node.blur();
+  }
+
+  function setView(view) {
+    const inSlides = view === "slides";
+    if (inSlides) {
+      slides = buildSlides();
+      ensureSlideUi();
+      root.setAttribute("data-view", "slides");
+      const target = slides.findIndex((node) => "#" + node.id === location.hash);
+      go(target >= 0 ? target : slideIndex);
+      wakeChrome(4200);
+    } else {
+      const node = slides[slideIndex];
+      root.removeAttribute("data-view");
+      slides.forEach((item) => {
+        item.removeAttribute("data-slide-current");
+        Array.from(item.children).forEach((kid) => kid.style.removeProperty("--slide-zoom"));
+      });
+      syncUrl();
+      if (node) node.scrollIntoView({ block: "start" });
+    }
+    els('[data-action="toggle-slides"]').forEach((button) =>
+      button.setAttribute("aria-pressed", inSlides ? "true" : "false"));
+  }
+
+  if (slidesEnabled) {
+    els('[data-action="toggle-slides"]').forEach((button) => {
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", (event) => {
+        setView(root.getAttribute("data-view") === "slides" ? "article" : "slides");
+        dropPointerFocus(event, button);
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const inSlides = root.getAttribute("data-view") === "slides";
+      if (!inSlides) return;
+      if (el("dialog[open]")) return;
+      const key = event.key;
+      if (key === "ArrowRight" || key === "PageDown" || key === " " || key === "Spacebar") {
+        event.preventDefault();
+        go(slideIndex + 1);
+      } else if (key === "ArrowLeft" || key === "PageUp") {
+        event.preventDefault();
+        go(slideIndex - 1);
+      } else if (key === "Home") {
+        event.preventDefault();
+        go(0);
+      } else if (key === "End") {
+        event.preventDefault();
+        go(slides.length - 1);
+      } else if (key === "f" || key === "F") {
+        event.preventDefault();
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen().catch(() => {});
+      } else if (key === "o" || key === "O") {
+        event.preventDefault();
+        openSlideIndex();
+      } else if (key === "Escape") {
+        setView("article");
+      }
+    });
+
+    /* The slide chrome sits at 0.12 opacity so it never competes with the
+       content, which also makes it easy to miss. Any pointer movement brings
+       it part-way up for a moment; hovering still takes it to full strength. */
+    document.addEventListener("mousemove", () => {
+      if (root.getAttribute("data-view") !== "slides") return;
+      wakeChrome(2400);
+    }, { passive: true });
+
+    document.addEventListener("click", (event) => {
+      if (root.getAttribute("data-view") !== "slides") return;
+      if (event.target.closest("button, a, input, select, textarea, dialog")) return;
+      go(slideIndex + 1);
+    });
+
+    let touchX = null;
+    document.addEventListener("touchstart", (event) => {
+      if (root.getAttribute("data-view") !== "slides") return;
+      touchX = event.changedTouches[0].clientX;
+    }, { passive: true });
+    document.addEventListener("touchend", (event) => {
+      if (root.getAttribute("data-view") !== "slides" || touchX === null) return;
+      const delta = event.changedTouches[0].clientX - touchX;
+      touchX = null;
+      if (Math.abs(delta) < 45) return;
+      go(delta < 0 ? slideIndex + 1 : slideIndex - 1);
+    }, { passive: true });
+
+    window.addEventListener("resize", () => {
+      if (root.getAttribute("data-view") === "slides") fitCurrentSlide();
+    });
+
+    const wanted = new URLSearchParams(location.search).get("view");
+    if (wanted === "slides" || root.getAttribute("data-view") === "slides") {
+      setView("slides");
+    }
+  }
+
+  /* ---------- deep links ------------------------------------------------ */
+
+  function openAncestors(node) {
+    let current = node;
+    while (current && current !== document.body) {
+      if (current.classList && (current.classList.contains("card") || current.classList.contains("reveal"))) {
+        const toggle = el(":scope > .card-head > .card-toggle", current) ||
+          el(":scope > .reveal-toggle", current);
+        if (toggle) setOpen(current, toggle, true);
+      }
+      current = current.parentElement;
+    }
+  }
+
+  function revealHash() {
+    if (root.getAttribute("data-view") === "slides") return;
+    const id = location.hash.slice(1);
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    openAncestors(target);
+    target.scrollIntoView({ block: "start" });
+  }
+
+  window.addEventListener("hashchange", revealHash);
+  revealHash();
+})();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else { boot(); }
+})();
+</script>
+</head>
+<body>
+<div class="controls" role="group" aria-label="Article controls">
+  <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
+  <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
+  <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+</div>
+<div class="doc">
+  <header class="doc-header">
+    <p class="eyebrow">Engineering decision · asynchronous work</p>
+    <h1>A queue is not extra capacity</h1>
+    <p class="subtitle">Accept a burst without promising an endless wait. Choose a queue limit, a recovery budget, and an honest response when useful work no longer fits.</p>
+    <p class="meta">Fictional design review · illustrative assumptions, not production measurements</p>
+  </header>
+  <nav class="doc-nav" aria-label="Decision shortcut">
+    <a href="#card-admission">The admission decision</a>
+    <a href="#card-rehearsal">The recovery test</a>
+  </nav>
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">The argument</p>
+    <ol>
+      <li><a href="#ch-capacity">Capacity and waiting</a></li>
+      <li><a href="#ch-failure">The hidden cost of acceptance</a></li>
+      <li><a href="#ch-contract">A bounded promise</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section class="chapter" id="ch-capacity">
+      <h2 class="chapter-label">Capacity and waiting</h2>
+      <article class="card card--lead" id="card-premise" data-open>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="true">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">A fast acknowledgment can hide a slow service</span>
+              <span class="card-sub">Accepted is a promise to finish, not evidence of completion.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>A fictional report service moves generation behind a queue. Requests return quickly, but the workers do the same work at the same rate. The waiting has moved out of the request; it has not disappeared.</p>
+          <aside class="callout callout--note">
+            <p class="callout-label">Assumptions</p>
+            <p>Reports can finish asynchronously, but not indefinitely late. Jobs have comparable cost, workers share a constrained database, and the initial queue is empty. Numerical inputs below are invented for a simplified model.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Why asynchronous work still helps</button>
+            <div class="reveal-body">
+              <p>Separating submission from execution lets a brief burst wait instead of holding client connections open. Durable storage can preserve accepted work while workers restart, provided the service acknowledges only after that storage confirms the write.</p>
+              <p>These are useful changes to timing and reliability. They do not, by themselves, raise the completion rate of the database or the workers.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-flow">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">The queue stores the gap between arrival and completion</span>
+              <span class="card-sub">A larger waiting room does not make the exit wider.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <figure class="figure">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="960" height="260" role="img" aria-labelledby="flow-title flow-desc" style="display: block; width: 100%; height: auto">
+              <title id="flow-title">Admission, waiting, and completion are separate boundaries</title>
+              <desc id="flow-desc">New jobs cross admission into a bounded queue, then workers and a database complete them. Jobs that cannot fit the admission policy receive a rejection instead of joining the queue.</desc>
+              <defs>
+                <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/>
+                </marker>
+              </defs>
+              <g fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="2">
+                <rect x="16" y="65" width="160" height="96" rx="10"/>
+                <rect x="256" y="65" width="200" height="96" rx="10" fill="var(--accent-soft)" stroke="var(--accent)"/>
+                <rect x="536" y="65" width="170" height="96" rx="10"/>
+                <rect x="786" y="65" width="158" height="96" rx="10"/>
+              </g>
+              <g fill="none" stroke="var(--accent)" stroke-width="3" marker-end="url(#flow-arrow)">
+                <path d="M176 113 H242"/>
+                <path d="M456 113 H522"/>
+                <path d="M706 113 H772"/>
+                <path d="M212 116 V214 H252"/>
+              </g>
+              <g fill="var(--text)" text-anchor="middle" font-family="var(--font-sans)" font-size="23">
+                <text x="96" y="121">New jobs</text>
+                <text x="356" y="109">Bounded queue</text>
+                <text x="621" y="121">Workers</text>
+                <text x="865" y="121">Database</text>
+              </g>
+              <g fill="var(--text-muted)" text-anchor="middle" font-family="var(--font-sans)" font-size="18">
+                <text x="216" y="38">Admission</text>
+                <text x="356" y="139">Waiting, not processing</text>
+                <text x="742" y="38">Completion bottleneck</text>
+                <text x="272" y="220" text-anchor="start">Reject when the promise no longer fits</text>
+              </g>
+            </svg>
+            <figcaption>Workers can take jobs off the queue faster than the database can finish them. Include in-flight work when counting outstanding promises.</figcaption>
+          </figure>
+        </div>
+      </article>
+      <article class="card" id="card-headroom">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Recovery needs spare completion capacity</span>
+              <span class="card-sub">Returning to full utilization is not the same as catching up.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>While arrivals exceed completions, unfinished work grows. After the burst, only the completion rate left over after new arrivals can drain that work. If the two rates are equal, the backlog stays.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Work through a deliberately simple burst</button>
+            <div class="reveal-body">
+              <p>Assume a constant completion capacity of 80 jobs/second. For 30 seconds, 120 jobs/second arrive; afterward arrivals fall to 40 jobs/second. Assume no retries, expiry, or failures, and enough queue space to admit every job.</p>
+              <table>
+                <thead><tr><th>Phase</th><th>Calculation</th><th>Result</th></tr></thead>
+                <tbody>
+                  <tr><td>Burst</td><td>(120 − 80) × 30</td><td>1,200 extra unfinished jobs</td></tr>
+                  <tr><td>Recovery headroom</td><td>80 − 40</td><td>40 jobs/second</td></tr>
+                  <tr><td>Drain time</td><td>1,200 ÷ 40</td><td>30 seconds after the burst ends</td></tr>
+                </tbody>
+              </table>
+              <p>This fluid approximation ignores individual job timing and service-time variation. It estimates aggregate drain time, not a latency percentile or a completion guarantee for each request.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section class="chapter" id="ch-failure">
+      <h2 class="chapter-label">The hidden cost of acceptance</h2>
+      <article class="card" id="card-age">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Queue age exposes promises that depth can hide</span>
+              <span class="card-sub">Watch the oldest unfinished job, not just the number waiting.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>The same queue length can represent cheap jobs or slow ones. A nearly empty queue can even hide a stuck job already claimed by a worker. Track age from acceptance through completion, including in-flight work.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Separate the signals before setting an alert</button>
+            <div class="reveal-body">
+              <ul>
+                <li>Waiting depth describes stored work; in-flight count describes claimed work.</li>
+                <li>Oldest unfinished age reveals starvation, blocked workers, and long delays.</li>
+                <li>Completion rate and end-to-end latency show what users actually receive.</li>
+                <li>Rejection and expiry counts show demand that the service did not satisfy.</li>
+              </ul>
+              <p>Use the report's usefulness deadline to choose an alert budget. An alert should leave time to intervene, not first fire when the oldest accepted report is already useless.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-retries">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Retries spend the capacity recovery needs</span>
+              <span class="card-sub">A timeout can create more work without canceling the first attempt.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>A caller that cannot see progress may submit the same report again. If both attempts run, duplicate work competes with the original backlog. Backoff spreads that demand over time; it does not make the work free.</p>
+          <aside class="callout callout--rule">
+            <p class="callout-label">Rule</p>
+            <p>Count attempts against a retry budget, and identify the logical job before admitting another copy.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Make deduplication survive a worker restart</button>
+            <div class="reveal-body">
+              <p>Bind a stable submission key to the intended request and retain its state for the supported retry window. Repeating the same key returns that job's status; reusing it for different input is a conflict, not a new job.</p>
+              <p>A key at admission does not make later side effects exactly-once. Workers must also make result writes idempotent or commit the result and completion state atomically. Retry only transient failures, with backoff, jitter, and a finite attempt or time budget.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section class="chapter" id="ch-contract">
+      <h2 class="chapter-label">A bounded promise</h2>
+      <article class="card" id="card-admission">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Reject work before its deadline becomes impossible</span>
+              <span class="card-sub">Bound the waiting time and the storage, not only the worker count.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>The service should accept only the work it expects to finish while it is useful. Combine a hard queue/storage cap with an admission estimate that includes waiting, execution, and a safety margin. Reject clearly when either budget is exhausted.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Derive a starting limit, then test its assumptions</button>
+            <div class="reveal-body">
+              <p>For comparable first-in-first-out jobs, dividing the outstanding work ahead by a conservative completion rate gives a rough waiting estimate. Add the new job's execution budget and compare the total with its remaining deadline.</p>
+              <p>That estimate fails when large jobs dominate, priorities reorder the queue, or the database slows down. Use measured cost classes and age signals to tighten admission, and keep a storage cap even when the estimate looks healthy. A queue limit is a policy backed by tests, not a universal constant.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-outcomes">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Every accepted job needs a visible ending</span>
+              <span class="card-sub">Success, expiry, and failure must be distinguishable from waiting.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="summary-grid">
+            <div class="summary-item"><span class="summary-label">Submission</span>Return a stable job identity only after durable acceptance.</div>
+            <div class="summary-item"><span class="summary-label">Resolution</span>Expose completion, terminal failure, or explicit expiry through status.</div>
+          </div>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Separate recovery from endless retry</button>
+            <div class="reveal-body">
+              <p>Before starting stale work, check whether its deadline still allows a useful result. Mark expired jobs explicitly rather than silently discarding them. A permanently failing job needs a terminal state and an owner, not an unlimited return trip through the queue.</p>
+              <p>A failed-job holding area is an investigation tool, not extra processing capacity. Give retained failures a storage limit and retention policy. Replay only after the cause is understood, through the same admission and retry budgets as new work.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-rehearsal">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Prove the drain path before raising the queue limit</span>
+              <span class="card-sub">A burst test ends when useful work finishes—not when submissions stop.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>Rehearse a burst, a slow dependency, and a worker restart. Keep normal arrivals running during recovery. Check that accepted work reaches a visible ending and that new demand cannot consume the recovery budget unnoticed.</p>
+          <aside class="callout callout--verdict">
+            <p class="callout-label">Decision</p>
+            <p>Use a bounded queue with explicit admission and job status. Add workers only when the downstream bottleneck has room; increase buffering only when the waiting budget allows it.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Set acceptance criteria for the rehearsal</button>
+            <div class="reveal-body">
+              <ol>
+                <li>Choose the report deadline, storage cap, retry budget, and recovery target before the test.</li>
+                <li>Record offered, admitted, completed, expired, and failed work. Include in-flight jobs in reconciliation.</li>
+                <li>Verify the backlog drains within the chosen target while ordinary traffic continues.</li>
+                <li>Repeat with duplicate submissions and a slower database. Check for duplicate effects and terminal jobs stranded as pending.</li>
+              </ol>
+              <p>Do not call an empty queue a success if jobs were merely moved into worker memory, expired without notice, or lost. The evidence is accounted-for outcomes within the chosen contract.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <p class="takeaway" id="closing">A queue buys time only when you have the capacity to repay it.</p>
+  <footer class="doc-footer">
+    <span>Original fictional example. Calculations use stated assumptions, not observed production results.</span>
+    <a href="#ch-capacity">Back to the argument</a>
+  </footer>
+</div>
+</body>
+</html>

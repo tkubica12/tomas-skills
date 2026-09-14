@@ -1,0 +1,363 @@
+<!doctype html>
+<!--
+MIT License
+
+Copyright (c) 2026 Tomáš Kubica
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A queue is not extra capacity</title>
+<meta name="description" content="An engineering decision about bounded queues, recovery headroom, and admitting only work that can still finish usefully.">
+<meta name="doc-id" content="queue-is-not-capacity">
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+  if (p.get("view") === "slides") d.setAttribute("data-view", "slides");
+})();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+<link rel="stylesheet" href="../../skills/html-docs/assets/article.css">
+<script src="../../skills/html-docs/assets/article.js" defer></script>
+</head>
+<body>
+<div class="controls" role="group" aria-label="Article controls">
+  <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
+  <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
+  <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+</div>
+<div class="doc">
+  <header class="doc-header">
+    <p class="eyebrow">Engineering decision · asynchronous work</p>
+    <h1>A queue is not extra capacity</h1>
+    <p class="subtitle">Accept a burst without promising an endless wait. Choose a queue limit, a recovery budget, and an honest response when useful work no longer fits.</p>
+    <p class="meta">Fictional design review · illustrative assumptions, not production measurements</p>
+  </header>
+  <nav class="doc-nav" aria-label="Decision shortcut">
+    <a href="#card-admission">The admission decision</a>
+    <a href="#card-rehearsal">The recovery test</a>
+  </nav>
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">The argument</p>
+    <ol>
+      <li><a href="#ch-capacity">Capacity and waiting</a></li>
+      <li><a href="#ch-failure">The hidden cost of acceptance</a></li>
+      <li><a href="#ch-contract">A bounded promise</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section class="chapter" id="ch-capacity">
+      <h2 class="chapter-label">Capacity and waiting</h2>
+      <article class="card card--lead" id="card-premise" data-open>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="true">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">A fast acknowledgment can hide a slow service</span>
+              <span class="card-sub">Accepted is a promise to finish, not evidence of completion.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>A fictional report service moves generation behind a queue. Requests return quickly, but the workers do the same work at the same rate. The waiting has moved out of the request; it has not disappeared.</p>
+          <aside class="callout callout--note">
+            <p class="callout-label">Assumptions</p>
+            <p>Reports can finish asynchronously, but not indefinitely late. Jobs have comparable cost, workers share a constrained database, and the initial queue is empty. Numerical inputs below are invented for a simplified model.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Why asynchronous work still helps</button>
+            <div class="reveal-body">
+              <p>Separating submission from execution lets a brief burst wait instead of holding client connections open. Durable storage can preserve accepted work while workers restart, provided the service acknowledges only after that storage confirms the write.</p>
+              <p>These are useful changes to timing and reliability. They do not, by themselves, raise the completion rate of the database or the workers.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-flow">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">The queue stores the gap between arrival and completion</span>
+              <span class="card-sub">A larger waiting room does not make the exit wider.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <figure class="figure">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="960" height="260" role="img" aria-labelledby="flow-title flow-desc" style="display: block; width: 100%; height: auto">
+              <title id="flow-title">Admission, waiting, and completion are separate boundaries</title>
+              <desc id="flow-desc">New jobs cross admission into a bounded queue, then workers and a database complete them. Jobs that cannot fit the admission policy receive a rejection instead of joining the queue.</desc>
+              <defs>
+                <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 Z" fill="var(--accent)"/>
+                </marker>
+              </defs>
+              <g fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="2">
+                <rect x="16" y="65" width="160" height="96" rx="10"/>
+                <rect x="256" y="65" width="200" height="96" rx="10" fill="var(--accent-soft)" stroke="var(--accent)"/>
+                <rect x="536" y="65" width="170" height="96" rx="10"/>
+                <rect x="786" y="65" width="158" height="96" rx="10"/>
+              </g>
+              <g fill="none" stroke="var(--accent)" stroke-width="3" marker-end="url(#flow-arrow)">
+                <path d="M176 113 H242"/>
+                <path d="M456 113 H522"/>
+                <path d="M706 113 H772"/>
+                <path d="M212 116 V214 H252"/>
+              </g>
+              <g fill="var(--text)" text-anchor="middle" font-family="var(--font-sans)" font-size="23">
+                <text x="96" y="121">New jobs</text>
+                <text x="356" y="109">Bounded queue</text>
+                <text x="621" y="121">Workers</text>
+                <text x="865" y="121">Database</text>
+              </g>
+              <g fill="var(--text-muted)" text-anchor="middle" font-family="var(--font-sans)" font-size="18">
+                <text x="216" y="38">Admission</text>
+                <text x="356" y="139">Waiting, not processing</text>
+                <text x="742" y="38">Completion bottleneck</text>
+                <text x="272" y="220" text-anchor="start">Reject when the promise no longer fits</text>
+              </g>
+            </svg>
+            <figcaption>Workers can take jobs off the queue faster than the database can finish them. Include in-flight work when counting outstanding promises.</figcaption>
+          </figure>
+        </div>
+      </article>
+      <article class="card" id="card-headroom">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Recovery needs spare completion capacity</span>
+              <span class="card-sub">Returning to full utilization is not the same as catching up.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>While arrivals exceed completions, unfinished work grows. After the burst, only the completion rate left over after new arrivals can drain that work. If the two rates are equal, the backlog stays.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Work through a deliberately simple burst</button>
+            <div class="reveal-body">
+              <p>Assume a constant completion capacity of 80 jobs/second. For 30 seconds, 120 jobs/second arrive; afterward arrivals fall to 40 jobs/second. Assume no retries, expiry, or failures, and enough queue space to admit every job.</p>
+              <table>
+                <thead><tr><th>Phase</th><th>Calculation</th><th>Result</th></tr></thead>
+                <tbody>
+                  <tr><td>Burst</td><td>(120 − 80) × 30</td><td>1,200 extra unfinished jobs</td></tr>
+                  <tr><td>Recovery headroom</td><td>80 − 40</td><td>40 jobs/second</td></tr>
+                  <tr><td>Drain time</td><td>1,200 ÷ 40</td><td>30 seconds after the burst ends</td></tr>
+                </tbody>
+              </table>
+              <p>This fluid approximation ignores individual job timing and service-time variation. It estimates aggregate drain time, not a latency percentile or a completion guarantee for each request.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section class="chapter" id="ch-failure">
+      <h2 class="chapter-label">The hidden cost of acceptance</h2>
+      <article class="card" id="card-age">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Queue age exposes promises that depth can hide</span>
+              <span class="card-sub">Watch the oldest unfinished job, not just the number waiting.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>The same queue length can represent cheap jobs or slow ones. A nearly empty queue can even hide a stuck job already claimed by a worker. Track age from acceptance through completion, including in-flight work.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Separate the signals before setting an alert</button>
+            <div class="reveal-body">
+              <ul>
+                <li>Waiting depth describes stored work; in-flight count describes claimed work.</li>
+                <li>Oldest unfinished age reveals starvation, blocked workers, and long delays.</li>
+                <li>Completion rate and end-to-end latency show what users actually receive.</li>
+                <li>Rejection and expiry counts show demand that the service did not satisfy.</li>
+              </ul>
+              <p>Use the report's usefulness deadline to choose an alert budget. An alert should leave time to intervene, not first fire when the oldest accepted report is already useless.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-retries">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Retries spend the capacity recovery needs</span>
+              <span class="card-sub">A timeout can create more work without canceling the first attempt.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>A caller that cannot see progress may submit the same report again. If both attempts run, duplicate work competes with the original backlog. Backoff spreads that demand over time; it does not make the work free.</p>
+          <aside class="callout callout--rule">
+            <p class="callout-label">Rule</p>
+            <p>Count attempts against a retry budget, and identify the logical job before admitting another copy.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Make deduplication survive a worker restart</button>
+            <div class="reveal-body">
+              <p>Bind a stable submission key to the intended request and retain its state for the supported retry window. Repeating the same key returns that job's status; reusing it for different input is a conflict, not a new job.</p>
+              <p>A key at admission does not make later side effects exactly-once. Workers must also make result writes idempotent or commit the result and completion state atomically. Retry only transient failures, with backoff, jitter, and a finite attempt or time budget.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section class="chapter" id="ch-contract">
+      <h2 class="chapter-label">A bounded promise</h2>
+      <article class="card" id="card-admission">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Reject work before its deadline becomes impossible</span>
+              <span class="card-sub">Bound the waiting time and the storage, not only the worker count.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>The service should accept only the work it expects to finish while it is useful. Combine a hard queue/storage cap with an admission estimate that includes waiting, execution, and a safety margin. Reject clearly when either budget is exhausted.</p>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Derive a starting limit, then test its assumptions</button>
+            <div class="reveal-body">
+              <p>For comparable first-in-first-out jobs, dividing the outstanding work ahead by a conservative completion rate gives a rough waiting estimate. Add the new job's execution budget and compare the total with its remaining deadline.</p>
+              <p>That estimate fails when large jobs dominate, priorities reorder the queue, or the database slows down. Use measured cost classes and age signals to tighten admission, and keep a storage cap even when the estimate looks healthy. A queue limit is a policy backed by tests, not a universal constant.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-outcomes">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Every accepted job needs a visible ending</span>
+              <span class="card-sub">Success, expiry, and failure must be distinguishable from waiting.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="summary-grid">
+            <div class="summary-item"><span class="summary-label">Submission</span>Return a stable job identity only after durable acceptance.</div>
+            <div class="summary-item"><span class="summary-label">Resolution</span>Expose completion, terminal failure, or explicit expiry through status.</div>
+          </div>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Separate recovery from endless retry</button>
+            <div class="reveal-body">
+              <p>Before starting stale work, check whether its deadline still allows a useful result. Mark expired jobs explicitly rather than silently discarding them. A permanently failing job needs a terminal state and an owner, not an unlimited return trip through the queue.</p>
+              <p>A failed-job holding area is an investigation tool, not extra processing capacity. Give retained failures a storage limit and retention policy. Replay only after the cause is understood, through the same admission and retry budgets as new work.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-rehearsal">
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles">
+              <span class="card-title">Prove the drain path before raising the queue limit</span>
+              <span class="card-sub">A burst test ends when useful work finishes—not when submissions stop.</span>
+            </span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <p>Rehearse a burst, a slow dependency, and a worker restart. Keep normal arrivals running during recovery. Check that accepted work reaches a visible ending and that new demand cannot consume the recovery budget unnoticed.</p>
+          <aside class="callout callout--verdict">
+            <p class="callout-label">Decision</p>
+            <p>Use a bounded queue with explicit admission and job status. Add workers only when the downstream bottleneck has room; increase buffering only when the waiting budget allows it.</p>
+          </aside>
+          <div class="reveal">
+            <button type="button" class="reveal-toggle" aria-expanded="false">Set acceptance criteria for the rehearsal</button>
+            <div class="reveal-body">
+              <ol>
+                <li>Choose the report deadline, storage cap, retry budget, and recovery target before the test.</li>
+                <li>Record offered, admitted, completed, expired, and failed work. Include in-flight jobs in reconciliation.</li>
+                <li>Verify the backlog drains within the chosen target while ordinary traffic continues.</li>
+                <li>Repeat with duplicate submissions and a slower database. Check for duplicate effects and terminal jobs stranded as pending.</li>
+              </ol>
+              <p>Do not call an empty queue a success if jobs were merely moved into worker memory, expired without notice, or lost. The evidence is accounted-for outcomes within the chosen contract.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <p class="takeaway" id="closing">A queue buys time only when you have the capacity to repay it.</p>
+  <footer class="doc-footer">
+    <span>Original fictional example. Calculations use stated assumptions, not observed production results.</span>
+    <a href="#ch-capacity">Back to the argument</a>
+  </footer>
+</div>
+</body>
+</html>

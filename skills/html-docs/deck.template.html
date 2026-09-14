@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DECK TITLE</title>
+<meta name="description" content="ONE SENTENCE SUMMARY">
+
+<!-- 1. Theme bootstrap. Must be the first script in <head>. -->
+<script>
+(function () {
+  var d = document.documentElement;
+  d.classList.add("js");
+  var p = new URLSearchParams(location.search);
+  var t = p.get("theme");
+  if (t !== "light" && t !== "dark") {
+    try { t = localStorage.getItem("doc-theme"); } catch (e) { t = null; }
+  }
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  d.setAttribute("data-theme", t);
+})();
+</script>
+
+<!-- 2. Canonical design tokens. Copied verbatim from assets/tokens.css.
+     Never edit these values in a page. -->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #eaecf0;
+  --border: #dee1e6; --border-strong: #c2c7cf;
+  --text: #14171a; --text-muted: #565c66; --text-faint: #767d87;
+  --accent: #0078d4; --accent-strong: #005a9e; --accent-quiet: #4a9fe0;
+  --accent-soft: #eaf3fb; --accent-border: #a9d0ef;
+  --warn: #8a5300; --warn-soft: #fdf5e8; --warn-border: #e6c99a;
+  --code-bg: #f5f6f8; --code-border: #e2e5ea;
+  --focus: #0078d4;
+  --shadow-1: 0 1px 2px rgba(16,19,23,.06);
+  --shadow-2: 0 2px 4px rgba(16,19,23,.06), 0 12px 28px rgba(16,19,23,.08);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1013; --surface: #15181d; --surface-2: #1b1f26; --surface-3: #232830;
+  --border: #2b313a; --border-strong: #3d4550;
+  --text: #eceef1; --text-muted: #a7aeb8; --text-faint: #868e99;
+  --accent: #4aa3e8; --accent-strong: #7cc0f3; --accent-quiet: #2f80c4;
+  --accent-soft: #142430; --accent-border: #2c4f6d;
+  --warn: #e0b055; --warn-soft: #241d10; --warn-border: #574627;
+  --code-bg: #12151a; --code-border: #262c34;
+  --focus: #6cb8f0;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.4), 0 12px 28px rgba(0,0,0,.45);
+}
+</style>
+
+<!-- 3. Shared assets. Adjust the relative path to the assets folder. -->
+<link rel="stylesheet" href="assets/deck.css">
+<script src="assets/deck.js" defer></script>
+</head>
+
+<body>
+
+<!-- Every slide is a section inside the fixed 1280 x 720 stage. Author inside
+     that box: what fits here fits on any projector. -->
+<main class="deck-stage">
+
+  <section class="slide slide--title" id="s-title">
+    <h1>DECK TITLE</h1>
+    <p class="slide-sub">One sentence stating the argument, not the agenda.</p>
+    <!-- Optional: add a supplied speaker name or relevant date as slide-meta. -->
+  </section>
+
+  <section class="slide slide--section" id="s-part-one">
+    <h2>FIRST PART</h2>
+    <p class="slide-lead">Optional single line framing this part.</p>
+  </section>
+
+  <section class="slide" id="s-first-point">
+    <div class="slide-head">
+      <h2 class="slide-title">The point of this slide</h2>
+      <p class="slide-lead">Optional supporting line.</p>
+    </div>
+    <div class="slide-body">
+      <ul class="arrow-list">
+        <li class="frag">First idea, revealed on the first advance.</li>
+        <li class="frag">Second idea.</li>
+        <li class="frag">Third idea.</li>
+      </ul>
+    </div>
+    <p class="slide-note">Optional footnote, source, or date.</p>
+  </section>
+
+  <section class="slide slide--end" id="s-end">
+    <p>End on the one sentence the room should remember.</p>
+  </section>
+
+</main>
+
+</body>
+</html>
