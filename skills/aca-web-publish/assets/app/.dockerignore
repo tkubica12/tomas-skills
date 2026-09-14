@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.txt
+!app.py
+!auth.py
+!config.py
+!storage.py
