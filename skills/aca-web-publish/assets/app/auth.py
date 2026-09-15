@@ -91,7 +91,7 @@ def create_oauth(settings: Settings) -> OAuth:
             "code_challenge_method": "S256",
             "token_endpoint_auth_method": "client_secret_post",
             "timeout": 20,
-            "trust_env": False,
+            "trust_env": True,
         },
     }
     if settings.provider == "github":

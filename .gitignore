@@ -1,3 +1,9 @@
 node_modules/
 playwright-report/
 test-results/
+__pycache__/
+.pytest_cache/
+.venv/
+.aca-publish.json
+.aca-publish.json.lock
+.aca-publish.json.build.log

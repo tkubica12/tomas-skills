@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="310" viewBox="0 0 960 310">
+  <rect width="960" height="310" rx="18" fill="#ffffff"/>
+  <g font-family="Arial, sans-serif" fill="#18181b">
+    <text x="36" y="43" font-size="15" fill="#52525b">ONE PUBLIC WEBSITE. A PRIVATE CONTENT PATH.</text>
+    <rect x="36" y="93" width="200" height="110" rx="12" fill="#f4f4f5" stroke="#d4d4d8"/>
+    <text x="136" y="139" font-size="24" text-anchor="middle">Browser</text>
+    <text x="136" y="170" font-size="15" text-anchor="middle" fill="#52525b">HTML + images + audio</text>
+    <rect x="357" y="93" width="220" height="110" rx="12" fill="#f4f4f5" stroke="#d4d4d8"/>
+    <text x="467" y="139" font-size="24" text-anchor="middle">ACA Express</text>
+    <text x="467" y="170" font-size="15" text-anchor="middle" fill="#52525b">Auth + streaming proxy</text>
+    <rect x="703" y="93" width="220" height="110" rx="12" fill="#f4f4f5" stroke="#d4d4d8"/>
+    <text x="813" y="139" font-size="24" text-anchor="middle">Private Blob</text>
+    <text x="813" y="170" font-size="15" text-anchor="middle" fill="#52525b">Cool-tier content</text>
+    <path d="M250 148H337m-10-8 10 8-10 8M591 148H683m-10-8 10 8-10 8" fill="none" stroke="#2563eb" stroke-width="3"/>
+    <text x="293" y="123" font-size="14" text-anchor="middle" fill="#2563eb">HTTPS</text>
+    <text x="637" y="123" font-size="14" text-anchor="middle" fill="#2563eb">VNet</text>
+    <text x="480" y="259" font-size="17" text-anchor="middle" fill="#52525b">Storage public networking stays disabled, including during publishing.</text>
+  </g>
+</svg>

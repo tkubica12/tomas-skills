@@ -1,13 +1,15 @@
 # Tomas's agent skills
 
-Three reusable skills for researching a topic, explaining how it works, and
-turning the result into a document people can both watch and read.
+Reusable skills for researching a topic, explaining how it works, turning the
+result into a document people can both watch and read, and publishing a website
+with private Blob-backed content.
 
 | Skill | What it does | Example result |
 | --- | --- | --- |
 | [html-docs](skills/html-docs/README.md) | Creates browser-ready documents and presentations. One shareable HTML file can hold the live slides and the matching detailed handout. | [Presentation + reading example](examples/html-docs/README.md) |
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
+| [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
 
 ## Install
 
@@ -19,6 +21,7 @@ gh skill preview tkubica12/tomas-skills html-docs
 gh skill install tkubica12/tomas-skills html-docs
 gh skill install tkubica12/tomas-skills first-principles
 gh skill install tkubica12/tomas-skills web-research
+gh skill install tkubica12/tomas-skills aca-web-publish
 ```
 
 The default is project scope for GitHub Copilot. Add `--scope user` to make a
@@ -47,7 +50,9 @@ personal skills. Other clients may use different locations.
 Skills provide instructions, not additional tool access. `first-principles`
 works without browsing; `web-research` needs authorized search/read tools.
 `html-docs` ships its templates and runtime; recipients need only a browser.
-See each skill's README for authoring prerequisites.
+`aca-web-publish` requires authorized Azure deployment and identity-provider
+access; it does not grant those permissions. See each skill's README for
+prerequisites.
 
 ## Repository layout
 
@@ -75,10 +80,13 @@ gh skill publish --dry-run
 ```
 
 Rebuild and check the HTML example using its
-[documented commands](examples/html-docs/README.md). Keep generated standalone
-files in sync with their editable sources, and keep local paths, credentials,
-private documents, evaluation transcripts, and install-injected provenance out
-of packages.
+[documented commands](examples/html-docs/README.md). For the ACA package, run
+`pwsh -NoProfile -File skills\aca-web-publish\assets\scripts\Test-Scripts.ps1`
+and the [runtime tests](skills/aca-web-publish/assets/app/README.md) in their
+approved-feed environment. Live Azure checks are separate from these tests.
+Keep generated standalone files in sync with their editable sources. Keep local
+paths, credentials, private documents, evaluation transcripts, and install-injected
+provenance out of packages.
 
 A public repository with the `agent-skills` topic can be discovered by
 `gh skill search`; third-party catalogs have their own indexing rules.

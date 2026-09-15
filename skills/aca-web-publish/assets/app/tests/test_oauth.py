@@ -3,8 +3,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
+import tempfile
 import time
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
@@ -15,11 +19,26 @@ from fastapi.testclient import TestClient
 from itsdangerous import TimestampSigner
 
 from app import create_app
+from auth import create_oauth
 from config import Settings
 from tests.fakes import Entry, MemoryStore, environment
 
 
 class OAuthTests(unittest.TestCase):
+    def test_platform_ca_configuration_is_honored_with_verification_enabled(self):
+        for provider in ("github", "google", "entra"):
+            with self.subTest(provider=provider), tempfile.TemporaryDirectory() as directory:
+                settings = Settings.from_env(environment(AUTH_PROVIDER=provider))
+                client = create_oauth(settings).create_client(provider)
+                self.assertIs(client.client_kwargs["trust_env"], True)
+                self.assertIsNot(client.client_kwargs.get("verify"), False)
+                with patch.dict(os.environ, {"SSL_CERT_FILE": str(Path(directory) / "missing-ca.pem")}):
+                    with self.assertRaises(FileNotFoundError):
+                        httpx.AsyncClient(
+                            trust_env=client.client_kwargs["trust_env"],
+                            verify=client.client_kwargs.get("verify", True),
+                        )
+
     @classmethod
     def setUpClass(cls):
         cls.key = rsa.generate_private_key(public_exponent=65537, key_size=2048)

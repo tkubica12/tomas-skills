@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A small site, private storage</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#fff; --ink:#18181b; --muted:#52525b; --line:#e4e4e7; --accent:#2563eb; }
+    @media (prefers-color-scheme:dark) { :root { --bg:#111113; --ink:#fafafa; --muted:#a1a1aa; --line:#3f3f46; --accent:#60a5fa; } }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.65 system-ui,sans-serif; }
+    main { max-width:1000px; margin:auto; padding:64px 24px; }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:13px; font-weight:700; }
+    h1 { max-width:800px; font-size:clamp(38px,6vw,68px); line-height:1.06; letter-spacing:-.045em; margin:16px 0 24px; }
+    .lead { max-width:730px; color:var(--muted); font-size:22px; }
+    figure { margin:40px 0; }
+    img { display:block; width:100%; border:1px solid var(--line); border-radius:18px; background:#fff; }
+    figcaption, footer { color:var(--muted); font-size:14px; margin-top:12px; }
+    section { border-top:1px solid var(--line); padding:22px 0; }
+    h2 { font-size:23px; line-height:1.25; margin:8px 0; }
+    p { max-width:800px; }
+    code { font-size:.85em; overflow-wrap:anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">ACA Express / private Blob</div>
+    <h1>A small site.<br>Private storage.<br>No upload firewall window.</h1>
+    <p class="lead">The browser reads a website. The application reads private
+      blobs. Publishing takes the same private route, with a short-lived
+      capability that is switched off afterward.</p>
+    <figure>
+      <img src="images/content-path.svg" width="960" height="310"
+        alt="Browser sends HTTPS requests to an ACA Express web application. The application accesses Cool Blob Storage through a VNet and private endpoint.">
+      <figcaption>This diagram is a separate Blob-backed image, not embedded
+        in the HTML or included in the application container.</figcaption>
+    </figure>
+    <section>
+      <h2>The site is not the container</h2>
+      <p>HTML and images are content objects. The container contains only the
+        reader, authentication and publishing code. Updating this page does
+        not require rebuilding the image.</p>
+    </section>
+    <section>
+      <h2>Private storage and private readers are different</h2>
+      <p>Storage has no public data path. Reader access is a separate choice:
+        explicitly public content, or application login with an allowlist.
+        Protecting Blob networking does not authenticate website visitors.</p>
+    </section>
+    <section>
+      <h2>Publishing is a temporary capability</h2>
+      <p>The upload API normally returns 404. A publishing run briefly enables
+        authenticated streaming CRUD, then disables the routes, removes the
+        token digest and revokes temporary write access. There is no public
+        Storage exception.</p>
+    </section>
+    <footer>Original demonstration content. Architecture illustration, not a
+      benchmark, capacity promise or proof of a particular live deployment.</footer>
+  </main>
+</body>
+</html>
