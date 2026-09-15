@@ -6,7 +6,7 @@ import hmac
 import secrets
 import time
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 from authlib.integrations.starlette_client import OAuth
 from authlib.jose.errors import InvalidClaimError
@@ -14,7 +14,13 @@ from authlib.oidc.core import CodeIDToken
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 
-from config import SESSION_SECONDS, Settings, uuid_value
+from config import LOGIN_SECONDS, SESSION_SECONDS, Settings, uuid_value
+
+
+class LoginAttemptError(HTTPException):
+    def __init__(self, reason: Literal["missing_session", "invalid_session", "expired", "invalid_callback"]):
+        super().__init__(401, "Login expired or invalid")
+        self.reason = reason
 
 
 class StrictCodeIDToken(CodeIDToken):
@@ -132,11 +138,17 @@ async def start_login(request: Request, settings: Settings, oauth: OAuth) -> Red
 
 async def finish_login(request: Request, settings: Settings, oauth: OAuth) -> RedirectResponse:
     started = request.session.get("login_started")
-    if (
-        type(started) is not int or not 0 <= time.time() - started <= 600
-        or not request.query_params.get("code") or not request.query_params.get("state")
-    ):
-        raise HTTPException(401, "Login expired or invalid")
+    if started is None:
+        raise LoginAttemptError("missing_session")
+    if type(started) is not int:
+        raise LoginAttemptError("invalid_session")
+    age = time.time() - started
+    if age < 0:
+        raise LoginAttemptError("invalid_session")
+    if age > LOGIN_SECONDS:
+        raise LoginAttemptError("expired")
+    if not request.query_params.get("code") or not request.query_params.get("state"):
+        raise LoginAttemptError("invalid_callback")
     client = oauth.create_client(settings.provider)
     kwargs = {}
     if settings.provider != "github":

@@ -45,11 +45,21 @@ The live Azure deployment was checked separately from the local preview:
 | Scaling | HTTP min-0/max-1 configuration verified; zero replicas observed before a successful HTTP wake-up |
 | Reader identity registration | Single-tenant Entra application and service principal created for the actual callback |
 | Entra protocol checks | Live tenant-specific redirect, actual callback/client, code flow, state/nonce/PKCE and secure cookie checked; invalid callback rejected |
+| Allowed-user sign-in | A real allowlisted user completed fresh Entra sign-in and confirmed the site works |
 | Reader protection | Anonymous root, HTML, SVG, HEAD and range requests blocked; direct public Blob request denied |
 
-Real **allowed-user and denied-user sign-ins remain unverified**: they require
-interactive account access. Local mocked-provider tests cover these paths, but
-an authorization redirect is not proof of a completed browser login.
+Real **denied-user sign-in remains unverified** because a second interactive
+account was not available. Local mocked-provider tests cover denial, but are
+not a substitute for a live account check.
+
+To check the image in an authenticated browser, open Developer Tools, select
+Network, disable the browser cache, and reload. `images/content-path.svg`
+should be a separate **200** response with `Content-Type: image/svg+xml`.
+Open that relative URL directly in the same signed-in browser to inspect it.
+The application image contains only server code: the HTML uses an external
+`img` reference and the reader fetches its content through the private Blob SDK.
+A direct public Storage URL should fail; the browser uses the authenticated
+application URL, not a Blob URL.
 
 The preview exposed two practical integration issues. An ARM configuration
 update could succeed while the running process retained old environment values;

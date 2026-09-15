@@ -18,13 +18,13 @@ from authlib.jose.errors import JoseError
 from azure.core import MatchConditions
 from azure.core.exceptions import AzureError
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from itsdangerous import BadData, URLSafeTimedSerializer
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from auth import create_oauth, finish_login, reader_authorized, start_login
-from config import SESSION_SECONDS, Settings
+from auth import LoginAttemptError, create_oauth, finish_login, reader_authorized, start_login
+from config import LOGIN_SECONDS, SESSION_SECONDS, Settings
 from storage import AzureBlobStore, BlobStore, storage_error, upload
 
 logger = logging.getLogger("aca_web_publish")
@@ -34,6 +34,70 @@ MIME = re.compile(
     r"(?: *; *[A-Za-z0-9!#$&^_.+-]+=(?:[A-Za-z0-9!#$&^_.+\-]+|\"[A-Za-z0-9 ._+\-]+\"))*"
 )
 STRONG_ETAG = re.compile(r'"[!#-~]+"')
+
+
+def login_attempt_response(request: Request, error: LoginAttemptError) -> Response:
+    html_quality = 0.0
+    for item in request.headers.get("accept", "").lower().split(","):
+        media, *parameters = item.split(";")
+        if media.strip() != "text/html":
+            continue
+        quality = "1"
+        for parameter in parameters:
+            name, _, value = parameter.partition("=")
+            if name.strip() == "q":
+                quality = value.strip()
+        if re.fullmatch(r"(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)", quality):
+            html_quality = max(html_quality, float(quality))
+    if not html_quality:
+        return JSONResponse({"detail": error.detail}, error.status_code)
+    title, explanation = {
+        "expired": (
+            "Sign-in expired",
+            f"This sign-in attempt was open for more than {LOGIN_SECONDS // 60} minutes. "
+            "Start a new attempt; your Microsoft, Google or GitHub account may still be signed in.",
+        ),
+        "missing_session": (
+            "Sign-in session missing",
+            "The browser did not return a valid sign-in cookie. Start again in the same browser "
+            "and allow cookies for this site. Switching browsers or clearing cookies can cause this.",
+        ),
+        "invalid_session": (
+            "Sign-in session invalid",
+            "This sign-in attempt can no longer be used. Start a new attempt in the same browser.",
+        ),
+        "invalid_callback": (
+            "Sign-in response incomplete",
+            "This callback is missing required sign-in information. Start a new attempt.",
+        ),
+    }[error.reason]
+    return HTMLResponse(
+        f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{title}</title>
+<style>
+body {{ margin: 0; background: Canvas; color: CanvasText; font: 18px/1.5 system-ui, sans-serif; }}
+main {{ max-width: 38rem; margin: 12vh auto; padding: 2rem; }}
+h1 {{ line-height: 1.15; }}
+a {{ display: inline-block; padding: .7rem 1rem; border: 2px solid LinkText; border-radius: .4rem; color: LinkText; }}
+</style>
+</head>
+<body>
+<main>
+<h1>{title}</h1>
+<p>{explanation}</p>
+<p><a href="/login">Sign in again</a></p>
+<p>Do not refresh the old callback address. Access remains protected until sign-in completes.</p>
+</main>
+</body>
+</html>""",
+        error.status_code,
+        headers={"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"},
+    )
 
 
 def invalid_path(path: str, *, prefix: bool = False, allow_reserved: bool = False) -> bool:
@@ -252,6 +316,10 @@ def create_app(
     async def oauth_failure(request: Request, action) -> Response:
         try:
             return await action(request, settings, oauth)
+        except LoginAttemptError as exc:
+            request.session.clear()
+            logger.warning("oauth_rejected reason=%s", exc.reason)
+            return login_attempt_response(request, exc)
         except HTTPException:
             request.session.clear()
             raise

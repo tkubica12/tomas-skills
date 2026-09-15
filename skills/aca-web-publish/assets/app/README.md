@@ -78,6 +78,15 @@ current allowlist is checked on every reader request. Logout is `POST /logout`
 and requires an exact matching `Origin`; it is unavailable before a canonical
 origin is configured.
 
+An unfinished sign-in attempt expires after **10 minutes**, independently of the
+eight-hour reader session. Expired or missing sign-in cookies produce a 401
+recovery page for browser requests, with a **Sign in again** link to `/login`.
+Restart there in the same browser instead of refreshing or sharing the callback
+URL; it contains a one-use authorization code. Clients not requesting HTML keep
+the existing JSON error. Logs record only a fixed failure reason, never the
+callback URL, code, state or cookie. Invalid state, token and allowlist checks
+still fail closed; recovery does not extend or reuse an old transaction.
+
 OAuth HTTP clients keep TLS verification enabled and honor the platform's
 certificate/proxy environment, including `SSL_CERT_FILE` and `SSL_CERT_DIR`.
 Disabling environment trust broke Entra discovery in the live Express

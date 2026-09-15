@@ -20,7 +20,7 @@ from itsdangerous import TimestampSigner
 
 from app import create_app
 from auth import create_oauth
-from config import Settings
+from config import LOGIN_SECONDS, Settings
 from tests.fakes import Entry, MemoryStore, environment
 
 
@@ -46,7 +46,9 @@ class OAuthTests(unittest.TestCase):
         cls.jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(cls.key.public_key()))
         cls.jwk.update(kid="test-key", use="sig", alg="RS256")
 
-    def setup_provider(self, provider, *, allowed="alice@example.com", mutate_claims=None, token_override=None):
+    def setup_provider(self, provider, *, allowed=None, mutate_claims=None, token_override=None):
+        if allowed is None:
+            allowed = "github:123" if provider == "github" else "alice@example.com"
         env = environment(AUTH_PROVIDER=provider, ALLOWED_USERS=allowed)
         settings = Settings.from_env(env)
         store = MemoryStore()
@@ -118,9 +120,104 @@ class OAuthTests(unittest.TestCase):
             self.assertIn("nonce", authorization)
         return client, settings, calls, authorization
 
-    def complete(self, client, settings, authorization, **overrides):
+    def complete(self, client, settings, authorization, *, headers=None, **overrides):
         params = {"code": "test-code", "state": authorization["state"][0]} | overrides
-        return client.get(f"/oauth/{settings.provider}/callback", params=params)
+        return client.get(f"/oauth/{settings.provider}/callback", params=params, headers=headers)
+
+    def transaction(self, client, settings):
+        value = client.cookies.get(settings.cookie_name)
+        return json.loads(base64.b64decode(TimestampSigner(settings.session_secret).unsign(value)))
+
+    def set_login_started(self, client, settings, started):
+        payload = self.transaction(client, settings)
+        payload["login_started"] = started
+        value = TimestampSigner(settings.session_secret).sign(base64.b64encode(json.dumps(payload).encode())).decode()
+        client.cookies.clear()
+        client.cookies.set(settings.cookie_name, value, domain=urlsplit(settings.public_base_url).hostname, path="/")
+
+    def test_browser_transaction_failures_offer_safe_retry_without_provider_exchange(self):
+        for provider in ("github", "google", "entra"):
+            for reason, title in (
+                ("expired", "Sign-in expired"),
+                ("missing_session", "Sign-in session missing"),
+                ("invalid_session", "Sign-in session invalid"),
+                ("invalid_callback", "Sign-in response incomplete"),
+            ):
+                with self.subTest(provider=provider, reason=reason):
+                    client, settings, calls, authorization = self.setup_provider(provider)
+                    if reason == "expired":
+                        self.set_login_started(client, settings, int(time.time()) - LOGIN_SECONDS - 1)
+                    elif reason == "missing_session":
+                        client.cookies.clear()
+                    elif reason == "invalid_session":
+                        self.set_login_started(client, settings, int(time.time()) + 60)
+                    before = len(calls)
+                    code = "" if reason == "invalid_callback" else "sensitive-code-do-not-echo"
+                    with self.assertLogs("aca_web_publish", "WARNING") as logs:
+                        response = self.complete(
+                            client, settings, authorization, code=code, headers={"Accept": "text/html"},
+                        )
+                    self.assertEqual(response.status_code, 401)
+                    self.assertIn("text/html", response.headers["content-type"])
+                    self.assertIn(f"<h1>{title}</h1>", response.text)
+                    self.assertIn('href="/login"', response.text)
+                    self.assertIn("Do not refresh the old callback", response.text)
+                    self.assertEqual(response.headers["cache-control"], "private, no-store")
+                    self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+                    self.assertIn("default-src 'none'", response.headers["content-security-policy"])
+                    self.assertNotIn(settings.cookie_name, client.cookies)
+                    self.assertEqual(len(calls), before)
+                    self.assertEqual(logs.output, [f"WARNING:aca_web_publish:oauth_rejected reason={reason}"])
+                    for sensitive in ("sensitive-code-do-not-echo", authorization["state"][0], settings.client_secret):
+                        self.assertNotIn(sensitive, response.text + str(logs.output))
+                    self.assertEqual(client.get("/").status_code, 302)
+
+    def test_failed_transaction_can_restart_and_complete_sign_in(self):
+        for provider in ("github", "google", "entra"):
+            with self.subTest(provider=provider):
+                client, settings, calls, authorization = self.setup_provider(provider)
+                old_state = authorization["state"][0]
+                self.set_login_started(client, settings, int(time.time()) - LOGIN_SECONDS - 1)
+                with self.assertLogs("aca_web_publish", "WARNING"):
+                    failed = self.complete(client, settings, authorization, headers={"Accept": "text/html"})
+                self.assertEqual(failed.status_code, 401)
+                retry = client.get("/login")
+                self.assertIn(retry.status_code, {302, 307})
+                authorization.clear()
+                authorization.update(parse_qs(urlsplit(retry.headers["location"]).query))
+                self.assertNotEqual(authorization["state"][0], old_state)
+                completed = self.complete(client, settings, authorization)
+                self.assertEqual(completed.status_code, 302, completed.text)
+                self.assertEqual(client.get("/").content, b"private content")
+                self.check_minimal_cookie(completed, settings)
+
+    def test_login_deadline_is_unchanged_at_its_exact_boundary(self):
+        for provider in ("github", "google", "entra"):
+            for elapsed in (LOGIN_SECONDS, LOGIN_SECONDS + 1):
+                with self.subTest(provider=provider, elapsed=elapsed):
+                    client, settings, calls, authorization = self.setup_provider(provider)
+                    started = self.transaction(client, settings)["login_started"]
+                    before = len(calls)
+                    with patch("auth.time.time", return_value=started + elapsed):
+                        if elapsed > LOGIN_SECONDS:
+                            with self.assertLogs("aca_web_publish", "WARNING"):
+                                response = self.complete(client, settings, authorization)
+                            self.assertEqual(response.status_code, 401)
+                            self.assertEqual(len(calls), before)
+                        else:
+                            response = self.complete(client, settings, authorization)
+                            self.assertEqual(response.status_code, 302, response.text)
+                            self.assertEqual(client.get("/").content, b"private content")
+
+    def test_non_browser_login_failures_keep_json(self):
+        for accept in ("*/*", "application/json", "text/html;q=0", "text/html;q=invalid"):
+            with self.subTest(accept=accept):
+                client, settings, calls, authorization = self.setup_provider("entra")
+                client.cookies.clear()
+                with self.assertLogs("aca_web_publish", "WARNING"):
+                    response = self.complete(client, settings, authorization, headers={"Accept": accept})
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.json(), {"detail": "Login expired or invalid"})
 
     def test_github_uses_validated_state_pkce_and_server_fetched_user(self):
         client, settings, calls, authorization = self.setup_provider("github", allowed="Alice")
