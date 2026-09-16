@@ -1,8 +1,9 @@
-# Tomas's agent skills
+# Tomas's agent skills and canvas extensions
 
 Reusable skills for researching a topic, explaining how it works, turning the
 result into a document people can both watch and read, and publishing a website
-with private Blob-backed content.
+with private Blob-backed content. A Copilot canvas extension adds in-context
+review of rendered documents before sharing them.
 
 | Skill | What it does | Example result |
 | --- | --- | --- |
@@ -11,7 +12,11 @@ with private Blob-backed content.
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
 
-## Install
+| Canvas extension | What it does | Requires |
+| --- | --- | --- |
+| [document-review](extensions/document-review/README.md) | Select text in a rendered HTML article or slide, then comment, replace, or delete. Saved annotations are explicitly handed to the agent for source edits. | GitHub Copilot app with extension canvas support |
+
+## Install skills
 
 Use [GitHub CLI](https://cli.github.com/) with `gh skill` support (version
 2.90.0 or later; the command is in preview). Inspect a skill before installing:
@@ -40,6 +45,22 @@ your client's skill directory. Copilot supports `.agents/skills` or
 `.github/skills` in a project, and `~/.agents/skills` or `~/.copilot/skills` for
 personal skills. Other clients may use different locations.
 
+## Install the canvas extension
+
+In GitHub Copilot app, ask:
+
+> Install this canvas extension as a personal extension:
+> https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review
+
+The link becomes installable when the extension folder is published on `main`.
+Use a tag or commit permalink for a fixed version. This uses the app's extension
+installer, **not** `gh skill install`. The [extension README](extensions/document-review/README.md)
+also covers manual and project-scoped installation, requirements, and limits.
+
+After installation, ask: "Open this HTML in Document review so I can annotate
+it." For generated sites, supply the local HTML preview and its editable
+Markdown or template source; a public website URL alone is not supported.
+
 ## Use them together
 
 > Research the tradeoffs of retrying failed requests using primary sources.
@@ -54,12 +75,22 @@ works without browsing; `web-research` needs authorized search/read tools.
 access; it does not grant those permissions. See each skill's README for
 prerequisites.
 
+With the document built, open it in `document-review`, select passages and save
+comments or exact replacements. Explicitly hand the batch to the agent, then
+review the source edits and regenerated output before publishing.
+
 ## Repository layout
 
-Installable packages live in `skills/<name>/SKILL.md` and follow the
+Installable skill packages live in `skills/<name>/SKILL.md` and follow the
 [Agent Skills specification](https://agentskills.io/specification). Each
 package includes its own MIT license notice. No catalog-specific manifest or
 pre-approved tool permissions are required.
+
+Canvas packages live separately in `extensions/<name>/`, with an
+`extension.mjs` entry point and their own manifest, README, tests, and license.
+They are executable Copilot extensions rather than portable Agent Skills.
+This catalog directory is deliberately not `.github/extensions`: cloning the
+catalog does not automatically load its extensions.
 
 `examples` contains public sample outputs and the prompts used to generate them.
 Examples are intentionally outside the installed packages. They illustrate the
@@ -73,7 +104,7 @@ failure-handling guide separate.
 
 ## Maintaining and publishing
 
-Validate a change without publishing a release:
+Validate a skill change without publishing a release:
 
 ```sh
 gh skill publish --dry-run
@@ -88,6 +119,14 @@ Keep generated standalone files in sync with their editable sources. Keep local
 paths, credentials, private documents, evaluation transcripts, and install-injected
 provenance out of packages.
 
+For the canvas package, run
+`node --test extensions\document-review\tests\server.test.mjs` and the
+[browser checks](extensions/document-review/README.md#validation). Distribute a
+clean source folder only: never include personal `artifacts`, saved review
+text, runtime locks, or installed dependencies. `gh skill publish` does not
+publish canvas extensions; those are installed from their published repository
+folder or a clean Gist package.
+
 A public repository with the `agent-skills` topic can be discovered by
 `gh skill search`; third-party catalogs have their own indexing rules.
 Committing and pushing makes the default-branch packages available. A versioned
@@ -98,4 +137,4 @@ and [CLI manual](https://cli.github.com/manual/gh_skill).
 
 ## License
 
-[MIT](LICENSE), including the skills and original example content.
+[MIT](LICENSE), including the skills, canvas extension, and original example content.

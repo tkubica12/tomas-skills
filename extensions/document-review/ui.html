@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document review</title>
+  <link rel="stylesheet" href="/ui.css">
+  <script src="/ui.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="identity"><strong>Document review</strong><span id="filename"></span></div>
+    <div class="tools">
+      <button id="refresh" type="button">Obnovit n&aacute;hled</button>
+      <button id="toggle-list" type="button" aria-expanded="false" aria-controls="sidebar">P&#345;ipom&iacute;nky <span id="count">0</span></button>
+      <button id="submit" class="primary" type="button" disabled>P&#345;edat agentovi</button>
+    </div>
+  </header>
+  <div class="hint">Ozna&#269; text my&#353;&iacute; nebo kl&aacute;vesnic&iacute; &rarr; komentuj, nahra&#271; nebo sma&#382;. Zm&#283;ny se provedou a&#382; po p&#345;ed&aacute;n&iacute; agentovi.</div>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <div id="error" role="alert" hidden></div>
+  <main>
+    <iframe id="preview" title="N&aacute;hled dokumentu pro p&#345;ipom&iacute;nkov&aacute;n&iacute;" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+    <aside id="sidebar" hidden>
+      <h2>P&#345;ipom&iacute;nky</h2>
+      <p class="muted">Ukl&aacute;daj&iacute; se automaticky. Odeslan&eacute; neznamen&aacute; proveden&eacute;.</p>
+      <div id="annotations"></div>
+      <details><summary>Zdroj a ulo&#382;en&iacute;</summary><pre id="paths"></pre></details>
+    </aside>
+  </main>
+  <section id="composer" role="dialog" aria-label="Operace nad vybran&yacute;m textem" hidden>
+    <div class="composer-head"><strong>Vybran&yacute; text</strong><button id="dismiss" type="button" aria-label="Zav&#345;&iacute;t">&#215;</button></div>
+    <blockquote id="quote"></blockquote>
+    <div id="operations">
+      <button type="button" data-kind="comment">Komentovat</button>
+      <button type="button" data-kind="replace">Nahradit</button>
+      <button type="button" data-kind="delete">Smazat</button>
+    </div>
+    <form id="edit-form" hidden>
+      <label id="instruction" for="edit-text"></label>
+      <textarea id="edit-text" rows="4" maxlength="12000"></textarea>
+      <p id="delete-note" hidden>Agent odstran&iacute; pouze vybran&yacute; &uacute;sek. Soubor se te&#271; nem&#283;n&iacute;.</p>
+      <button id="save" type="submit" class="primary">Ulo&#382;it p&#345;ipom&iacute;nku</button>
+    </form>
+  </section>
+  <dialog id="confirm-send">
+    <h2>P&#345;edat p&#345;ipom&iacute;nky agentovi?</h2>
+    <p id="send-summary"></p>
+    <p>V aktu&aacute;ln&iacute; konverzaci vznikne po&#382;adavek na &uacute;pravu zdrojov&yacute;ch soubor&#367;. Nic se automaticky nepublikuje ani necommituje.</p>
+    <div class="tools"><button id="cancel-send" type="button">Zp&#283;t</button><button id="confirm-submit" type="button" class="primary">P&#345;edat agentovi</button></div>
+  </dialog>
+</body>
+</html>
