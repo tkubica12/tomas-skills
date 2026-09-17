@@ -25,9 +25,34 @@ evidence, and WebIQ for general web research. Equivalent host tools work when
 those connectors are absent. Tavily is an optional fallback, not a parallel
 second opinion on every query.
 
-No connector, API key, or dependency is installed by this skill. Last30Days is
-optional for community questions. Access denials are not bypassed, and private
-material is not sent to public search.
+No connector, API key, or dependency is installed by this skill. For community
+questions, an available Last30Days skill is required for the overlapping most
+recent 30 days; older requested periods use dated original community sources.
+Private material is searched only on an explicit user request through an
+authorized internal connector, is never sent to public search, and is placed
+in a separate private output. Saved deliverables include an evidence manifest
+of retrieved, unused, empty, blocked, and throttled sources; it describes the
+bounded search rather than claiming exhaustive internet coverage.
+
+For saved reports and broad research, unspecified internal and community scope
+is resolved with two separate `ask_user` prompts before retrieval. A clear
+community request needs no prompt; otherwise the skill asks whether to include
+community discussion for the latest 30 days. It also asks whether to include
+internal discussions and materials in a separately marked internal chapter;
+only an affirmative answer authorizes internal Microsoft 365 search.
+
+Before synthesis, the skill enforces a required source coverage plan. Every
+approved source class must have a matching retrieval call and a tool-backed
+state: searched, empty, blocked, or verified unavailable. “Unavailable” cannot
+stand in for an unattempted source. Named SharePoint, OneDrive, Teams, and Mail
+workloads must each have a status and result count, whether searched separately
+or through an explicit cross-workload Microsoft 365 query.
+
+Every saved artifact passes a mandatory release checklist covering source
+execution, internal/public separation, community date-window coverage,
+primary-source support, contradictions, freshness, and agreement between the
+evidence manifest and the actual tool calls. A report is not released as
+complete while any required source remains unattempted.
 
 The main instructions contain the research method, source-quality checks, and
 optional delegation guidance. Detailed error handling stays in
