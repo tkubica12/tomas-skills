@@ -7,7 +7,7 @@ review of rendered documents before sharing them.
 
 | Skill | What it does | Example result |
 | --- | --- | --- |
-| [html-docs](skills/html-docs/README.md) | Creates browser-ready documents and presentations. One shareable HTML file can hold the live slides and the matching detailed handout. | [Presentation + reading example](examples/html-docs/README.md) |
+| [html-docs](skills/html-docs/README.md) | Creates browser-ready documents, presentations, and one-pagers. One shareable HTML file can hold the live slides, the matching detailed handout, and a one-page summary, each exportable to PDF. | [Presentation + reading example](examples/html-docs/README.md) |
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |

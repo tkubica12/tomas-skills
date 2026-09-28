@@ -44,9 +44,65 @@
     root.setAttribute("data-" + name, value);
   }
   root.classList.add("js");
-  if (params.get("view") === "slides") root.setAttribute("data-view", "slides");
-  window.HtmlDocs = { read, write, refresh };
+  if (["slides", "sheet"].includes(params.get("view"))) root.setAttribute("data-view", params.get("view"));
+
+  // Print what is on screen. data-print selects the matching print stylesheet.
+  const printTarget = () => {
+    if (document.querySelector(".deck-stage")) return "slides";
+    const view = root.getAttribute("data-view");
+    if (view === "slides" || (view === "sheet" && document.querySelector(".sheet"))) return view;
+    return document.querySelector(".doc") || !document.querySelector(".sheet") ? "read" : "sheet";
+  };
+  let printing = null;
+  addEventListener("beforeprint", () => {
+    if (root.hasAttribute("data-print")) return; // Set by an automated export.
+    const target = printTarget();
+    printing = document.title;
+    root.setAttribute("data-print", target);
+    // The browser proposes the title as the PDF file name.
+    if (target !== "read" && document.querySelector(".doc")) {
+      document.title += target === "slides" ? " - Slides" : " - Sheet";
+    }
+  });
+  addEventListener("afterprint", () => {
+    if (printing === null) return;
+    root.removeAttribute("data-print");
+    document.title = printing;
+    printing = null;
+  });
+
+  // Keep the display awake while presenting, like presentation software does.
+  let lock = null;
+  let awake = false;
+  async function holdScreen() {
+    if (!awake || lock || document.visibilityState !== "visible" || !navigator.wakeLock) return;
+    try {
+      const sentinel = await navigator.wakeLock.request("screen");
+      if (!awake || lock) { sentinel.release(); return; }
+      lock = sentinel;
+      root.setAttribute("data-awake", "");
+      sentinel.addEventListener("release", () => {
+        if (lock !== sentinel) return;
+        lock = null;
+        root.removeAttribute("data-awake");
+      });
+    } catch { /* Denied by battery saver or an embedding policy; retried on input. */ }
+  }
+  function keepAwake(on) {
+    awake = !!on;
+    if (awake) holdScreen();
+    else if (lock) lock.release();
+  }
+  // The browser drops the lock when the tab is hidden; some require a gesture.
+  document.addEventListener("visibilitychange", holdScreen);
+  document.addEventListener("pointerdown", holdScreen);
+  document.addEventListener("keydown", holdScreen);
+
+  window.HtmlDocs = { read, write, refresh, keepAwake };
   document.addEventListener("DOMContentLoaded", refresh);
+  document.addEventListener("click", event => {
+    if (event.target.closest('[data-action="print"]')) window.print();
+  });
   document.addEventListener("click", event => {
     const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
     if (!button) return;
@@ -88,14 +144,17 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
 }
-[data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
-  color-scheme: dark;
-  --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
-  --border: #363636; --border-strong: #595959;
-  --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
-  --accent: var(--accent-dark);
-  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
-  --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+/* Screen only: every PDF and printout uses the light palette. */
+@media screen {
+  [data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
+    --border: #363636; --border-strong: #595959;
+    --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
+    --accent: var(--accent-dark);
+    --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+  }
 }
 [data-accent="orange"], :root:not([data-accent])[data-default-accent="orange"] {
   --accent-light: #a94000; --accent-dark: #ffae72;
@@ -107,8 +166,10 @@
 
 <link rel="stylesheet" href="assets/article.css">
 <link rel="stylesheet" href="assets/slides.css">
+<link rel="stylesheet" href="assets/sheet.css">
 <script src="assets/article.js" defer></script>
 <script src="assets/slides.js" defer></script>
+<script src="assets/sheet.js" defer></script>
 </head>
 
 <body>
@@ -117,6 +178,8 @@
   <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
   <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
   <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="toggle-sheet" aria-pressed="false">Sheet</button>
+  <button type="button" class="ctrl" data-action="print" aria-label="Save the current view as PDF or print it">PDF</button>
   <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
   <button type="button" class="ctrl" data-action="toggle-accent">Accent: Blue</button>
 </div>
@@ -558,6 +621,128 @@ Running</code></pre>
   </footer>
 
 </div>
+
+<!-- Companion sheet: a third depth. Its title is h2 because the article owns
+     the h1. Every page is exactly one sheet of paper. -->
+<section class="sheet" aria-label="Sheet components">
+
+  <article class="sheet-page" id="sheet-summary">
+    <header class="sheet-head">
+      <p class="sheet-kicker">Reference · sheet components · page one</p>
+      <h2 class="sheet-title">One page.<br><em>Everything a decision needs.</em></h2>
+      <p class="sheet-lead">A sheet is authored for skimming on paper: a kicker, a claim-style title, a short lead, then evidence blocks and a closing line.</p>
+    </header>
+
+    <ul class="sheet-stats" aria-label="Key figures">
+      <li><span class="sheet-stat-value">4</span><span class="sheet-stat-label">blocks in a two-column grid</span></li>
+      <li><span class="sheet-stat-value">1</span><span class="sheet-stat-label">accent shared with every view</span></li>
+      <li><span class="sheet-stat-value">7.5 pt</span><span class="sheet-stat-label">smallest allowed text, for notes</span></li>
+    </ul>
+
+    <div class="sheet-grid">
+      <section class="sheet-block">
+        <h3>Claims as<br>block titles</h3>
+        <p>Each block title states a result. The paragraph gives its reason in two to four sentences, with the <strong>one phrase</strong> a skimming reader must catch in bold.<sup>1</sup></p>
+      </section>
+      <section class="sheet-block">
+        <h3>Qualifications<br>stay visible</h3>
+        <p>A condition that changes the conclusion belongs in the block, not only in a note. Notes hold sources, dates, and definitions.</p>
+      </section>
+      <section class="sheet-block">
+        <h3>Authored, not<br>generated</h3>
+        <p>The sheet is a third depth. Write it for paper; do not copy card bodies or slide cues into it.</p>
+      </section>
+      <section class="sheet-block">
+        <h3>Fits or<br>gets shorter</h3>
+        <p>Text never shrinks to fit. When a page overflows, cut words or move a block to another page.</p>
+      </section>
+    </div>
+
+    <aside class="sheet-actions" aria-label="Recommended actions">
+      <h3>Recommended actions</h3>
+      <ul>
+        <li>Use a sheet for a one-pager, datasheet, or leave-behind brief.</li>
+        <li>Pair it with an article when readers also need the full reasoning.</li>
+        <li>Export the PDF and inspect every page before sending it.</li>
+      </ul>
+    </aside>
+
+    <p class="sheet-close">Paper rewards <em>fewer, stronger</em> claims.</p>
+
+    <footer class="sheet-notes">
+      <p><sup>1</sup> Illustrative reference content; no external sources.</p>
+    </footer>
+  </article>
+
+  <article class="sheet-page" id="sheet-matrix">
+    <header class="sheet-head">
+      <p class="sheet-kicker">Reference · sheet components · page two</p>
+      <h2 class="sheet-title">A matrix shows<br>where each option wins.</h2>
+      <p class="sheet-lead">Rows are reasons to choose; columns are options. Each cell states its point in words, and a drawn mark summarizes it.</p>
+    </header>
+
+    <table class="sheet-matrix">
+      <thead>
+        <tr><th scope="col">Reason</th><th scope="col">Option A</th><th scope="col">Option B</th><th scope="col">What C adds</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Control<span>pin a version, switch provider</span></th>
+          <td><span class="mark" data-mark="full" role="img" aria-label="Delivers"></span>Same result from several providers.</td>
+          <td><span class="mark" data-mark="full" role="img" aria-label="Delivers"></span>Full control of every setting.</td>
+          <td><span class="mark" data-mark="none" role="img" aria-label="Adds nothing"></span></td>
+        </tr>
+        <tr>
+          <th scope="row">Latency<span>many short steps</span></th>
+          <td><span class="mark" data-mark="part" role="img" aria-label="Partly"></span>Usually negligible next to processing time.</td>
+          <td><span class="mark" data-mark="full" role="img" aria-label="Delivers"></span>Small batches cut latency at a higher unit cost.</td>
+          <td><span class="mark" data-mark="plus" role="img" aria-label="C adds"></span>On-site placement; rarely decisive.</td>
+        </tr>
+        <tr>
+          <th scope="row">Cost<span>same work, smaller bill</span></th>
+          <td><span class="mark" data-mark="full" role="img" aria-label="Delivers"></span>No idle capacity to pay for.</td>
+          <td><span class="mark" data-mark="part" role="img" aria-label="Partly"></span>Only with steady, concurrent load.</td>
+          <td><span class="mark" data-mark="plus" role="img" aria-label="C adds"></span>Lowest unit cost when busy.<br><span class="mark" data-mark="minus" role="img" aria-label="C drawback"></span>Costlier when underused.</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class="sheet-legend" aria-label="Legend">
+      <li><span class="mark" data-mark="full" aria-hidden="true"></span>delivers the benefit</li>
+      <li><span class="mark" data-mark="part" aria-hidden="true"></span>partly or in specific cases</li>
+      <li><span class="mark" data-mark="none" aria-hidden="true"></span>not possible, or adds nothing</li>
+      <li><span class="mark" data-mark="plus" aria-hidden="true"></span>option C adds</li>
+      <li><span class="mark" data-mark="minus" aria-hidden="true"></span>option C drawback</li>
+    </ul>
+
+    <figure class="sheet-figure">
+      <svg viewBox="0 0 640 120" role="img" aria-labelledby="sheet-fig-title sheet-fig-desc">
+        <title id="sheet-fig-title">Three options on one cost axis</title>
+        <desc id="sheet-fig-desc">Option A is cheapest at low load; option C becomes cheapest only at sustained high load.</desc>
+        <path d="M40 90H600" stroke="var(--border-strong)" stroke-width="2"/>
+        <circle cx="130" cy="90" r="9" fill="var(--accent)"/>
+        <circle cx="330" cy="90" r="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="3"/>
+        <circle cx="530" cy="90" r="9" fill="var(--text)"/>
+        <text x="130" y="60" text-anchor="middle" fill="var(--text)" font-size="17">A · low load</text>
+        <text x="330" y="60" text-anchor="middle" fill="var(--text)" font-size="17">B · steady load</text>
+        <text x="530" y="60" text-anchor="middle" fill="var(--text)" font-size="17">C · sustained peak</text>
+      </svg>
+      <figcaption>Inline SVG inherits the accent. Illustrative, not measured.</figcaption>
+    </figure>
+
+    <div class="sheet-grid sheet-grid--3">
+      <section class="sheet-block"><h3>Three columns</h3><p>Use <code>sheet-grid--3</code> for short, parallel points.</p></section>
+      <section class="sheet-block"><h3>Same rules</h3><p>Claim titles, visible conditions, sourced numbers.</p></section>
+      <section class="sheet-block"><h3>Same accent</h3><p>Marks, rules, and figures follow the selected accent.</p></section>
+    </div>
+
+    <p class="sheet-close">Open weights for control. <em>Shared capacity for cost.</em></p>
+
+    <footer class="sheet-notes">
+      <p>Page two of the sheet reference. Pages print in order, one per sheet of paper.</p>
+    </footer>
+  </article>
+
+</section>
 
 </body>
 </html>

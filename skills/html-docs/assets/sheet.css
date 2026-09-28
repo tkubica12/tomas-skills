@@ -1,0 +1,166 @@
+/* =========================================================================
+   html-docs / sheet
+   Fixed-page documents: one-pagers, datasheets, briefs. Shared stylesheet;
+   never edit per page. Each .sheet-page is exactly one printed page, so the
+   screen preview is the layout the PDF receives.
+
+   Standalone sheet: the only content of the document, always visible.
+   Companion sheet: a third depth beside an article, shown by the Sheet view.
+   ========================================================================= */
+
+html:not(.js) .controls { display: none; }
+
+.sheet { display: none; }
+body:not(:has(> .doc)) > .sheet,
+[data-view="sheet"] .sheet { display: block; }
+[data-view="sheet"] .doc { display: none; }
+[data-view="sheet"] .ctrl:is([data-action="expand-all"], [data-action="collapse-all"], [data-action="clear-read"]) { display: none; }
+
+.sheet { padding: 72px 0 40px; overflow-x: auto; }
+
+.sheet-page {
+  /* A hair under the paper height, so rounding never spills a blank page. */
+  --sheet-w: 210mm; --sheet-h: 297mm;
+  width: var(--sheet-w); height: calc(var(--sheet-h) - .5mm);
+  margin: 0 auto 32px; padding: 14mm 16mm 11mm;
+  display: flex; flex-direction: column;
+  overflow: hidden; outline: none;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); box-shadow: var(--shadow-2);
+  font-family: var(--font-sans); font-size: 10.5pt; line-height: 1.45;
+}
+[data-paper="letter"] .sheet-page { --sheet-w: 8.5in; --sheet-h: 11in; }
+.sheet-page > :last-child { margin-bottom: 0; }
+
+/* One class of specificity: beats article.css element rules, while every
+   component class below, declared later, sets its own spacing. */
+.sheet-page :where(p, ul, ol) { margin: 0 0 2mm; }
+.sheet-page :where(li) { margin: 0 0 1mm; }
+.sheet-page strong { font-weight: 650; }
+.sheet-page sup { font-size: .68em; line-height: 0; }
+.sheet-page a { color: inherit; text-decoration-color: var(--accent-border); }
+
+/* ---------- head ------------------------------------------------------ */
+
+.sheet-head { margin-bottom: 6mm; }
+.sheet-kicker {
+  margin: 0 0 3mm; font-size: 8pt; font-weight: 650;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+}
+.sheet-title {
+  margin: 0 0 3mm; font-size: 27pt; line-height: 1.06;
+  letter-spacing: -.035em; font-weight: 700;
+}
+.sheet-title em { font-style: normal; color: var(--accent); }
+.sheet-lead { margin: 0; max-width: 62em; font-size: 11pt; color: var(--text); }
+
+/* ---------- blocks ---------------------------------------------------- */
+
+.sheet-grid {
+  display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 7mm 8mm; margin-bottom: 6mm;
+}
+.sheet-grid--3 { --cols: 3; }
+.sheet-block { border-top: 2px solid var(--accent); padding-top: 3mm; }
+.sheet-block h3, .sheet-actions h3, .sheet-section-title {
+  margin: 0 0 2mm; font-size: 12.5pt; line-height: 1.2; font-weight: 650;
+}
+.sheet-section-title { margin-bottom: 3mm; }
+
+.sheet-stats {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 6mm; margin: 0 0 6mm; padding: 0; list-style: none;
+}
+.sheet-stats li { margin: 0; border-left: 2px solid var(--accent); padding-left: 3mm; }
+.sheet-stat-value {
+  display: block; font-size: 21pt; line-height: 1.05; font-weight: 700;
+  letter-spacing: -.03em; color: var(--accent);
+}
+.sheet-stat-label { display: block; margin-top: 1mm; font-size: 8.5pt; line-height: 1.3; color: var(--text-muted); }
+
+.sheet-figure { margin: 0 0 6mm; }
+.sheet-figure svg, .sheet-figure img { display: block; width: 100%; height: auto; }
+.sheet-figure figcaption { margin-top: 2mm; font-size: 8pt; color: var(--text-muted); }
+
+/* ---------- comparison matrix ----------------------------------------- */
+
+.sheet-matrix { width: 100%; border-collapse: collapse; margin: 0 0 2mm; font-size: 9pt; line-height: 1.35; }
+.sheet-matrix th, .sheet-matrix td {
+  padding: 2mm 2.5mm 2mm 0; text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.sheet-matrix thead th {
+  font-size: 7.5pt; font-weight: 650; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); border-bottom: 2px solid var(--accent);
+}
+.sheet-matrix tbody th {
+  font-size: inherit; font-weight: 650; letter-spacing: normal; text-transform: none; color: var(--text);
+}
+.sheet-matrix tbody th span { display: block; font-weight: 400; color: var(--text-muted); }
+
+/* Drawn, not typed: glyphs in this range render as emoji on some systems. */
+.mark {
+  display: inline-block; width: .8em; height: .8em; margin-right: .35em;
+  vertical-align: -.06em; flex: none; border-radius: 50%;
+  background: var(--accent);
+}
+.mark[data-mark="part"] {
+  background: linear-gradient(90deg, var(--accent) 50%, transparent 50%);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.mark[data-mark="none"] {
+  width: .75em; height: 2px; border-radius: 1px; vertical-align: .22em;
+  background: var(--text-muted);
+}
+.mark[data-mark="plus"], .mark[data-mark="minus"] { border-radius: 2px; }
+.mark[data-mark="plus"] {
+  background:
+    linear-gradient(var(--surface), var(--surface)) center / 58% 2px no-repeat,
+    linear-gradient(var(--surface), var(--surface)) center / 2px 58% no-repeat,
+    var(--accent);
+}
+.mark[data-mark="minus"] {
+  background:
+    linear-gradient(var(--surface), var(--surface)) center / 58% 2px no-repeat,
+    var(--text);
+}
+.sheet-legend {
+  display: flex; flex-wrap: wrap; gap: 1mm 6mm; margin: 0 0 6mm; padding: 0; list-style: none;
+  font-size: 7.5pt; color: var(--text-muted);
+}
+.sheet-legend li { margin: 0; }
+
+/* ---------- actions, closing, notes ------------------------------------ */
+
+.sheet-actions { margin: 0 0 5mm; padding: 4.5mm 5mm; background: var(--surface-2); break-inside: avoid; }
+.sheet-actions ul { margin: 0; padding-left: 1.2em; }
+.sheet-actions li:last-child { margin-bottom: 0; }
+.sheet-close { margin: 0 0 3mm; font-size: 14pt; line-height: 1.25; font-weight: 650; }
+.sheet-close em { font-style: normal; color: var(--accent); }
+.sheet-notes {
+  margin-top: auto; padding-top: 2mm; border-top: 1px solid var(--border);
+  font-size: 7.5pt; line-height: 1.35; color: var(--text-muted);
+}
+.sheet-notes p { margin: 0; }
+
+@media screen and (max-width: 860px) {
+  .sheet { padding-top: 64px; }
+}
+
+/* ---------- print ------------------------------------------------------ */
+
+@page sheet-a4 { size: A4; margin: 0; @bottom-right { content: none; } }
+@page sheet-letter { size: letter; margin: 0; @bottom-right { content: none; } }
+@media print {
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root[data-print="sheet"] body,
+  body:not(:has(> .doc)) { padding: 0; background: var(--surface); }
+  :root[data-print="sheet"] body > :not(.sheet),
+  body:not(:has(> .doc)) > :not(.sheet) { display: none !important; }
+  :root[data-print="sheet"] .sheet,
+  body:not(:has(> .doc)) > .sheet { display: block !important; padding: 0; overflow: visible; }
+  :root:not([data-print="sheet"]) body:has(> .doc) > .sheet { display: none !important; }
+  .sheet-page { page: sheet-a4; margin: 0; border: 0; box-shadow: none; }
+  .sheet-page + .sheet-page { break-before: page; }
+  [data-paper="letter"] .sheet-page { page: sheet-letter; }
+}

@@ -127,3 +127,72 @@ html:not(.js) .controls { display: none; }
 @media (prefers-reduced-motion: reduce) {
   [data-view="slides"] .frag { visibility: visible; opacity: 1; transition: none; }
 }
+
+/* Slides PDF: every authored surface on its own 16:9 page, all points shown.
+   Fixed sizes, not viewport units: a page has no projector to scale for. */
+@page slide { size: 297mm 167.0625mm; margin: 0; @bottom-right { content: none; } }
+@media print {
+  [data-print="slides"] body { padding: 0; background: var(--bg); }
+  [data-print="slides"] .doc { max-width: none; }
+  [data-print="slides"] .controls,
+  [data-print="slides"] .slide-ui,
+  [data-print="slides"] .doc-nav,
+  [data-print="slides"] .doc-footer,
+  [data-print="slides"] .toc,
+  [data-print="slides"] .sheet { display: none !important; }
+  [data-print="slides"] :is(.doc-header, .card, .takeaway, .chapter) {
+    display: block; margin: 0; padding: 0; border: 0; box-shadow: none; background: none;
+  }
+  [data-print="slides"] :is(.doc-header, .card, .takeaway) > :not(.slide-content),
+  [data-print="slides"] .chapter > :not(.card):not(.chapter-label) { display: none !important; }
+  [data-print="slides"] :is(.doc-header, .card, .takeaway) > .slide-content,
+  [data-print="slides"] .chapter > .chapter-label {
+    display: flex !important; flex-direction: column; justify-content: center;
+    page: slide; break-after: page; break-inside: avoid;
+    width: 297mm; height: 167mm; padding: 60px 80px 64px; margin: 0; gap: 22px;
+    overflow: hidden; border: 0; border-radius: 0; box-shadow: none;
+    background: var(--bg); color: var(--text);
+    font-weight: 400; line-height: 1.25; letter-spacing: normal;
+  }
+  [data-print="slides"] .slide-content .slide-eyebrow {
+    margin: 0; font-size: 14px; color: var(--accent);
+    font-weight: 650; letter-spacing: .14em; text-transform: uppercase;
+  }
+  [data-print="slides"] .slide-content .slide-title {
+    margin: 0; max-width: 24ch; font-size: 46px;
+    line-height: 1.08; letter-spacing: -.035em; font-weight: 650;
+  }
+  [data-print="slides"] .slide-content .slide-title em { color: var(--accent); font-style: normal; }
+  [data-print="slides"] .slide-content .slide-lead {
+    margin: 0; max-width: 46ch; font-size: 25px; line-height: 1.35; color: var(--text-muted);
+  }
+  [data-print="slides"] .slide-content .slide-points {
+    margin: 6px 0 0; padding: 0; list-style: none;
+    display: grid; gap: 18px; max-width: 42ch; font-size: 29px; line-height: 1.3;
+  }
+  [data-print="slides"] .slide-points li {
+    padding-left: 22px; margin: 0; border-left: 3px solid var(--accent);
+  }
+  [data-print="slides"] .slide-content svg,
+  [data-print="slides"] .slide-content img {
+    display: block; width: 100%; height: auto; max-height: 300px; flex: 0 1 auto; min-height: 0;
+    object-fit: contain;
+  }
+  [data-print="slides"] .slide-content--title .slide-title,
+  [data-print="slides"] .slide-content--end .slide-title {
+    max-width: 16ch; font-size: 76px; line-height: 1.02;
+  }
+  [data-print="slides"] .slide-content--title::before,
+  [data-print="slides"] .slide-content--end::before {
+    content: ""; width: 80px; height: 6px; background: var(--accent); flex: none; margin-bottom: 8px;
+  }
+  [data-print="slides"] .slide-content--end { background: var(--surface); }
+  [data-print="slides"] .chapter > .chapter-label {
+    font-size: 64px; font-weight: 600; line-height: 1.08; text-transform: none; letter-spacing: -.03em;
+  }
+  [data-print="slides"] .chapter > .chapter-label::before {
+    content: attr(data-section-number);
+    font-family: var(--font-mono); color: var(--accent); font-size: 22px; letter-spacing: .08em;
+  }
+  [data-print="slides"] .frag { visibility: visible !important; opacity: 1 !important; }
+}

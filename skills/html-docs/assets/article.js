@@ -19,7 +19,7 @@
   const el = (sel, scope) => (scope || document).querySelector(sel);
 
   window.HtmlDocs.refresh();
-  if (!el('[data-action="toggle-slides"]')) root.removeAttribute("data-view");
+  if (!el('[data-action="toggle-slides"]') && root.getAttribute("data-view") === "slides") root.removeAttribute("data-view");
 
   /* ---------- collapsibles ------------------------------------------ */
 

@@ -7,7 +7,8 @@ Do not invent classes and do not add wrapper elements between the ones shown.
 Every component below is rendered live in
 `article.components.html`. Open that file in a browser rather
 than working from memory. The deck subset is in
-`deck.components.html`.
+`deck.components.html`. Sheet components (stats, blocks, matrix and marks,
+actions, notes) are in [sheet](sheet.md) and in the gallery's companion sheet.
 
 | Component | Article | Deck |
 |---|---|---|

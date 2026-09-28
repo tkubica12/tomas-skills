@@ -68,12 +68,15 @@ fragment the title, an entire diagram, or a code block.
 | Slides / O | Slide index |
 | Animations / A | Step through points / show all |
 | Full screen / F | Full screen |
+| PDF | Save as PDF, one landscape page per slide |
 | Dark/Light; Accent | Document appearance |
 
 Animations are saved per document. Reduced motion always shows every point
 and disables stepping. Native focused controls retain their keyboard
 behavior. Navigation focuses the slide, and the index returns focus when
-closed. The current ID remains in the URL hash and survives reload.
+closed. The current ID remains in the URL hash and survives reload. An open
+deck holds a screen wake lock so the display does not sleep or lock while
+presenting; see [slides mode](slides-mode.md#keeping-the-screen-awake).
 
 ## Fit is a guardrail, not a design tool
 
@@ -83,6 +86,7 @@ fails validation. Headings and footnotes stay full size; they must fit too.
 Prefer fit 1.0. Shorten or split a slide rather than rely on compression.
 
 Without JavaScript, slides stack vertically and all fragments remain visible.
-Print emits one landscape page per slide without controls. Validate the actual
-PDF when requested, and inspect screenshots in all six appearance combinations
-even when geometry checks pass.
+Print emits one landscape page per slide without controls, in the light
+palette. `export-pdf.js` writes and checks that PDF; see
+[PDF export](pdf-export.md). Inspect screenshots in all six appearance
+combinations even when geometry checks pass.

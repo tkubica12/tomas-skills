@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="en" data-default-accent="blue">
+<html lang="en" data-default-accent="blue" data-default-theme="light" data-paper="a4">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deck components</title>
-<meta name="description" content="Every slide type and component of the html-docs deck runtime.">
-<meta name="doc-id" content="html-docs-deck-components">
+<title>SHEET TITLE</title>
+<meta name="description" content="ONE SENTENCE SUMMARY">
+<meta name="doc-id" content="SLUG">
 
+<!-- 1. Theme bootstrap. Must be the first script in <head>. -->
 <script data-doc-bootstrap>
 /* Inline in the head before styles with sync-head.js. No deferred bootstrap. */
 (() => {
@@ -122,6 +123,7 @@
 })();
 </script>
 
+<!-- 2. Canonical design tokens. Copied verbatim from assets/tokens.css. -->
 <style data-doc-tokens>
 /* Canonical tokens. Inline with sync-head.js; one accent family at a time. */
 :root {
@@ -164,215 +166,68 @@
 }
 </style>
 
-<link rel="stylesheet" href="assets/deck.css">
-<script src="assets/deck.js" defer></script>
+<!-- 3. Shared assets. article.css supplies the base type and controls.
+     data-paper on <html> is "a4" (default) or "letter". -->
+<link rel="stylesheet" href="assets/article.css">
+<link rel="stylesheet" href="assets/sheet.css">
+<script src="assets/sheet.js" defer></script>
 </head>
 
 <body>
 
-<main class="deck-stage">
+<div class="controls" role="group" aria-label="Sheet controls">
+  <button type="button" class="ctrl" data-action="print" aria-label="Save as PDF or print">PDF</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+  <button type="button" class="ctrl" data-action="toggle-accent">Accent: Blue</button>
+</div>
 
-  <section class="slide slide--title" id="s-title">
-    <h1>Deck components</h1>
-    <p class="slide-sub">Every slide type the deck runtime styles, with the markup each one expects.</p>
-    <p class="slide-meta">Component reference; all scenarios are illustrative.</p>
-  </section>
+<!-- Each .sheet-page is exactly one printed page. Content that does not fit
+     is shortened or moved to another page, never shrunk. -->
+<section class="sheet" aria-label="SHEET TITLE">
 
-  <section class="slide slide--section" id="s-section">
-    <h2>Slide types</h2>
-    <p class="slide-lead">Title, section, content, and closing.</p>
-  </section>
+  <article class="sheet-page" id="page-summary">
+    <header class="sheet-head">
+      <p class="sheet-kicker">AUDIENCE · CONTEXT · PURPOSE</p>
+      <h1 class="sheet-title">State the decision.<br>Name why it matters.</h1>
+      <p class="sheet-lead">One or two sentences: what the reader gets from this page and what happens next.</p>
+    </header>
 
-  <section class="slide" id="s-arrow">
-    <div class="slide-head">
-      <h2 class="slide-title">Arrow list with fragments</h2>
-      <p class="slide-lead">Each item appears on its own advance.</p>
+    <div class="sheet-grid">
+      <section class="sheet-block">
+        <h3>First claim,<br>stated as a result</h3>
+        <p>Explain the claim in two to four sentences. Put the <strong>one phrase</strong> a skimming reader must catch in bold.<sup>1</sup></p>
+      </section>
+      <section class="sheet-block">
+        <h3>Second claim,<br>with its condition</h3>
+        <p>State where the claim holds and where it stops holding. A qualification belongs here, not only in the footnote.</p>
+      </section>
+      <section class="sheet-block">
+        <h3>Third claim,<br>about the alternative</h3>
+        <p>Compare the options on the criterion that decides the choice. Name the evidence, not only the conclusion.</p>
+      </section>
+      <section class="sheet-block">
+        <h3>Fourth claim,<br>about adoption</h3>
+        <p>Describe who does what, and the controls or support that make the change stick.</p>
+      </section>
     </div>
-    <div class="slide-body">
-      <ul class="arrow-list">
-        <li class="frag">Fragments keep the room with you instead of ahead of you.</li>
-        <li class="frag">Advancing past the last fragment moves to the next slide.</li>
-        <li class="frag">Going back re-hides them one at a time.</li>
+
+    <aside class="sheet-actions" aria-label="Recommended actions">
+      <h3>Recommended actions</h3>
+      <ul>
+        <li>First concrete step the reader can take now.</li>
+        <li>Second step, with the owner or place where it happens.</li>
+        <li>Third step that measures the outcome.</li>
       </ul>
-    </div>
-    <p class="slide-note">Fragments are dimmed rather than removed, so nothing shifts position.</p>
-  </section>
+    </aside>
 
-  <section class="slide" id="s-two-col">
-    <div class="slide-head">
-      <h2 class="slide-title">Two columns</h2>
-    </div>
-    <div class="slide-body">
-      <div class="two-col">
-        <div>
-          <span class="col-label">Before</span>
-          <ul>
-            <li>Manual deployment from a workstation.</li>
-            <li>Configuration lives in a wiki page.</li>
-            <li>Rollback is a phone call.</li>
-          </ul>
-        </div>
-        <div>
-          <span class="col-label">After</span>
-          <ul>
-            <li>Pipeline deployment from a signed artifact.</li>
-            <li>Configuration lives in the repository.</li>
-            <li>Rollback is a pipeline stage.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
+    <p class="sheet-close">End with the one sentence the reader should remember.</p>
 
-  <section class="slide" id="s-summary">
-    <div class="slide-head">
-      <h2 class="slide-title">Summary grid</h2>
-      <p class="slide-lead">Two to six labelled takeaways.</p>
-    </div>
-    <div class="slide-body">
-      <div class="summary-grid">
-        <div class="summary-item">
-          <span class="summary-label">Latency</span>
-          Median request time drops once the cold start is removed.
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Cost</span>
-          Steady state is cheaper; the migration window is not.
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Risk</span>
-          The rollback path must be rehearsed before the cutover.
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Effort</span>
-          Most of the work is in configuration, not in code.
-        </div>
-      </div>
-    </div>
-  </section>
+    <footer class="sheet-notes">
+      <p><sup>1</sup> Source, date, and conditions for each numbered claim.</p>
+    </footer>
+  </article>
 
-  <section class="slide" id="s-sequence">
-    <div class="slide-head">
-      <h2 class="slide-title">Sequence</h2>
-    </div>
-    <div class="slide-body">
-      <ol class="sequence">
-        <li><span class="seq-title">Virtual machines</span><span class="seq-note">Full control, full responsibility.</span></li>
-        <li><span class="seq-title">Containers</span><span class="seq-note">Portable units, orchestrated.</span></li>
-        <li><span class="seq-title">Managed platform</span><span class="seq-note">Operations absorbed.</span></li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="slide" id="s-steps">
-    <div class="slide-head">
-      <h2 class="slide-title">Steps</h2>
-    </div>
-    <div class="slide-body">
-      <ol class="steps">
-        <li><h3>Provision</h3><p>Create the resource group and the workload identity.</p></li>
-        <li><h3>Deploy</h3><p>Push the image and roll out the first revision.</p></li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="slide" id="s-code">
-    <div class="slide-head">
-      <h2 class="slide-title">Code</h2>
-      <p class="slide-lead">Short, projected, and readable from the back row.</p>
-    </div>
-    <div class="slide-body">
-      <div class="code">
-        <p class="code-label">bash</p>
-        <pre><code>az containerapp up \
-  --name demo \
-  --resource-group rg-demo \
-  --source .</code></pre>
-      </div>
-    </div>
-  </section>
-
-  <section class="slide" id="s-figure">
-    <div class="slide-head">
-      <h2 class="slide-title">Figure</h2>
-    </div>
-    <div class="slide-body">
-      <figure class="figure">
-        <img src="assets/sample-diagram.svg" alt="Source feeds a processing stage, which writes to a sink." width="960" height="240">
-        <figcaption>Data path from source through processing to sink.</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="slide" id="s-callouts">
-    <div class="slide-head">
-      <h2 class="slide-title">Callout: rule</h2>
-    </div>
-    <div class="slide-body">
-      <aside class="callout callout--rule">
-        <p class="callout-label">Rule</p>
-        <p>A durable rule to remember.</p>
-      </aside>
-    </div>
-  </section>
-
-  <section class="slide" id="s-warning">
-    <div class="slide-head">
-      <h2 class="slide-title">Callout: warning</h2>
-      <p class="slide-lead">The label conveys risk; the accent stays consistent.</p>
-    </div>
-    <div class="slide-body">
-      <aside class="callout callout--warning">
-        <p class="callout-label">Warning</p>
-        <p>A practical risk, or a way to break something.</p>
-      </aside>
-    </div>
-  </section>
-
-  <section class="slide" id="s-source">
-    <div class="slide-head">
-      <h2 class="slide-title">Callout: source</h2>
-    </div>
-    <div class="slide-body">
-      <aside class="callout callout--source">
-        <p class="callout-label">Source</p>
-        <p>Provenance of a claim, with a date or a version.</p>
-      </aside>
-    </div>
-  </section>
-
-  <section class="slide" id="s-quote">
-    <div class="slide-body" style="display: flex; align-items: center">
-      <blockquote class="quote">
-        The constraint was never the platform. It was the deployment path.
-        <span class="quote-attrib">Fictional quotation for this component example</span>
-      </blockquote>
-    </div>
-  </section>
-
-  <section class="slide" id="s-table">
-    <div class="slide-head">
-      <h2 class="slide-title">Table</h2>
-    </div>
-    <div class="slide-body">
-      <table>
-        <thead>
-          <tr><th>Option</th><th>Control</th><th>Operational load</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Virtual machines</td><td>Full</td><td>High</td></tr>
-          <tr><td>Container apps</td><td>Application level</td><td>Low</td></tr>
-          <tr><td>Functions</td><td>Function level</td><td>Lowest</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="slide slide--end" id="s-end">
-    <p>Make one point.<br><em>Leave room to think.</em></p>
-  </section>
-
-</main>
+</section>
 
 </body>
 </html>

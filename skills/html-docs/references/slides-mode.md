@@ -37,8 +37,9 @@ whitespace, not a miniature agenda or a wall of takeaways.
 
 Only these authored surfaces are displayed during presentation. Card toggles,
 prose, reveals, tabs, and other reading controls are hidden. The summaries are
-hidden in reading mode, print, and the no-JavaScript fallback. **All essential
-information must therefore also exist in the reading body.**
+hidden in reading mode, the reading PDF, and the no-JavaScript fallback. **All
+essential information must therefore also exist in the reading body.** The
+slides PDF prints exactly these surfaces; see [PDF export](pdf-export.md).
 
 ## Authoring budget
 
@@ -77,12 +78,26 @@ the presenter. Going backwards by whole slide displays all its points.
 | Index / O | Named slide-index dialog |
 | Animations / A | Stepped points / all points |
 | F | Full screen |
+| PDF | Save the slides as a 16:9 PDF, one page per slide |
 | Escape / Slides | Return to reading at the current card |
 
 Horizontal swipes move forwards/backwards. Keyboard actions respect native
 buttons and dialogs: Space on a focused button activates it, not the slide.
 Navigation moves focus to the current surface, which announces its position
 and title. Closing the index restores slide focus.
+
+## Keeping the screen awake
+
+While presenting, the runtime holds a **screen wake lock**, so the display does
+not dim, blank, or start the screen saver, as presentation software does. That
+also prevents the lock screen that follows a display timeout. It is released
+when the reader returns to reading. The browser drops the lock whenever the tab
+is hidden; the runtime requests it again when the tab returns or on the next
+key or click. It works from a local file in current Chrome, Edge, Safari, and
+Firefox. A browser may refuse it in battery saver or inside an embedding frame;
+presenting still works, only without the lock. A managed-device policy that
+enforces its own inactivity lock can still apply; test on the presenting
+machine before an important talk.
 
 ## Appearance and links
 

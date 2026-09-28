@@ -7,7 +7,7 @@ them that they do not.
 ## Page shape, in order
 
 ```
-controls          fixed: expand/collapse / slides / theme / accent / read marks
+controls          fixed: expand/collapse / slides / sheet / PDF / theme / accent / read marks
 .doc              the 1160px canvas
   header          reading introduction + concise opening .slide-content
   nav             optional links to sibling documents
@@ -17,9 +17,11 @@ controls          fixed: expand/collapse / slides / theme / accent / read marks
       .card       concise .slide-content + reading header/body, one idea
   .takeaway       reading conclusion + concise closing .slide-content
   footer          optional author and provenance
+.sheet            optional companion one-pager/datasheet, after .doc
 ```
 
-`article.template.html` contains exactly this. Start from it.
+`article.template.html` contains exactly this. Start from it. A companion
+sheet is described in [sheet](sheet.md).
 
 ## Chapters
 

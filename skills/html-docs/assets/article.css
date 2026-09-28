@@ -864,12 +864,38 @@ html:not(.js) .detail-more { display: none; }
   }
 }
 
+/* Reading PDF: the full reference. Browser headers are replaced by page numbers
+   where margin boxes are supported. Other targets live in slides/sheet CSS. */
+@page {
+  size: A4;
+  margin: 16mm 17mm 18mm;
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font: 8pt -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #686868;
+  }
+}
+@page read-letter {
+  size: letter;
+  margin: 16mm 17mm 18mm;
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font: 8pt -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #686868;
+  }
+}
 @media print {
-  body { padding: 0; font-size: 11pt; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { padding: 0; font-size: 11pt; background: var(--surface); }
+  .doc-header { padding-top: 0; }
+  :root[data-paper="letter"]:not([data-print="slides"]):not([data-print="sheet"]) .doc { page: read-letter; }
   .controls, .slide-ui, .doc-nav, .doc-footer { display: none; }
   .js .card-body, .js .reveal-body, .js .detail-body { display: block !important; }
   html:not(.js) .tabpanel[hidden], .tabpanel[hidden] { display: block !important; }
-  .card { break-inside: avoid; box-shadow: none; }
-  .card-mark, .detail-more { display: none; }
+  .card { box-shadow: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  figure, svg, pre, .callout, .reveal-toggle, tr, .detail-tile { break-inside: avoid; }
+  p, li { orphans: 3; widows: 3; }
+  .card-head, .chapter-label, h1, h2, h3, h4 { break-after: avoid; }
+  .card-mark, .card-read, .detail-more { display: none; }
   a { color: inherit; text-decoration: underline; }
 }

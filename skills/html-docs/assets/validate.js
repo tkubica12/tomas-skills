@@ -33,16 +33,9 @@ function chromiumPath() {
 }
 const args = process.argv.slice(2);
 const target = args[0];
-if (!target) {
-  console.error("usage: node validate.js <document.html> [--shots <folder>] [--viewport 1920x1080]");
-  process.exit(2);
-}
 const option = name => args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
-const dimensions = (option("--viewport") || "1440x900").match(/^(\d+)x(\d+)$/);
-if (!dimensions) throw new Error("Viewport must be WIDTHxHEIGHT");
-const viewport = { width: Number(dimensions[1]), height: Number(dimensions[2]) };
-const shots = option("--shots");
-if (shots) fs.mkdirSync(shots, { recursive: true });
+let viewport;
+let shots;
 let checks = 0;
 function check(name, value) {
   assert.ok(value, name);
@@ -55,9 +48,43 @@ const readingSelector = ".card-body";
 async function frame(page) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
-async function shot(page, name) {
-  if (shots) await page.screenshot({ path: path.join(shots, name + ".png") });
+async function shot(page, name, fullPage = false) {
+  if (shots) await page.screenshot({ path: path.join(shots, name + ".png"), fullPage });
 }
+const pdfPages = buffer => (buffer.toString("latin1").match(/\/Type\s*\/Page(?![a-z])/g) || []).length;
+
+/* Print targets mirror the on-screen views: read, slides, sheet. */
+async function printPlan(page) {
+  return page.evaluate(() => {
+    const $ = s => document.querySelector(s);
+    const count = s => document.querySelectorAll(s).length;
+    if ($(".deck-stage")) return [{ target: "slides", pages: count(".deck-stage .slide") }];
+    if (!$(".doc")) return $(".sheet") ? [{ target: "sheet", pages: count(".sheet-page") }] : [];
+    const plan = [{ target: "read", pages: null }];
+    if ($('[data-action="toggle-slides"]')) plan.push({ target: "slides", pages:
+      count(".doc-header > .slide-content, main .chapter > .chapter-label, .card > .slide-content, .takeaway > .slide-content") });
+    if ($(".sheet") && $('[data-action="toggle-sheet"]')) plan.push({ target: "sheet", pages: count(".sheet-page") });
+    return plan;
+  });
+}
+async function preparePrint(page, target) {
+  await page.evaluate(t => document.documentElement.setAttribute("data-print", t), target);
+  await page.emulateMedia({ media: "print" });
+  await frame(page);
+}
+/* Surfaces that clip in print. Must be called after preparePrint. */
+async function printOverflow(page, target) {
+  return page.evaluate(target => {
+    const selector = target === "sheet" ? ".sheet-page" : document.querySelector(".deck-stage") ? ".deck-stage .slide" :
+      target === "slides" ? ".doc-header > .slide-content, main .chapter > .chapter-label, .card > .slide-content, .takeaway > .slide-content" : "";
+    if (!selector) return [];
+    return Array.from(document.querySelectorAll(selector))
+      .filter(n => n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1)
+      .map(n => n.id || n.parentElement.id || n.className);
+  }, target);
+}
+const renderPdf = (page, options = {}) =>
+  page.pdf({ preferCSSPageSize: true, printBackground: true, tagged: true, outline: true, ...options });
 async function appearance(page, theme, accent) {
   check("theme resolves before interaction", await page.locator("html").getAttribute("data-theme") === theme);
   check("accent resolves before interaction", await page.locator("html").getAttribute("data-accent") === accent);
@@ -176,10 +203,92 @@ async function presentation(page, kind, prefix) {
   }
 }
 
-(async () => {
+async function sheetChecks(page, prefix, companion) {
+  const toggle = page.locator('[data-action="toggle-sheet"]');
+  if (companion) {
+    await toggle.click();
+    await frame(page);
+    check("sheet view shows the sheet", await page.locator(".sheet").isVisible());
+    check("sheet view hides the article", !(await page.locator(".doc").isVisible()));
+    check("sheet control is pressed", await toggle.getAttribute("aria-pressed") === "true");
+    check("sheet view is linkable", new URL(page.url()).searchParams.get("view") === "sheet");
+  }
+  const pages = page.locator(".sheet-page");
+  check("sheet has pages", await pages.count() > 0);
+  for (const sheetPage of await pages.all()) {
+    const id = await sheetPage.getAttribute("id") || "sheet";
+    check("sheet page fits its paper: " + id, await sheetPage.evaluate(n =>
+      n.scrollHeight <= n.clientHeight + 1 && n.scrollWidth <= n.clientWidth + 1));
+    check("sheet text is at least 7.5pt: " + id, await sheetPage.evaluate(n => Array.from(n.querySelectorAll("*"))
+      .filter(e => !e.closest("sup, sub") && Array.from(e.childNodes).some(c => c.nodeType === 3 && c.textContent.trim()))
+      .every(e => parseFloat(getComputedStyle(e).fontSize) >= 9.9)));
+    check("no interactive sheet content: " + id,
+      await sheetPage.locator("button, input, select, textarea, details, .reveal, .tabs, .detail-grid, audio, video, iframe").count() === 0);
+  }
+  check("sheet marks are labelled or decorative", await page.evaluate(() => Array.from(document.querySelectorAll(".sheet .mark"))
+    .every(m => m.getAttribute("aria-hidden") === "true" || (m.getAttribute("role") === "img" && !!m.getAttribute("aria-label")?.trim()))));
+  await shot(page, `${prefix}-sheet`, true);
+  if (!companion) return;
+  if (await page.locator('[data-action="toggle-slides"]').count()) {
+    await page.locator('[data-action="toggle-slides"]').click();
+    check("Slides replaces Sheet", await page.locator("html").getAttribute("data-view") === "slides" &&
+      await toggle.getAttribute("aria-pressed") === "false");
+    await page.keyboard.press("Escape");
+    await toggle.click();
+  }
+  await page.keyboard.press("Escape");
+  check("Escape returns from sheet to reading", await page.locator("html").getAttribute("data-view") === null &&
+    await page.locator(".doc").isVisible());
+}
+async function printChecks(browser, file, kind) {
+  const context = await browser.newContext({ viewport, offline: true, colorScheme: "dark" });
+  try {
+    const page = await context.newPage();
+    await page.goto(pathToFileURL(file).href + "?theme=dark", { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.evaluate(() => Promise.all(Array.from(document.images)
+      .map(img => { img.loading = "eager"; return img.decode().catch(() => {}); })));
+    await frame(page);
+    const plan = await printPlan(page);
+    check("document has a print target", plan.length > 0);
+    check("PDF control present", await page.locator('[data-action="print"]').count() > 0 || kind === "deck");
+    const title = await page.title();
+    for (const { target, pages } of plan) {
+      if (kind === "article" && target !== "read") {
+        await page.locator(`[data-action="toggle-${target}"]`).click();
+      }
+      await page.evaluate(() => dispatchEvent(new Event("beforeprint")));
+      check(`print follows the ${target} view`, await page.locator("html").getAttribute("data-print") === target);
+      await page.evaluate(() => dispatchEvent(new Event("afterprint")));
+      check("print state is restored", await page.locator("html").getAttribute("data-print") === null && await page.title() === title);
+      await preparePrint(page, target);
+      check(`${target} PDF uses the light palette`, await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#fafafa"));
+      const clipped = await printOverflow(page, target);
+      check(`${target} print surfaces fit: ${clipped.join(", ")}`, clipped.length === 0);
+      const count = pdfPages(await renderPdf(page));
+      check(`${target} PDF has ${pages ?? "some"} page(s), got ${count}`, pages === null ? count > 0 : count === pages);
+      await page.evaluate(() => document.documentElement.removeAttribute("data-print"));
+      await page.emulateMedia({ media: "screen" });
+      if (kind === "article" && target !== "read") await page.keyboard.press("Escape");
+      console.log(`  PASS print ${target}: ${count} page(s)`);
+    }
+  } finally { await context.close(); }
+}
+
+async function main() {
+  if (!target) {
+    console.error("usage: node validate.js <document.html> [--shots <folder>] [--viewport 1920x1080]");
+    process.exit(2);
+  }
+  const dimensions = (option("--viewport") || "1440x900").match(/^(\d+)x(\d+)$/);
+  if (!dimensions) throw new Error("Viewport must be WIDTHxHEIGHT");
+  viewport = { width: Number(dimensions[1]), height: Number(dimensions[2]) };
+  shots = option("--shots");
+  if (shots) fs.mkdirSync(shots, { recursive: true });
   const file = path.resolve(target);
   const source = fs.readFileSync(file, "utf8");
-  const kind = /class="[^"]*\bdeck-stage\b/.test(source) ? "deck" : "article";
+  const kind = /class="[^"]*\bdeck-stage\b/.test(source) ? "deck" :
+    !/class="doc"/.test(source) && /class="sheet"/.test(source) ? "sheet" : "article";
   const browser = await playwright().chromium.launch({ executablePath: chromiumPath() });
   console.log(`html-docs: ${path.basename(file)} / ${kind} / ${viewport.width}x${viewport.height}`);
   try {
@@ -211,7 +320,12 @@ async function presentation(page, kind, prefix) {
           readingText = await page.locator(readingSelector).allTextContents();
           await shot(page, `${theme}-${accent}-reading`);
           await articleChecks(page, presentable);
+          if (await page.locator('[data-action="toggle-sheet"]').count()) {
+            check("companion sheet exists", await page.locator("body > .sheet").count() === 1);
+            await sheetChecks(page, `${theme}-${accent}`, true);
+          }
         }
+        if (kind === "sheet") await sheetChecks(page, `${theme}-${accent}`, false);
         if (presentable) await presentation(page, kind, `${theme}-${accent}`);
         check("all images resolve", await page.evaluate(async () => {
           await Promise.all(Array.from(document.images).map(img => { img.loading = "eager"; return img.decode(); }));
@@ -221,17 +335,22 @@ async function presentation(page, kind, prefix) {
         console.log(`  PASS ${theme}/${accent}`);
       } finally { await context.close(); }
     }
+    await printChecks(browser, file, kind);
     const plainContext = await browser.newContext({ javaScriptEnabled: false, offline: true, viewport });
     try {
       const page = await plainContext.newPage();
       await page.goto(pathToFileURL(file).href + "?view=slides", { waitUntil: "domcontentloaded", timeout: 60000 });
-      const selectors = kind === "article" ? ".card-body, .reveal-body, .detail-body, .tabpanel" : ".slide";
+      const selectors = { article: ".card-body, .reveal-body, .detail-body, .tabpanel", deck: ".slide", sheet: ".sheet-page" }[kind];
       for (const node of await page.locator(selectors).all()) check("no-JS reference content visible", await node.isVisible());
       if (kind === "article") {
         assert.deepEqual(await page.locator(readingSelector).allTextContents(), readingText);
         check("no duplicate slide surfaces in reference fallback", await page.locator(".slide-content:visible").count() === 0);
+        check("no duplicate sheet in reference fallback", await page.locator(".sheet:visible").count() === 0);
       }
     } finally { await plainContext.close(); }
-    console.log(`${checks}/${checks} checks passed; all six palettes, offline, reduced motion, no-JS.`);
+    console.log(`${checks}/${checks} checks passed; all six palettes, print targets, offline, reduced motion, no-JS.`);
   } finally { await browser.close(); }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+}
+
+module.exports = { playwright, chromiumPath, frame, printPlan, preparePrint, printOverflow, renderPdf, pdfPages };
+if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });

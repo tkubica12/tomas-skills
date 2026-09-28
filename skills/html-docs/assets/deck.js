@@ -60,6 +60,7 @@
       '<button type="button" data-deck="reveal" aria-pressed="true" ' +
       'aria-label="Animate points one at a time, or show each slide whole">Animations</button>' +
       '<button type="button" data-deck="full">Full screen</button>' +
+      '<button type="button" data-action="print" aria-label="Save as PDF or print">PDF</button>' +
       '<button type="button" data-action="toggle-theme">Dark</button>' +
       '<button type="button" data-action="toggle-accent">Accent: Blue</button>';
 
@@ -371,6 +372,7 @@
 
   buildChrome();
   scaleStage();
+  preferences.keepAwake(true);
 
   const wanted = slides.findIndex((slide) => "#" + slide.id === location.hash);
   go(wanted >= 0 ? wanted : 0, false);

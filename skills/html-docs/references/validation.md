@@ -46,14 +46,32 @@ with networking disabled and system theme opposite the requested theme:
 - Exact narrative order and whole-slide traversal, including chapter dividers.
 - Slide clipping, deck readability floor and 65-word budget.
 - Fragment accessibility, reduced-motion navigation, named index and focus return.
+- Sheets: every page fits its paper, text at least 7.5 pt, labelled marks, no
+  interactive content; companion Sheet view switching with Slides and Escape.
 - Console warnings/errors, failed requests, required network requests, images.
 - No-JavaScript visibility and full article reference-text parity, excluding
-  intentionally hidden presentation summaries.
+  intentionally hidden presentation summaries and companion sheets.
 
-Exit code 0 means every assertion passed. `--shots` captures reading and every
-presentation surface with points revealed in each palette. It does not make a
-visual judgment. Keep validation screenshots/logs outside public deliverables,
-except a deliberately selected showcase image.
+A print pass then selects every view the document offers, as the **PDF**
+button would, from a dark screen theme. It checks the print target follows the
+view, the light palette is used, nothing clips in print, and the generated PDF
+has exactly one page per slide or sheet page.
+
+Exit code 0 means every assertion passed. `--shots` captures reading, the
+full sheet, and every presentation surface with points revealed in each
+palette. It does not make a visual judgment. Keep validation screenshots/logs
+outside public deliverables, except a deliberately selected showcase image.
+
+## PDF deliverables
+
+When PDF is requested, export and then open each file:
+
+```powershell
+node assets\export-pdf.js my-document.standalone.html --out validation\pdf
+```
+
+See [PDF export](pdf-export.md). Inspect every page: sheet composition,
+slide pages matching the presentation, and reading page breaks.
 
 ## Isolated export
 
@@ -95,11 +113,12 @@ Passing overflow alone is not sufficient.
 Validate every fixture after changes:
 
 ```powershell
-node assets\sync-head.js --check article.template.html article.components.html deck.template.html deck.components.html
+node assets\sync-head.js --check article.template.html article.components.html deck.template.html deck.components.html sheet.template.html
 node assets\validate.js article.template.html
 node assets\validate.js article.components.html
 node assets\validate.js deck.template.html
 node assets\validate.js deck.components.html
+node assets\validate.js sheet.template.html
 ```
 
 Regenerate affected standalone outputs and refresh representative screenshots.

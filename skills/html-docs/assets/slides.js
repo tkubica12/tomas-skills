@@ -4,7 +4,7 @@
   const root = document.documentElement;
   const toggle = document.querySelector('[data-action="toggle-slides"]');
   if (!toggle) {
-    root.removeAttribute("data-view");
+    if (root.dataset.view === "slides") root.removeAttribute("data-view");
     return;
   }
   const $ = (selector, node = document) => node.querySelector(selector);
@@ -144,7 +144,7 @@
       go(wanted < 0 ? index : wanted);
       wake();
     } else {
-      root.removeAttribute("data-view");
+      if (inSlides()) root.removeAttribute("data-view");
       slides.forEach(node => node.removeAttribute("data-slide-current"));
       $$(".chapter-label").forEach(heading => {
         ["aria-label", "aria-roledescription", "tabindex"].forEach(name => heading.removeAttribute(name));
@@ -157,6 +157,7 @@
       syncUrl();
     }
     toggle.setAttribute("aria-pressed", String(present));
+    preferences.keepAwake(present);
   }
   function openIndex() {
     if (!dialog) {
