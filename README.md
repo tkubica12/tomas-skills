@@ -1,8 +1,9 @@
 # Tomas's agent skills and canvas extensions
 
 Reusable skills for researching a topic, explaining how it works, turning the
-result into a document people can both watch and read, and publishing a website
-with private Blob-backed content. A Copilot canvas extension adds in-context
+result into a document people can both watch and read, publishing a website
+with private Blob-backed content, and preparing tested customer discovery
+interviews. A Copilot canvas extension adds in-context
 review of rendered documents before sharing them.
 
 | Skill | What it does | Example result |
@@ -11,6 +12,7 @@ review of rendered documents before sharing them.
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
+| [customer-discovery-interview](skills/customer-discovery-interview/README.md) | Agrees discovery scope with you, generates a tested interview prompt for a customer project, and rehearses it with two subagents. The interview keeps a clean conversation record and a living requirements spec across sessions. | [Dispatch app move (simulated)](examples/customer-discovery-interview/README.md) |
 
 | Canvas extension | What it does | Requires |
 | --- | --- | --- |
@@ -27,6 +29,7 @@ gh skill install tkubica12/tomas-skills html-docs
 gh skill install tkubica12/tomas-skills first-principles
 gh skill install tkubica12/tomas-skills web-research
 gh skill install tkubica12/tomas-skills aca-web-publish
+gh skill install tkubica12/tomas-skills customer-discovery-interview
 ```
 
 The default is project scope for GitHub Copilot. Add `--scope user` to make a
