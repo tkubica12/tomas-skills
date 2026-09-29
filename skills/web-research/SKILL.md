@@ -2,11 +2,6 @@
 compatibility: Requires authorized web search and page-reading tools. Prefers Microsoft Learn, GitHub MCP, and WebIQ when available; supports equivalent host tools without requiring installation.
 description: Research external facts and public URLs using primary sources, claim-level citations, and explicit uncertainty. Use before web or GitHub lookups, reading linked articles or papers, checking current documentation or releases, comparing technical options, or investigating news and community claims. Scales from a single URL to multi-source research. Excludes purely local file search, supplied-content-only answers, and no-browsing tasks.
 license: MIT
-metadata:
-    github-path: skills/web-research
-    github-ref: refs/heads/main
-    github-repo: https://github.com/tkubica12/tomas-skills
-    github-tree-sha: dbff9f973184c6076c96992967fc3cd22fec1faa
 name: web-research
 ---
 # Web research
