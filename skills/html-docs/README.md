@@ -36,6 +36,35 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 - [Editable example source](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.html)
 - [Changes by version](CHANGELOG.md)
 
+## Review with Document review
+
+[Document review](https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review)
+is an optional companion **Canvas extension for GitHub Copilot App**. It opens
+the rendered local HTML in a side panel next to the conversation. Select text
+in the document or slides, save a comment, an exact replacement, or a deletion
+request, then explicitly send the annotations to the agent. The agent edits
+the source; selecting or annotating text does not change the document itself.
+
+In GitHub Copilot App, ask:
+
+> Install this canvas extension as a personal extension:
+> https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review
+
+Then ask:
+
+> Open my editable html-docs HTML in Document review so I can annotate it.
+> After I send the annotations, apply them to the source and rebuild the
+> standalone HTML and any requested PDFs.
+
+Install it separately from the skill:
+**`gh skill install tkubica12/tomas-skills html-docs` does not install the
+extension**. It requires app extension canvas support, works with
+local HTML rather than public website URLs, and is not needed by recipients.
+Review the editable linked-assets source, not the generated `.standalone.html`;
+provide the smallest asset root containing its linked assets. See the
+[extension documentation](https://github.com/tkubica12/tomas-skills/blob/main/extensions/document-review/README.md)
+for installation scopes, persistent annotations, and preview limits.
+
 ## Requirements
 
 - **Read/present/print:** a modern browser; no server or installation for

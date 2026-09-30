@@ -17,7 +17,7 @@ adds in-context review of rendered documents before sharing them.
 
 | Canvas extension | What it does | Requires |
 | --- | --- | --- |
-| [document-review](extensions/document-review/README.md) | Select text in a rendered HTML article or slide, then comment, replace, or delete. Saved annotations are explicitly handed to the agent for source edits. | GitHub Copilot app with extension canvas support |
+| [document-review](extensions/document-review/README.md) | Review local HTML in a GitHub Copilot App side-panel Canvas. Select text, then comment, replace, or delete; explicitly send saved annotations to the agent for source edits. A companion to `html-docs`. | GitHub Copilot App with extension canvas support |
 
 ## Install skills
 
@@ -57,7 +57,7 @@ In GitHub Copilot app, ask:
 > Install this canvas extension as a personal extension:
 > https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review
 
-The link becomes installable when the extension folder is published on `main`.
+The extension is published alongside the skills at that repository folder URL.
 Use a tag or commit permalink for a fixed version. This uses the app's extension
 installer, **not** `gh skill install`. The [extension README](extensions/document-review/README.md)
 also covers manual and project-scoped installation, requirements, and limits.

@@ -204,6 +204,29 @@ its slides or sheet pages. Open and inspect every PDF before delivering it.
 Recipients can make the same PDFs themselves with the **PDF** button. See
 [PDF export](references/pdf-export.md).
 
+## Optional review in GitHub Copilot App
+
+[Document review](https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review)
+is a separately installed companion Canvas extension, not part of this skill
+or a requirement for readers. It displays rendered local HTML in the app's
+side panel so the user can select text, save comments, exact replacements, or
+deletion requests, and explicitly send the annotations to the agent.
+
+When the user requests an annotated review and the `document-review` canvas
+is available, open the editable linked-assets HTML, not the generated
+standalone export. Set `filePath` and `sourcePath` to the editable HTML and
+`rootPath` to the smallest directory containing the preview and its linked
+assets. Inspect the canvas input schema before opening it. A public URL alone
+is not supported.
+
+Annotations are requests, not immediate source edits. Wait for the user's
+explicit handoff; inspect the source and anchors, apply only the requested
+changes, and report ambiguous selections as blocked rather than guessing.
+Rebuild and validate the standalone HTML and any requested PDFs, verify the
+requested edits before recording `set_outcome`, then refresh the preview.
+If the canvas is unavailable, do not install it automatically or block normal
+authoring; point to the extension link when the user wants this review workflow.
+
 ## Handoff
 
 Report the editable source, the shareable export, and any PDF paths; the

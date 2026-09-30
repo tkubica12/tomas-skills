@@ -1,6 +1,10 @@
 # Document review
 
-Copilot canvas extension for reviewing rendered **local HTML**. Select text with
+**Canvas extension for GitHub Copilot App**, opening rendered **local HTML**
+in a side panel next to the agent conversation. It is a companion to the
+[html-docs skill](https://github.com/tkubica12/tomas-skills/tree/main/skills/html-docs):
+review the document or slides before rebuilding and sharing the final exports.
+Select text with
 the mouse or keyboard, then comment, replace, or delete. The Czech UI saves
 annotations immediately; **Predat agentovi** explicitly sends a batch to the
 current conversation. Replace/delete are precise requests, not immediate
