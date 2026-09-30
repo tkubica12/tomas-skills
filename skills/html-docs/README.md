@@ -12,7 +12,7 @@ Choose the views a document needs: **Read**, **Slides**, **Sheet**, or any
 combination; a standalone one-pager or a separate slide-first deck is also
 available. The **PDF** button prints the view on screen from a local file, and
 the skill exports the same PDFs with page-count checks. All shapes support
-light/dark themes, one switchable blue/orange/green accent, keyboard
+light/dark themes, one switchable blue/red/green/yellow accent, keyboard
 navigation, reduced-motion-aware point builds, a screen that stays awake while
 presenting, offline use, and readable content without JavaScript.
 
@@ -45,6 +45,12 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 - **Validate and export PDFs:** Node.js, Playwright, and Chromium or a
   compatible installed browser. Playwright is only for the author, not for the
   document.
+
+Dark mode uses the four exact Microsoft logo colors; light mode uses darker
+counterparts for readable accents. The light shades are this skill's design,
+not official Microsoft logo variants. The same family follows every view,
+diagram, and control; PDFs use its light shade. Existing `orange` links,
+defaults, and saved preferences resolve to the red-orange `red` family.
 
 The agent follows [SKILL.md](SKILL.md), starts from the included templates,
 and validates the result. The linked source remains editable; the generated

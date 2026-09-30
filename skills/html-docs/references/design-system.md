@@ -7,11 +7,17 @@ active across the entire document**, including both reading and presentation:
 
 | Accent | Light | Dark |
 |---|---|---|
-| Blue (default) | `#0068bd` | `#69b8ff` |
-| Orange | `#a94000` | `#ffae72` |
-| Green | `#137344` | `#6cd6a0` |
+| Blue (default) | `#006da0` | `#00a4ef` |
+| Red (red-orange) | `#bc3a16` | `#f25022` |
+| Green | `#4c7100` | `#7fba00` |
+| Yellow | `#805b00` | `#ffb900` |
 
-Do not color-code categories, combine accent families, or add red/yellow
+Dark shades are the exact four Microsoft logo colors. Light shades are this
+skill's darker counterparts, not officially documented Microsoft logo
+variants. Yellow becomes gold/ochre on light backgrounds. The runtime keeps
+the selected family while switching its shade with the theme.
+
+Do not color-code categories, combine accent families, or add separate
 warning colors. A warning uses the selected accent; its explicit **Warning**
 label, not color alone, conveys its meaning. Charts distinguish series with
 labels, patterns, line styles, or grayscale.
@@ -51,9 +57,9 @@ regenerate them from their sources instead.
 ```
 
 Omit `data-default-theme` to follow the operating system initially. Blue,
-orange, and green are the only valid accent choices. The runtime resolves:
+red, green, and yellow are the canonical accent choices. The runtime resolves:
 
-1. Valid `?theme=light|dark` and `?accent=blue|orange|green` overrides.
+1. Valid `?theme=light|dark` and `?accent=blue|red|green|yellow` overrides.
 2. The reader's choice saved for this document.
 3. The authored defaults.
 4. System theme and blue accent.
@@ -64,7 +70,12 @@ storage. Without an ID, pathname is the fallback, with `.standalone` removed.
 Independent documents do not inherit each other's choices. Local storage
 access can be unavailable under browser policy; the current view still works.
 
-**Dark/Light** switches theme. **Accent** cycles blue, orange, green, with an
+Legacy `orange` values in URL overrides, saved preferences, and defaults
+resolve to `red`. CSS accepts the old default without JavaScript too.
+Use `red` for new documents.
+
+**Dark/Light** switches theme and the selected family's shade. **Accent**
+cycles blue, red, green, yellow, with an
 accessible label naming the current and next choice. Changes update any
 matching query override so reload does not undo the selection. All components
 use the same resolved tokens. Nothing is sent to a server.
@@ -112,7 +123,7 @@ and accent in the source and standalone export:
 ```
 
 Use unique title/description/marker IDs, a tight viewBox, legible labels, and
-enough clearance between labels and geometry. Test all six palettes with a
+enough clearance between labels and geometry. Test all eight palettes with a
 browser system theme deliberately opposite the document's theme.
 
 An SVG loaded through `<img>` is a separate document: it **cannot inherit

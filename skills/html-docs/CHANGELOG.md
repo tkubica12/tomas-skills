@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.2.0 — 2026-09-30
+
+**Four Microsoft-logo accent families, with readable light-mode shades.**
+
+### Changed
+
+- Accent cycles blue, red (red-orange), green, yellow across articles, slides,
+  decks, and sheets. One family remains active throughout a document.
+- Dark mode uses the exact logo values: blue `#00A4EF`, red `#F25022`,
+  green `#7FBA00`, yellow `#FFB900`.
+- Light mode uses the approved design-preview shades: blue `#006DA0`,
+  red `#BC3A16`, green `#4C7100`, yellow `#805B00`. These are this skill's
+  design, not officially documented Microsoft counterparts.
+- PDFs use the selected family's light shade, even from a dark screen.
+- Legacy `orange` URL overrides, authored defaults, and stored choices map
+  to `red`; CSS also preserves the no-JavaScript `orange` default.
+- Templates, component galleries, example HTML/PDFs, and documentation use
+  the updated canonical head. Browser validation covers all eight palettes,
+  exact shade pairs, light text contrast, and legacy accent compatibility.
+
+### Upgrading a document
+
+Copy the updated assets, run `node assets\sync-head.js` on the linked source,
+then rebuild its standalone HTML and PDFs. Prefer `red` in new defaults and
+links; existing `orange` values remain accepted.
+
 ## 1.1.0 — 2026-09-28
 
 **Sheets, PDF export, and a screen that stays awake while presenting.**

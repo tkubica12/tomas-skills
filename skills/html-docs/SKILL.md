@@ -3,7 +3,7 @@ name: html-docs
 description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # One document, up to three views
@@ -48,8 +48,11 @@ full `.card-body`; do not create a separate document or repeat the body on scree
 - Start from the appropriate template. Preserve its theme bootstrap and
   canonical inline tokens from `assets/tokens.css`; do not invent a palette.
 - Black, white, grayscale, and **one accent at a time**: blue by default,
-  orange or green alternatives. Set `data-default-accent` on the document,
-  never individual components. All views share the runtime accent control.
+  red (red-orange), green, or yellow alternatives. Dark mode uses exact
+  Microsoft logo colors; light mode uses the canonical darker counterparts
+  for readable text. These light shades are this skill's design, not official
+  Microsoft logo variants. Set `data-default-accent` on the document, never
+  individual components. All views share the runtime accent control.
 - Slides support the speaker: one claim, at most three short cues, no long
   prose, reveals, tabs, links, or other interactive content. Include an
   intentional opening and a memorable closing. Only optional point-by-point
@@ -146,7 +149,7 @@ file, including during export.
    explanatory prose, not narration about how the document was made.
 6. **Validate source, then export and validate the deliverable.** Follow the
    [validation checklist](references/validation.md). Inspect screenshots in
-   all six light/dark × blue/orange/green combinations, including opening,
+   all eight light/dark × blue/red/green/yellow combinations, including opening,
    closing, diagram, and every sheet page at laptop and projector sizes. A
    slide must look spacious and a sheet composed, not merely pass an overflow
    check.

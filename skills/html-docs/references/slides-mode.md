@@ -102,17 +102,17 @@ machine before an important talk.
 ## Appearance and links
 
 Both views share **Dark/Light** and **Accent** controls. Choose one document
-default with `data-default-accent="blue"` (or `orange`/`green`) and optionally
+default with `data-default-accent="blue"` (or `red`/`green`/`yellow`) and optionally
 `data-default-theme="light"` or `"dark"`. See [design system](design-system.md).
 
 `?view=slides#card-headroom` opens that card's concise surface.
-`?view=slides&theme=dark&accent=orange#opening` opens an orange/dark title slide.
+`?view=slides&theme=dark&accent=red#opening` opens a red-orange/dark title slide.
 Exiting presentation removes `view=slides` and opens the current reading card.
 
 ## Sharing and review
 
 Run the single-file exporter when sharing is requested. Present and distribute
 the same generated HTML; do not maintain a second deck or edit the export.
-Validate source and isolated export across all six palettes at laptop and
+Validate source and isolated export across all eight palettes at laptop and
 projector sizes, then inspect screenshots of the opening, diagram, busiest
 slide, and closing. A clean console is not evidence of good composition.

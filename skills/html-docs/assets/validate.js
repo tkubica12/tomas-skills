@@ -44,6 +44,12 @@ function check(name, value) {
 const words = text => text.trim().split(/\s+/).filter(Boolean).length;
 const interactive = "button, a, input, select, textarea, details, summary, [contenteditable], .reveal, .tabs, .detail-grid, audio, video, iframe";
 const readingSelector = ".card-body";
+const accentColors = {
+  blue: { light: "#006da0", dark: "#00a4ef" },
+  red: { light: "#bc3a16", dark: "#f25022" },
+  green: { light: "#4c7100", dark: "#7fba00" },
+  yellow: { light: "#805b00", dark: "#ffb900" }
+};
 
 async function frame(page) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -89,16 +95,85 @@ async function appearance(page, theme, accent) {
   check("theme resolves before interaction", await page.locator("html").getAttribute("data-theme") === theme);
   check("accent resolves before interaction", await page.locator("html").getAttribute("data-accent") === accent);
   const original = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+  check("canonical accent shade", original === accentColors[accent][theme]);
+  await page.emulateMedia({ media: "print" });
+  check("every family prints its light shade", await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()) === accentColors[accent].light);
+  await page.emulateMedia({ media: "screen" });
+  if (theme === "light") {
+    const contrasts = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      function luminance(color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        return Array.from(ctx.getImageData(0, 0, 1, 1).data).slice(0, 3)
+          .map(x => x / 255).map(x => x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4)
+          .reduce((sum, x, i) => sum + x * [.2126, .7152, .0722][i], 0);
+      }
+      const foreground = luminance(style.getPropertyValue("--accent").trim());
+      return ["--bg", "--surface", "--surface-2", "--surface-3", "--accent-soft"].map(token => {
+        const background = luminance(style.getPropertyValue(token).trim());
+        return [token, (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05)];
+      });
+    });
+    for (const [surface, ratio] of contrasts) check(`light accent text contrast on ${surface}: ${ratio.toFixed(2)}`, ratio >= 4.5);
+  }
   await page.locator('[data-action="toggle-theme"]').click();
   check("theme toggle works", await page.locator("html").getAttribute("data-theme") !== theme);
+  check("theme toggle preserves accent family", await page.locator("html").getAttribute("data-accent") === accent);
+  check("theme toggle selects paired shade", await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()) ===
+    accentColors[accent][theme === "light" ? "dark" : "light"]);
   await page.locator('[data-action="toggle-theme"]').click();
-  for (let i = 0; i < 3; i++) await page.locator('[data-action="toggle-accent"]').click();
+  const accents = Object.keys(accentColors);
+  for (let i = 1; i <= accents.length; i++) {
+    await page.locator('[data-action="toggle-accent"]').click();
+    const next = accents[(accents.indexOf(accent) + i) % accents.length];
+    check("accent cycle order", await page.locator("html").getAttribute("data-accent") === next);
+  }
   check("accent cycles coherently", await page.locator("html").getAttribute("data-accent") === accent);
   check("warning uses the selected accent", await page.evaluate(() => {
     const style = getComputedStyle(document.documentElement);
     return style.getPropertyValue("--warn").trim() === style.getPropertyValue("--accent").trim();
   }));
   check("accent values survive controls", original === await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()));
+}
+async function legacyAccentChecks(browser, file, source) {
+  const url = pathToFileURL(file).href;
+  const context = await browser.newContext({ offline: true, viewport });
+  try {
+    const page = await context.newPage();
+    await page.goto(url + "?theme=light&accent=orange");
+    check("legacy orange URL selects red", await page.locator("html").getAttribute("data-accent") === "red");
+    await page.locator('[data-action="toggle-accent"]').click();
+    check("legacy URL moves to canonical green", new URL(page.url()).searchParams.get("accent") === "green");
+    await page.reload();
+    check("canonical choice survives reload", await page.locator("html").getAttribute("data-accent") === "green");
+    await page.goto(url + "?theme=light");
+    await page.evaluate(() => window.HtmlDocs.write("accent", "orange"));
+    await page.reload();
+    check("legacy stored orange selects red", await page.locator("html").getAttribute("data-accent") === "red");
+    await page.goto(url + "?theme=light&accent=blue");
+    check("URL overrides legacy stored choice", await page.locator("html").getAttribute("data-accent") === "blue");
+  } finally { await context.close(); }
+  const bootstrap = source.match(/<script data-doc-bootstrap>[\s\S]*?<\/script>/)[0];
+  const tokens = source.match(/<style data-doc-tokens>[\s\S]*?<\/style>/)[0];
+  for (const javaScriptEnabled of [true, false]) {
+    const fallbackContext = await browser.newContext({ javaScriptEnabled, offline: true, viewport });
+    try {
+      const page = await fallbackContext.newPage();
+      for (const theme of ["light", "dark"]) {
+        await page.setContent(`<!doctype html><html data-default-accent="orange" data-default-theme="${theme}">
+          <head>${bootstrap}${tokens}</head><body></body></html>`);
+        if (javaScriptEnabled) check("legacy authored default selects red", await page.locator("html").getAttribute("data-accent") === "red");
+        check(`legacy default shade works with JS ${javaScriptEnabled}`, await page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()) === accentColors.red[theme]);
+      }
+    } finally { await fallbackContext.close(); }
+  }
 }
 async function articleChecks(page, presentable) {
   check("article has cards", await page.locator(".card").count() > 0);
@@ -263,6 +338,10 @@ async function printChecks(browser, file, kind) {
       await preparePrint(page, target);
       check(`${target} PDF uses the light palette`, await page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#fafafa"));
+      check(`${target} PDF uses the light accent shade`, await page.evaluate(() => {
+        const style = getComputedStyle(document.documentElement);
+        return style.getPropertyValue("--accent").trim() === style.getPropertyValue("--accent-light").trim();
+      }));
       const clipped = await printOverflow(page, target);
       check(`${target} print surfaces fit: ${clipped.join(", ")}`, clipped.length === 0);
       const count = pdfPages(await renderPdf(page));
@@ -293,7 +372,7 @@ async function main() {
   console.log(`html-docs: ${path.basename(file)} / ${kind} / ${viewport.width}x${viewport.height}`);
   try {
     let readingText;
-    for (const theme of ["light", "dark"]) for (const accent of ["blue", "orange", "green"]) {
+    for (const theme of ["light", "dark"]) for (const accent of Object.keys(accentColors)) {
       const context = await browser.newContext({ viewport, offline: true, colorScheme: theme === "light" ? "dark" : "light" });
       try {
         const page = await context.newPage();
@@ -309,7 +388,7 @@ async function main() {
         check("document identity", await page.locator('meta[name="doc-id"]').count() === 1);
         check("canonical appearance head", await page.locator("script[data-doc-bootstrap]").count() === 1 &&
           await page.locator("style[data-doc-tokens]").count() === 1);
-        check("valid default accent", ["blue", "orange", "green"].includes(await page.locator("html").getAttribute("data-default-accent")));
+        check("valid default accent", [...Object.keys(accentColors), "orange"].includes(await page.locator("html").getAttribute("data-default-accent")));
         check("unique ids", await page.evaluate(() => {
           const ids = Array.from(document.querySelectorAll("[id]")).map(n => n.id);
           return ids.length === new Set(ids).size;
@@ -335,6 +414,7 @@ async function main() {
         console.log(`  PASS ${theme}/${accent}`);
       } finally { await context.close(); }
     }
+    await legacyAccentChecks(browser, file, source);
     await printChecks(browser, file, kind);
     const plainContext = await browser.newContext({ javaScriptEnabled: false, offline: true, viewport });
     try {
@@ -348,7 +428,7 @@ async function main() {
         check("no duplicate sheet in reference fallback", await page.locator(".sheet:visible").count() === 0);
       }
     } finally { await plainContext.close(); }
-    console.log(`${checks}/${checks} checks passed; all six palettes, print targets, offline, reduced motion, no-JS.`);
+    console.log(`${checks}/${checks} checks passed; all eight palettes, paired shades, light contrast, legacy orange, print targets, offline, reduced motion, no-JS.`);
   } finally { await browser.close(); }
 }
 

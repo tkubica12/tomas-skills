@@ -58,19 +58,25 @@ If you cloned the repository, open either the standalone above or the
 - **PDF:** prints the view on screen: the full document, one page per slide
   while presenting, or the sheet. Choose **Save as PDF** in the print dialog.
 - **Theme:** **Dark / Light** switches the whole document and diagram.
-- **Accent:** cycles blue, orange, green. Only one accent is used at a time,
-  alongside black, white, and grayscale; the default is blue.
+- **Accent:** cycles blue, red (red-orange), green, yellow. Only one accent
+  family is used at a time, alongside black, white, and grayscale; the default
+  is blue. Dark mode uses exact logo colors; light mode uses the skill's
+  darker counterparts. Legacy `orange` choices resolve to `red`.
 - **Animations:** or `A` toggles stepwise cues. Reduced motion shows all points
   without animation. Presentation surfaces contain no reveals or tabs.
 - **Read marks:** stored only in the local browser; **Clear marks** resets them.
 
 Theme, accent, and animation choices stay local and are scoped to this
 document. You can append `?view=slides`, `?view=sheet`, or
-`?view=slides&theme=dark&accent=orange#card-premise` to a local HTML URL.
+`?view=slides&theme=dark&accent=red#card-premise` to a local HTML URL.
 Without JavaScript, the complete article and all reveals remain readable;
 interactive presentation controls and the sheet view require JavaScript.
 
 ## Exact generation prompt
+
+The original prompts below describe the palette available when the example
+was created. Version 1.2.0 updates the runtime and exports to four paired
+accent families and eight theme/accent combinations; the talk is unchanged.
 
 > Use html-docs to create an original, polished, fictional engineering talk
 > titled “A queue is not extra capacity.” Make it one article with slides mode:
@@ -129,5 +135,5 @@ The PDF export rewrites the three PDFs in this folder, the same PDFs the
 **PDF** button produces in each view.
 
 Follow [the validation guide](../../skills/html-docs/references/validation.md)
-to check the export in isolation and inspect all six palettes. None of
+to check the export in isolation and inspect all eight palettes. None of
 these authoring tools are required by recipients.

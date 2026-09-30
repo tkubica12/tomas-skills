@@ -35,10 +35,13 @@ node assets\validate.js my-document.html --shots validation\source
 node assets\validate.js my-document.html --viewport 1920x1080
 ```
 
-Each browser run checks all six light/dark x blue/orange/green combinations,
+Each browser run checks all eight light/dark x blue/red/green/yellow combinations,
 with networking disabled and system theme opposite the requested theme:
 
 - Appearance toggles, warning/accent coherence, document metadata and unique IDs.
+- Exact light/dark accent pairs, light text contrast of at least 4.5:1 on the
+  canonical neutral and accent-soft surfaces, and legacy `orange` URL,
+  saved-preference, and JavaScript/no-JavaScript default compatibility.
 - Presentable articles: opening/closing and one authored surface per card.
 - Article slide limits: 45 words, three points, ten words per point,
   18 words per paragraph, no interactive reading content.
@@ -93,7 +96,7 @@ the runtime. The exporter wraps deferred scripts because an inline script's
 
 1. Read the collapsed card titles and expanded prose. Verify assumptions,
    sources, fictional inputs, and the reasoning behind each cue.
-2. Inspect opening, divider, diagram, busiest slide, and closing in all six
+2. Inspect opening, divider, diagram, busiest slide, and closing in all eight
    palettes at laptop and projector sizes. Diagrams must inherit the selected
    accent; no independent warning or category colors.
 3. Test `?view=slides#card-id`, reload, theme/accent persistence, keyboard focus,

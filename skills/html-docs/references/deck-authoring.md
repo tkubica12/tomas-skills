@@ -88,5 +88,5 @@ Prefer fit 1.0. Shorten or split a slide rather than rely on compression.
 Without JavaScript, slides stack vertically and all fragments remain visible.
 Print emits one landscape page per slide without controls, in the light
 palette. `export-pdf.js` writes and checks that PDF; see
-[PDF export](pdf-export.md). Inspect screenshots in all six appearance
+[PDF export](pdf-export.md). Inspect screenshots in all eight appearance
 combinations even when geometry checks pass.
