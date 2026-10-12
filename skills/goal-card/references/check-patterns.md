@@ -80,15 +80,52 @@ brand owner must accept a visual design, name that owner and the submitted artif
 version. The agent can fix specific rubric failures but cannot invent approval.
 Do not assert that repeating a subjective self-review guarantees better quality.
 
+## Experiments and spikes
+
+Weak: "Explore whether the new platform works for us and write it up."
+
+Better checks, adjusted to the actual question:
+
+- Verdict: every required hypothesis is CONFIRMED or REFUTED, and each verdict
+  cites the run output that decided it, such as a command, its result, and the
+  resource it ran against. INCONCLUSIVE does not pass unless the card says that
+  the measured uncertainty itself answers the decision question. A split
+  hypothesis keeps a visible link to the original.
+- Decision: the findings answer the decision question in one or two sentences,
+  name the conditions under which the answer holds, and point every claim to run
+  evidence or a cited source.
+- Platform limit versus setup error: a REFUTED verdict that blames the platform
+  has a minimal reproduction, the exact error, and documentation or an issue that
+  supports it. Otherwise it is still a failed attempt, not a verdict.
+- Cleanup: everything the run created is deleted, or listed as kept only where
+  the owner allowed it, verified by listing resources with the run's tag or
+  naming convention.
+
+Repair a failed experiment by changing the setup, narrowing the experiment, or
+reading documentation, then rerunning. A refuted hypothesis is progress, not a
+failure to repair. Do not convert a broken environment into a written guess; that
+is a preflight failure, fixed within the envelope or reported as BLOCKED.
+
+Keep the experiment small. One working end-to-end path with real output usually
+answers more than a broad design. Load tests, benchmarks, and statistical
+comparisons belong to a later goal unless the decision depends on a measured
+threshold; then apply the noisy-measure rules above.
+
 ## Operations and external effects
 
 State the target environment, permitted scope, known good state, observation
 window, and escalation/rollback limits. Verify the real final state, not just
 that a command was accepted.
 
-When a send, payment, deployment, or deletion times out, the result is UNKNOWN
-until a read-back resolves it. A retry is safe only with a documented deduplication
-mechanism or proof the first action did not happen. Otherwise stop for a decision.
+For resources the run itself created inside its envelope, the agent can resolve
+an uncertain result by reading the actual state or by deleting and recreating.
+Stopping is not required there. Pre-existing resources in a shared test
+environment are not the run's to delete unless the card says so.
+
+Anywhere else, when a send, payment, deployment, or deletion times out, the
+result is UNKNOWN until a read-back resolves it. A retry is safe only with a
+documented deduplication mechanism or proof the first action did not happen.
+Otherwise stop for a decision.
 
 Do not make automatic production changes a pilot assumption. A read-only diagnosis
 or a staged draft can be a useful intermediate result without being DONE for a

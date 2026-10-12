@@ -8,7 +8,7 @@ adds in-context review of rendered documents before sharing them.
 
 | Skill | What it does | Example result |
 | --- | --- | --- |
-| [goal-card](skills/goal-card/README.md) | Designs or improves a bounded Goal Card with explicit outcomes, evidence checks, repair paths, permissions, and stopping limits without executing the task. | — |
+| [goal-card](skills/goal-card/README.md) | Designs or improves a bounded Goal Card for build, experiment, or research work: explicit outcomes, evidence checks, an autonomy envelope, a preflight, repair paths, and stopping limits, without executing the task. | — |
 | [html-docs](skills/html-docs/README.md) | Creates browser-ready documents, presentations, and one-pagers. One shareable HTML file can hold the live slides, the matching detailed handout, and a one-page summary, each exportable to PDF. | [Presentation + reading example](examples/html-docs/README.md) |
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |

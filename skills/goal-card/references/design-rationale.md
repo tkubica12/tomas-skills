@@ -26,13 +26,13 @@ credentials, scheduling, or execution mode was introduced.
 | Addition | Failure it prevents | Design choice |
 |---|---|---|
 | Stable check IDs and dependency-aware rechecking | An edit invalidates a previously passing summary or test | Each repair names its affected checks. |
-| Evidence tied to final artifacts | A confident transcript or obsolete test result becomes "done" | Record actual observations, artifact/input version, checker, and time. |
+| Evidence tied to final artifacts | A confident transcript or obsolete test result becomes "done" | Each check points to actual output for the final result. |
 | Explicit NOT_RUN / PASS / FAIL / BLOCKED | An unavailable source or unperformed check is silently treated as passed | Missing evidence blocks acceptance. |
 | Distinct run outcomes | "Budget used" becomes an alternative definition of success | DONE, BLOCKED, CAPPED, and CANCELLED mean different things. |
 | Protected finish line | A worker lowers thresholds, disables tests, or omits awkward requirements | Material changes require owner-approved revision and new evidence. |
 | Named human gates and calibrated review | A model invents subjective acceptance or release approval | Use a rubric; human acceptance remains a real recorded decision. |
 | Bound run inputs and durable counters | Resume forgets the budget; a moving date window never stabilizes | Freeze the input scope and carry state across the same run. |
-| Side-effect retry rules | A timed-out send or deployment is performed twice | Read back or deduplicate; stop if the outcome remains unknown. |
+| Side-effect retry rules | A timed-out send or deployment is performed twice | Outside a granted sandbox, read back or deduplicate; stop if the outcome remains unknown. |
 | Readiness distinct from success | A reusable template with unresolved paths appears runnable | Bind parameters or mark the card Draft - not ready to run. |
 | Designer/runner separation | Goal authoring unexpectedly launches work | Never activate a native goal, schedule, factory, or workers here. |
 
@@ -185,3 +185,57 @@ the owner after the run, not silently while trying to pass.
 The new safeguards are a reasoned synthesis, not a demonstrated guarantee that
 this wording prevents all agent mistakes. Runtime controls are still needed for
 hard budgets, protected graders, private data boundaries, and external effects.
+
+## 1.1.0 revision (2026-10-12)
+
+A real program of about a dozen cloud experiment cards, run in parallel by
+autonomous agents under one coordinator, produced a large volume of messages,
+approval requests, and status records, and almost no experimental results.
+The cards were well formed by 1.0.0 standards. The failure came from the
+combination of four things the skill allowed:
+
+1. **Wrong work type.** Exploratory experiments were written as build-style
+   contracts with audited evidence. The agents optimized for records, not for
+   running experiments and learning.
+2. **No authority envelope.** Cards required approval before live actions and
+   treated any unknown outcome as a stop. In a disposable sandbox this made
+   almost every step a human question. The coordinator relayed approvals, so
+   each question became several messages.
+3. **No preflight.** Shared infrastructure, identity, and package availability
+   were not proven before work started. Runs that could not reach the platform
+   continued with theoretical work. One required package version was known to be
+   unavailable, yet the card was marked Ready.
+4. **Parallel dependent runs plus shared ceremony.** Many cards depended on one
+   unfinished infrastructure goal and a shared mandatory rulebook. Parallelism
+   multiplied waiting, reminders, and coordination rather than progress.
+
+Changes in 1.1.0:
+
+| Change | Lesson |
+|---|---|
+| Work types: build, experiment, research | An experiment's finish line is an answered decision question; a refuted hypothesis is success. |
+| Experiment guidance and checks | Falsifiable hypotheses, smallest discriminating experiment, setup error versus platform limit, cleanup. |
+| Authority envelope in CONSTRAINTS | Grant sandbox, budget, and cleanup at design time; ask the human only for reserved things, once. |
+| Sandbox-aware retry rule | For resources the run created and marked, read state or recreate; the strict unknown-outcome stop applies elsewhere. Pre-existing resources stay read-only unless listed. |
+| Required versus diagnostic hypotheses | Required hypotheses stay fixed so a hard question cannot be swapped for an easy one; diagnostic hypotheses are free. |
+| Preflight in CONTEXT and STAGES | Prove the environment with cheap real probes before work; stop BLOCKED rather than speculate. |
+| Readiness respects known facts | The designer does not probe environments, but a known missing prerequisite keeps the card Draft. |
+| Several goals guidance | Triage together, write self-contained cards, run sequentially by default, no shared mandatory rulebook. |
+| Lighter evidence and optional status note | A pointer per check, and a plain-language note only when work spans sessions or creates resources, replace run records, receipts, and hashes. |
+| Shared prerequisites built once | Common infrastructure is its own first goal; dependent cards only verify it in preflight. |
+| BLOCKED ends promptly | A run waiting for a human stops with the unblock action instead of looping on reminders. |
+
+Rejected alternatives: removing caps, check IDs, or the protected finish line.
+These kept runs honest and are not the source of the overhead. Also rejected:
+a separate skill for experiments. The eight-part shape works for experiments once
+the finish line is an answered question and authority is explicit.
+
+Supporting practice: Anthropic's **Building effective agents** recommends the
+simplest workable pattern and adding multi-agent complexity only when it
+demonstrably helps. Cognition's **Don't build multi-agents** argues that parallel
+agents with partial context make conflicting decisions. Both support one card per
+runner and sequential dependent work.
+
+References:
+https://www.anthropic.com/engineering/building-effective-agents
+https://cognition.ai/blog/dont-build-multi-agents

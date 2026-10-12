@@ -8,15 +8,32 @@ of those while designing the card.
 
 Use the card in the target agent's ordinary prompt or file context:
 
-> Read the Goal Card at <exact path>. Check that it is ready, all run parameters
-> are bound, and the needed tools and permissions exist. Work only within its
-> boundaries. Assess the current result; act on the next repairable failed check;
-> record evidence; recheck affected checks. Follow its cumulative stop limits.
-> Return DONE, BLOCKED, CAPPED, or CANCELLED with evidence. Do not change the card
-> or execute any action that requires approval without that approval.
+> Read the Goal Card at <exact path>. Run its preflight first; if a prerequisite
+> needs a human, stop BLOCKED with the exact unblock action. Then work freely
+> within the card's envelope. Assess the current result; act on the next failed
+> check or undecided hypothesis; recheck affected checks; keep any status note
+> current. Ask the human only for what the card reserves, all at once. Follow its
+> stop limits and do required cleanup before exit while access allows. Return
+> DONE, BLOCKED, CAPPED, or CANCELLED with evidence. Do not change the card.
 
 This is a handoff example, not an instruction for the Goal Designer to execute.
 Adapt the placeholders before use. For a one-pass card, do not add an outer loop.
+
+## Running several cards
+
+- One card per runner session. The card's envelope goes to that runner directly.
+  A coordinator should not relay approvals back and forth; that turns every step
+  into a message round trip.
+- Run cards one at a time along the critical path by default. Run in parallel only
+  when goals share no prerequisite, use separate environments, and need no shared
+  decisions.
+- A coordinator, if any, starts the next card when one ends and passes on its
+  result. It does not poll, re-plan, or redesign cards during a run.
+- A run waiting for a human should end BLOCKED with the unblock action. Generic
+  "keep working" reminders do not help it and only add noise.
+- Before starting dependent cards, finish the shared prerequisite once as its own
+  card, such as infrastructure or identity. Dependent cards only confirm it with a
+  real round trip in their preflight; they do not build or repair it.
 
 ## Claude Code's native /goal is a different feature
 

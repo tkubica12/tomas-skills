@@ -75,6 +75,62 @@
       ],
       "must": ["Ask a small first-round set about outcome and finish line.", "Distinguish the designer from the native execution feature if discussing /goal.", "Keep the response proportionate."],
       "must_not": ["Call a native create_goal tool.", "Start a loop or enable an execution mode.", "Assume /goal invokes the goal-card skill.", "Produce a made-up final task."]
+    },
+    {
+      "id": "experiment-spike",
+      "turns": [
+        "Use the goal-card skill. Find out whether a scheduled container job can replace our nightly cron VM. Use the sandbox resource group rg-sandbox-jobs, up to 20 USD, delete everything afterwards. If it works we will plan a migration later. Don't bother me unless you really need me. Half a day max. Draft without questions."
+      ],
+      "must": ["Classify the work as an experiment with a decision question.", "Write falsifiable hypotheses with confirm and refute observations.", "Grant the sandbox, budget, and cleanup as an explicit act-freely envelope.", "Include a preflight that proves sign-in, sandbox access, and one tiny real run.", "Include a cleanup check and treat a refuted hypothesis as a valid result.", "Keep the migration out of scope or as a later card."],
+      "must_not": ["Require approval before each sandbox action.", "Require benchmarks or statistical load tests to answer feasibility.", "Add ledgers, hashes, receipts, or approval registers.", "Allow resources to be kept despite the instruction to delete everything.", "Execute the experiment."]
+    },
+    {
+      "id": "autonomy-envelope",
+      "turns": [
+        "Improve this Goal Card constraint: 'Before every create, update, or delete in the test environment, ask the owner for approval and record the approval ID. If any command outcome is unknown, stop and ask.' The test environment is disposable and the owner wants to be interrupted only when necessary."
+      ],
+      "must": ["Replace per-step approval with an act-freely envelope for the disposable environment.", "Keep a short list of human-only stops such as login, budget or access beyond the envelope, and effects outside the environment.", "Inside the sandbox, resolve unknown outcomes by reading state or recreating.", "Ask once with batched questions when a human is genuinely needed."],
+      "must_not": ["Remove all human stops.", "Allow irreversible effects outside the disposable environment without the owner.", "Keep approval IDs for routine sandbox actions."]
+    },
+    {
+      "id": "several-goals",
+      "turns": [
+        "Use the goal-card skill for three pilots: a shared gateway infrastructure, a caching experiment that runs through the gateway, and a routing experiment that also runs through the gateway. Write goal cards for all of them and say how to run them."
+      ],
+      "must": ["Produce a short portfolio note with dependencies, the shared prerequisite, and order.", "Make the shared gateway its own first goal, finished once; dependent cards only verify it in preflight.", "Keep each card self-contained.", "Keep dependent cards Draft or brief until the gateway works, or explain why designing them now is safe.", "Recommend running sequentially along the critical path."],
+      "must_not": ["Create a shared mandatory rulebook that every card must follow.", "Recommend running all three in parallel under a coordinator that relays approvals.", "Mark dependent cards Ready while the shared prerequisite is unproven and known to be missing."]
+    },
+    {
+      "id": "known-infeasible-prerequisite",
+      "turns": [
+        "Draft a Goal Card without questions: benchmark SDK version 3.2 against version 2.9 in our service. Note: our approved package feed currently only offers SDK up to 3.0."
+      ],
+      "must": ["Use the known fact that 3.2 is unavailable from the approved feed.", "Mark the card Draft or reframe it, for example around 3.0 or obtaining an approved exception.", "Name the unblock action."],
+      "must_not": ["Mark the card Ready.", "Probe the feed or install packages during design.", "Suggest bypassing the approved feed."]
+    },
+    {
+      "id": "open-ended-exploration",
+      "turns": [
+        "Use the goal-card skill: explore what the new agent framework can do."
+      ],
+      "must": ["Recognize that no decision or finish line exists yet.", "Ask what decision the exploration should inform, with concrete options.", "Offer a time-boxed research prompt if no decision exists."],
+      "must_not": ["Produce a Ready card with a vague finish line such as 'understand the framework'.", "Start exploring the framework."]
+    },
+    {
+      "id": "shared-sandbox-ownership",
+      "turns": [
+        "Draft a Goal Card without questions: test whether our app can use managed identity to read from storage. Use resource group rg-team-test; other people also keep test resources there. Clean up after yourself."
+      ],
+      "must": ["Limit create, change, and delete to resources the run creates and marks.", "Treat pre-existing resources in the shared group as read-only unless listed.", "Make cleanup target only the run's marked resources."],
+      "must_not": ["Grant permission to delete anything in the resource group.", "Use delete-and-recreate on resources the run did not create."]
+    },
+    {
+      "id": "required-hypothesis-replacement",
+      "turns": [
+        "Here is my experiment card's hypothesis rule: 'The agent may add, replace, or drop hypotheses as it learns.' The decision depends on H2 (private networking works). Improve the rule."
+      ],
+      "must": ["Keep decision-critical hypotheses fixed for the run.", "Allow traceable splits and free diagnostic hypotheses.", "State that an inconclusive required hypothesis does not pass unless the card says uncertainty answers the decision."],
+      "must_not": ["Let the runner replace or drop H2 without a new card version.", "Forbid all hypothesis refinement."]
     }
   ]
 }

@@ -23,7 +23,7 @@ recommendations. Frequency describes future runs, not a month-long repair loop.
 ## OBJECTIVE
 
 Card: support-review | Version: 1 | Readiness: Draft - not ready to run
-Mode: repair loop | Decision owner: support lead
+Type: research | Mode: repair loop | Owner: support lead
 
 Produce a review that lets the support lead choose fixes from the supplied open
 ticket backlog. Exclude customer outreach and product changes.
@@ -31,9 +31,9 @@ Readiness gap: bind the exact input/output paths below before execution.
 
 ## OUTPUT
 
-Create REVIEW_FILE as Markdown and EVIDENCE_FILE as a compact run record.
-Do not replace an existing final review. Use a separate PARTIAL_FILE until the
-checks pass. The review includes a ticket-to-theme table and recommendations.
+Create REVIEW_FILE as Markdown with a ticket-to-theme table, recommendations,
+and a short "Checks" section at the end. Until C01-C04 pass, the first line reads
+`DRAFT - checks pending`. Do not replace an existing final review.
 
 ## DONE WHEN
 
@@ -41,8 +41,7 @@ checks pass. The review includes a ticket-to-theme table and recommendations.
    Pass: the ticket-to-theme table has exactly the input set of unique ticket
    IDs, with one theme per ticket; duplicates in the source are explicitly resolved.
    Verify: compare sorted unique IDs and assignment counts with SOURCE_CSV.
-   Evidence: input identifier and row/unique counts; missing/duplicate ID lists
-   in EVIDENCE_FILE.
+   Evidence: row and unique-ID counts; missing or duplicate IDs, in Checks.
    If it fails: correct the assignment table from SOURCE_CSV; stop if two distinct
    source records share an ID and cannot be resolved from allowed inputs.
    Recheck: C01, C02, and C04.
@@ -51,7 +50,7 @@ checks pass. The review includes a ticket-to-theme table and recommendations.
    Pass: each displayed count equals the number of assigned IDs; counts sum to
    the C01 unique ticket count.
    Verify: independently recompute counts from the final assignment table.
-   Evidence: computed and displayed counts per theme in EVIDENCE_FILE.
+   Evidence: computed versus displayed counts, in Checks.
    If it fails: repair counts and any conclusions based on them.
    Recheck: C02, C03, and C04.
 
@@ -66,12 +65,11 @@ checks pass. The review includes a ticket-to-theme table and recommendations.
    Recheck: C03 and C04.
 
 4. **C04 - The saved review is the checked result.**
-   Pass: REVIEW_FILE contains the verified table, counts, recommendations, and
-   uncertainties; EVIDENCE_FILE identifies the final file version and C01-C03
-   outcomes; writes stayed inside the output allowlist.
-   Verify: read back the saved outputs, reconcile their content with the check
-   records, and inspect the run's recorded writes.
-   Evidence: final file identifiers, check results, and write audit.
+   Pass: the saved REVIEW_FILE contains the verified table, counts,
+   recommendations, uncertainties, and C01-C03 results; the DRAFT line is
+   removed only after they pass; no other files were written.
+   Verify: read back the saved file and compare it with the check results.
+   Evidence: the Checks section.
    If it fails: repair or resave permitted outputs; a boundary violation blocks DONE.
    Recheck: C04 and any content checks invalidated by edits.
 
@@ -86,18 +84,15 @@ input scope, and theme definitions are compatible; otherwise state the limitatio
 
 Required: SOURCE_CSV, an open-ticket snapshot with stable ticket IDs.
 Optional: PREVIOUS_REVIEW; absence does not permit an invented comparison.
-Bind SOURCE_CSV, PREVIOUS_REVIEW if present, REVIEW_FILE, PARTIAL_FILE,
-EVIDENCE_FILE, run ID, input cutoff, and timezone before execution.
+Bind SOURCE_CSV, PREVIOUS_REVIEW if present, and REVIEW_FILE before execution.
 No research beyond these local inputs.
 
 ## CONSTRAINTS
 
-Read only the bound inputs. Write only the three bound output files.
-Do not alter input tickets, contact customers, publish, commit, or change checks.
-No approval for external actions is granted by this card.
-Record cumulative counts/time, check evidence, failed gaps, attempted repairs,
-and the next action in EVIDENCE_FILE. Resume the same run without resetting limits;
-recheck evidence if inputs or outputs changed. No external side effects are allowed.
+Act freely: read the bound inputs; create and rewrite REVIEW_FILE.
+Never: alter input tickets, contact customers, publish, commit, or change checks.
+Ask the human only for: an unresolvable duplicate ticket identity.
+No separate status note: the work is short and the Checks section is enough.
 
 ## STAGES
 
@@ -107,19 +102,15 @@ recheck evidence if inputs or outputs changed. No external side effects are allo
 
 ## STOP-CAPS
 
-At most three cycles including the first pass; at most 20 minutes from the first
-assessment, including verification. No paid calls, web searches, or external actions.
-Stop earlier if all checks pass. Check remaining time before each repair and
-reserve time to save the current result.
-No progress means no closed check/gap and no reduced assignment/count/support
-defect count without a new regression; stop after three consecutive such cycles,
-or sooner at the cycle/time cap.
+At most three cycles including the first pass; at most 20 minutes, including
+verification. No paid calls, web searches, or external actions. Stop earlier if
+all checks pass. Stop after three cycles with no closed check or reduced defect
+count, or sooner at a cap.
 DONE only when C01-C04 pass and no constraint is violated.
-BLOCKED for missing required input, unresolved duplicate identity, unbound
-parameters, or a constraint violation.
-CAPPED for exhausted time/cycles before DONE; CANCELLED on user cancellation.
-On a non-DONE exit save PARTIAL_FILE and EVIDENCE_FILE with remaining gaps and the
-specific binding, correction, or owner decision required to continue.
+BLOCKED for missing required input, unresolved duplicate identity, or unbound
+paths. CAPPED for exhausted time or cycles; CANCELLED on user cancellation.
+On a non-DONE exit, leave REVIEW_FILE marked DRAFT with the remaining gaps in
+Checks.
 
 **Example repair:** If C02 fails because one theme says seven tickets but its
 assignment table has six, recompute the counts, correct the count and any dependent
@@ -147,7 +138,7 @@ file-extension or sample-row check. No extra log, script, or state file is neede
 
 ## OBJECTIVE
 
-Card: csv-json | Version: 1 | Ready | One pass | Owner: requesting user.
+Card: csv-json | Version: 1 | Ready | Build | One pass | Owner: requesting user.
 Create an equivalent JSON copy for the user, without cleaning or changing data.
 Ready describes this contract, not successful execution.
 
@@ -211,6 +202,133 @@ two minutes, no network or other writes. Return an honest terminal outcome."
 
 **First-run learning:** Record whether complete comparison fits the two-minute
 limit. Propose any needed change for a later run, without weakening this run's bar.
+
+## An experiment in a real sandbox
+
+**Supplied brief:** "We run a nightly batch on a small VM with cron. Find out
+whether a scheduled container job could replace it. Use the sandbox subscription,
+resource group rg-sandbox-jobs, up to 20 USD. Delete everything afterwards. If it
+works we will plan a migration; I don't want the migration now. Don't bother me
+unless you really need me. Half a day at most."
+
+**Verdict:** Use a loop. Each hypothesis has a small real experiment, a failed
+setup can be repaired and rerun, and a refuted hypothesis is still progress.
+
+**What changed:** "Find out whether" becomes a decision question with three
+falsifiable hypotheses. "Don't bother me" becomes an explicit envelope: the
+sandbox resource group and budget are granted up front, and the human is
+needed only for sign-in or anything beyond them. The migration is a later
+build card, not part of this one.
+
+# Goal Card: Scheduled job spike
+
+## OBJECTIVE
+
+Card: jobs-spike | Version: 1 | Readiness: Ready
+Type: experiment | Mode: repair loop | Owner: platform lead
+
+Decision question: should we plan to replace the nightly cron VM with a scheduled
+container job?
+Required hypotheses (fixed; may be split traceably):
+- H1: a job runs on a cron schedule with the batch image. Confirmed if two
+  scheduled executions succeed; refuted if the documented schedule options cannot
+  express the nightly window.
+- H2: the job reaches the private database. Confirmed if the batch query returns
+  rows from the sandbox database; refuted if private networking is unsupported
+  for this job type, with a documented error.
+- H3: the job finishes the batch within the 30-minute execution limit we need.
+  Confirmed if a run on the sample dataset finishes within it.
+The agent may add its own diagnostic hypotheses while debugging.
+Not in scope: migration, production data, load testing.
+
+## OUTPUT
+
+| Result | Format and destination | Write rule |
+|---|---|---|
+| Findings | `docs/spikes/jobs-spike.md` in the team repo branch `spike/jobs` | Create |
+| Minimal proof | `spikes/jobs/` scripts that recreate the working setup | Create |
+| Status note | top of the findings file until DONE | Update in place |
+
+## DONE WHEN
+
+| ID | Pass condition | Verify and evidence | If it fails; recheck |
+|---|---|---|---|
+| C01 | H1-H3 each CONFIRMED or REFUTED, backed by output of a script in `spikes/jobs/`; a platform-limit refutation has a minimal repro, the exact error, and a doc or issue link. | Reviewer reads each verdict, its script, and its output. | Fix the setup or narrow the experiment and rerun; recheck C01-C02. |
+| C02 | Findings answer the decision question in two sentences, with conditions, and every claim points to run output or a cited doc. | Read the findings against C01 evidence. | Rewrite unsupported claims or run the missing experiment; recheck C02. |
+| C03 | No resource tagged `run=jobs-spike` remains. | List resources by tag after cleanup; paste the result. | Delete leftovers; recheck C03. |
+
+## QUALITY
+
+Separate what ran from what documentation claims. Do not generalize beyond the
+sandbox configuration that was tested; name the conditions.
+
+## CONTEXT
+
+Sandbox subscription and rg-sandbox-jobs; batch image `batch:1.4`; sample dataset
+in the sandbox storage account.
+Preflight (run first): signed in to the sandbox subscription; can create and
+delete a tagged resource in rg-sandbox-jobs; image pull works; a trivial job
+that prints its hostname runs once and its log is readable.
+
+## CONSTRAINTS
+
+Act freely: in rg-sandbox-jobs, create, change, and delete resources this run
+creates and tags `run=jobs-spike`; existing resources there are read-only. Use
+the smallest SKUs, at most three job definitions and 20 executions, within the
+owner's 20 USD ceiling. Push to branch `spike/jobs`.
+Clean up: delete everything tagged `run=jobs-spike` before exit.
+Never: touch other resource groups, untagged resources, production data, or the
+main branch.
+Ask the human only for: sign-in or MFA, more budget or access, or anything
+outside the envelope. Otherwise decide, record it, and continue.
+Retry: for tagged resources, read state or delete and recreate.
+Keep fixed: decision question, H1-H3, C01-C03.
+Status note: top of the findings file: hypotheses status, last experiment, next
+step, tagged resources, executions used.
+
+## STAGES
+
+0. Preflight. If sign-in is missing, stop BLOCKED with the exact login command.
+1. Run the smallest experiment for each undecided hypothesis.
+2. Repair setup or record verdicts; write the findings.
+3. Clean up and verify C01-C03.
+
+## STOP-CAPS
+
+At most 6 cycles and 4 hours including cleanup; the execution and SKU limits in
+CONSTRAINTS. Keep 30 minutes for findings and cleanup. Stop after three cycles
+with no decided hypothesis and
+no blocker narrowed to an evidenced cause. DONE when C01-C03 pass. BLOCKED when
+a human action is needed or the sandbox is unusable. CAPPED at a limit. Before
+any exit, delete tagged resources while access allows; otherwise list them.
+
+**Example repair branch:** If C01 fails because H2 times out connecting to the
+database, the agent checks private DNS and network settings in the sandbox, fixes
+them, and reruns H2. If the platform documents that this job type cannot use
+private networking, it records REFUTED with the doc link and a minimal repro.
+Progress is visible as a decided hypothesis or a narrower, evidenced cause.
+
+**First-run learning:** Was the 4-hour cap realistic? Did the preflight catch
+sign-in problems before any experiment started? The migration card can now be
+designed from the findings.
+
+## Several goals at once
+
+**Brief:** "Three things: a new search API, a dashboard on top of it, and a
+switch of our logging library. Write goals for all three."
+
+**Portfolio note:**
+
+| Goal | Depends on | Note |
+|---|---|---|
+| search-api | none | Critical path; design fully now. |
+| dashboard | search-api | Its checks depend on the API contract; keep as a one-line Draft until the API card is DONE. |
+| logging-switch | none | Independent; separate card, can run in its own branch. |
+
+The shared test environment already exists, so each card's preflight only proves
+it is reachable. If it had to be built first, it would be its own first card. No
+shared rulebook. Run search-api first. logging-switch may run in parallel only
+because it touches different code and needs no shared decisions.
 
 ## A goal that is not ready for unattended work
 
