@@ -3,7 +3,7 @@ name: html-docs
 description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # One document, up to three views
@@ -45,6 +45,9 @@ full `.card-body`; do not create a separate document or repeat the body on scree
 - All content lives in HTML. JavaScript adds interaction, never essential text.
   The whole document must remain readable with JavaScript disabled.
 - No framework, CDN, runtime fetch, web font, or required network asset.
+- Ordinary articles, decks, and sheets require no Azure, cloud, login, image
+  generator, or chat integration. Visual storytelling is an optional local
+  asset enhancement, never a prerequisite.
 - Start from the appropriate template. Preserve its theme bootstrap and
   canonical inline tokens from `assets/tokens.css`; do not invent a palette.
 - Black, white, grayscale, and **one accent at a time**: blue by default,
@@ -53,6 +56,9 @@ full `.card-body`; do not create a separate document or repeat the body on scree
   for readable text. These light shades are this skill's design, not official
   Microsoft logo variants. Set `data-default-accent` on the document, never
   individual components. All views share the runtime accent control.
+- These are **UI** colors, not restrictions on natural image pixels or
+  authentic colors of an authorized supplied logo. Do not derive extra UI
+  accents from images. Brand profiles are explicit opt-in, never a default.
 - Slides support the speaker: one claim, at most three short cues, no long
   prose, reveals, tabs, links, or other interactive content. Include an
   intentional opening and a memorable closing. Only optional point-by-point
@@ -94,6 +100,7 @@ document-folder/
     appearance.js  sync-head.js
     tokens.css   bundle.js   validate.js   export-pdf.js
     sample-diagram.svg
+    compositions.css  sample-scene.svg  (optional visual storytelling)
   LICENSE
 ```
 
@@ -137,12 +144,19 @@ file, including during export.
      fragments.
    - [Writing rules](references/writing-rules.md): direct prose and claim
      discipline.
+   - [Visual storytelling](references/visual-storytelling.md), only when images
+     help: claim-led briefs, text/crop-safe scenes, materials, references and
+     invariants; optional reusable compositions and Image generator companion.
 4. **Start from the template and use the galleries.**
    [Article components](article.components.html) (including a companion
    sheet) and [deck components](deck.components.html) are local working
    references. Keep card numbers empty and IDs stable. Keep only the controls
    of the chosen views. Set a unique `doc-id` to scope theme, accent,
    animations, and read marks to this document.
+   For image-led work, load `assets/compositions.css` after the view styles.
+   [Visual article](visual.article.html) and [visual deck](visual.deck.html)
+   demonstrate seven crops with original fictional local SVG artwork.
+   Never bake essential copy into pixels or label generated scenes as evidence.
 5. **Check claims.** Identify assumptions and fictional examples explicitly.
    Give measured numbers their source and conditions; date time-sensitive
    claims. Do not invent benchmarks, quotations, or experience. Write

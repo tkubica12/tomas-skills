@@ -1,7 +1,8 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const token = location.hash.slice(1);
-const labels = { comment: "Koment\u00e1\u0159", replace: "Nahradit", delete: "Smazat" };
+const labels = { comment: "Koment\u00e1\u0159", replace: "Nahradit", delete: "Smazat",
+    "image-edit": "Edit image", "generate-alternatives": "Generate alternatives", "crop-layout": "Crop/layout only", "use-candidate": "Use in document" };
 const statuses = { queued: "Neodesl\u00e1no", sending: "Odes\u00edl\u00e1n\u00ed / nepotvrzeno", submitted: "P\u0159ed\u00e1no agentovi", resolved: "Provedeno", blocked: "Blokov\u00e1no", cancelled: "Zru\u0161eno", "delivery-unknown": "Doru\u010den\u00ed nepotvrzeno" };
 let state;
 let selection;
@@ -11,6 +12,85 @@ let renderKey = "";
 let previewUrl = "";
 let previewReady = false;
 let actionVersion = 0;
+let imageMode = false;
+let visualSelection;
+let selectedCandidate;
+let compareMode = false;
+let galleryMode = false;
+let candidateKey = "";
+let context;
+let originalImage;
+function post(frame, data) {
+    $(frame).contentWindow.postMessage({ ...data, channel: state.channel }, "*");
+}
+function previewCandidate() {
+    if (!state) return;
+    const item = state.candidates.find(item => item.id === selectedCandidate);
+    $("comparison").hidden = !item || galleryMode;
+    $("preview").hidden = galleryMode || Boolean(item && !compareMode);
+    $("image-gallery").hidden = !galleryMode;
+    if (item) {
+        if (compareMode) post("preview", { type: "locate", revision: item.revision, anchor: item.anchor,
+            context: context || item.context || visualSelection?.context });
+        if ($("comparison").getAttribute("src") !== state.previewUrl) $("comparison").src = state.previewUrl;
+        else post("comparison", { type: "candidate-preview", ...item, context: context || item.context || visualSelection?.context });
+    }
+}
+function renderCandidates() {
+    const anchor = visualSelection?.anchor;
+    const items = anchor ? state.candidates.filter(item => item.anchor.selector === anchor.selector &&
+        item.anchor.assetSource === anchor.assetSource && item.anchor.slideSelector === anchor.slideSelector) : [];
+    $("image-review").hidden = !imageMode || !anchor;
+    $("visual-name").textContent = anchor?.displayQuote || "Image review";
+    const key = JSON.stringify([anchor, items, selectedCandidate, imageMode, galleryMode, originalImage?.length]);
+    if (key === candidateKey) return;
+    candidateKey = key;
+    $("candidates").replaceChildren();
+    $("image-gallery").replaceChildren();
+    for (const item of items) {
+        const card = document.createElement("div");
+        card.className = "candidate";
+        const choose = button(item.label + (item.stale ? " (older source)" : ""), () => {
+            selectedCandidate = item.id;
+            renderCandidates();
+            previewCandidate();
+        });
+        choose.disabled = item.stale || state.stalePreview;
+        choose.setAttribute("aria-pressed", String(item.id === selectedCandidate));
+        const favorite = button(item.favorite ? "Unfavorite" : "Favorite", () => run(async () => {
+            update(await api("candidate-review", { id: item.id, favorite: !item.favorite }));
+        }));
+        card.append(choose, favorite);
+        $("candidates").append(card);
+        if (item.assetUrl) {
+            const figure = document.createElement("figure"), image = document.createElement("img"), caption = document.createElement("figcaption");
+            image.src = item.assetUrl; image.alt = item.label; caption.textContent = item.label;
+            figure.append(image, caption); $("image-gallery").append(figure);
+        }
+    }
+    if (anchor && (originalImage || /^data:image\//.test(anchor.assetSource))) {
+        const figure = document.createElement("figure"), image = document.createElement("img"), caption = document.createElement("figcaption");
+        image.src = originalImage || anchor.assetSource; image.alt = "Original"; caption.textContent = "Original";
+        figure.append(image, caption); $("image-gallery").prepend(figure);
+    } else if (anchor && !anchor.assetSource.startsWith("inline:") && anchor.assetKind !== "svg") {
+        const figure = document.createElement("figure"), image = document.createElement("img"), caption = document.createElement("figcaption");
+        const base = new URL(state.previewUrl, location.href);
+        image.src = anchor.assetSource.startsWith("/@assets/") ?
+            `${base.origin}${base.pathname.match(/^\/preview\/[^/]+\//)[0]}${anchor.assetSource.slice("/@assets/".length)}` :
+            new URL(anchor.assetSource, base).href;
+        image.alt = "Original"; caption.textContent = "Original"; figure.append(image, caption); $("image-gallery").prepend(figure);
+    }
+    const active = items.find(item => item.id === selectedCandidate);
+    $("candidate-tools").hidden = !active;
+    $("candidate-comments").replaceChildren();
+    for (const comment of active?.comments || []) {
+        const p = document.createElement("p"); p.textContent = comment.text; $("candidate-comments").append(p);
+    }
+    $("use-candidate").disabled = !active || active.stale || state.stalePreview;
+    $("steer-candidate").disabled = !active || active.stale || state.stalePreview;
+    for (const image of $("image-gallery").querySelectorAll("img")) image.addEventListener("error", () =>
+        error("An original/candidate asset could not be loaded. Check its size, asset root and content hash; register changed files with a new ID."));
+}
 function error(message) { $("error").textContent = message; $("error").hidden = !message; }
 async function api(route, input) {
     const response = await fetch(`/api/${route}`, {
@@ -71,7 +151,18 @@ function update(next) {
         previewReady = false;
         closeComposer();
         $("preview").src = previewUrl;
+        selectedCandidate = null;
+        visualSelection = null;
+        originalImage = null;
+        $("comparison").removeAttribute("src");
+        previewCandidate();
     }
+    if (!visualSelection && next.selectedVisual && next.selectedVisual.revision === next.previewRevision &&
+        next.selectedVisual.sourceRevision === next.previewSourceRevision) {
+        visualSelection = next.selectedVisual;
+        context = next.selectedVisual.context;
+    }
+    renderCandidates();
     const key = JSON.stringify(next.annotations);
     if (key === renderKey) return;
     renderKey = key;
@@ -102,7 +193,7 @@ function update(next) {
         const tools = document.createElement("div");
         tools.className = "tools";
         tools.append(button("Uk\u00e1zat m\u00edsto", () => {
-            $("preview").contentWindow.postMessage({ type: "locate", channel: state.channel, revision: item.revision, anchor: item.anchor }, "*");
+            $("preview").contentWindow.postMessage({ type: "locate", channel: state.channel, revision: item.revision, anchor: item.anchor, context: item.context }, "*");
         }));
         if (item.status === "queued") tools.append(button("Zru\u0161it", () => run(async () => update(await api("cancel", { id: item.id })))));
         card.append(tools);
@@ -119,26 +210,61 @@ function positionComposer(rect) {
 }
 window.addEventListener("message", event => {
     const data = event.data;
-    if (!state || event.source !== $("preview").contentWindow || event.origin !== "null" || data?.channel !== state.channel) return;
+    const originalFrame = event.source === $("preview").contentWindow;
+    const candidateFrame = event.source === $("comparison").contentWindow;
+    if (!state || (!originalFrame && !candidateFrame) || event.origin !== "null" || data?.channel !== state.channel) return;
     if (data.type === "error") { error(data.message); return; }
-    if (data.type === "ready") { previewReady = true; return; }
-    if (data.type !== "selection" || busy || !data.anchor || typeof data.anchor.displayQuote !== "string") return;
+    if (originalFrame && data.type === "original-asset" && typeof data.dataUrl === "string" &&
+        data.dataUrl.startsWith("data:image/") && data.dataUrl.length <= 16 * 1024 * 1024) {
+        originalImage = data.dataUrl; renderCandidates(); return;
+    }
+    if (data.type === "ready") {
+        if (originalFrame) {
+            previewReady = true; post("preview", { type: "image-mode", enabled: imageMode });
+            if (visualSelection) post("preview", { type: "original-asset", anchor: visualSelection.anchor });
+        }
+        else previewCandidate();
+        return;
+    }
+    if (!originalFrame || !["selection", "visual-selection"].includes(data.type) || busy || !data.anchor || typeof data.anchor.displayQuote !== "string") return;
+    if (!$("composer").hidden && selection && selection.revision === data.revision &&
+        selection.anchor.selector === data.anchor.selector && selection.anchor.quote === data.anchor.quote &&
+        selection.anchor.assetSource === data.anchor.assetSource &&
+        JSON.stringify([selection.anchor.start, selection.anchor.end]) === JSON.stringify([data.anchor.start, data.anchor.end])) return;
     if (state.stalePreview || data.revision !== state.previewRevision || data.sourceRevision !== state.previewSourceRevision) {
         error("Zdroj se zm\u011bnil. Obnovte n\u00e1hled a vyberte text znovu.");
         return;
     }
-    if (!$("composer").hidden && kind && $("edit-text").value) {
+    if (!$("composer").hidden && kind) {
         error("Nejprve ulo\u017ete nebo zav\u0159ete rozepsanou p\u0159ipom\u00ednku.");
         return;
     }
     error("");
     selection = data;
+    if (data.type === "visual-selection") {
+        visualSelection = data;
+        originalImage = null;
+        selectedCandidate = null;
+        context = data.context;
+        run(async () => {
+            const next = await api("select-visual", { anchor: data.anchor, context: data.context, revision: data.revision, sourceRevision: data.sourceRevision });
+            visualSelection = { ...data, ...next.selectedVisual };
+            if (selection?.anchor.type === "visual") selection.anchor = next.selectedVisual.anchor;
+            update(next);
+        });
+        renderCandidates();
+        previewCandidate();
+    }
     kind = null;
     $("quote").textContent = data.anchor.displayQuote;
     $("composer").hidden = false;
     $("edit-form").hidden = true;
     $("edit-text").value = "";
     document.querySelectorAll("[data-kind]").forEach(node => node.setAttribute("aria-pressed", "false"));
+    document.querySelectorAll("[data-kind]").forEach(node => {
+        node.hidden = data.type === "visual-selection" ? ["comment", "replace", "delete"].includes(node.dataset.kind) :
+            !["comment", "replace", "delete"].includes(node.dataset.kind);
+    });
     positionComposer(data.rect);
 });
 document.querySelectorAll("[data-kind]").forEach(node => node.addEventListener("click", () => {
@@ -149,7 +275,10 @@ document.querySelectorAll("[data-kind]").forEach(node => node.addEventListener("
     $("edit-text").required = kind !== "delete";
     $("instruction").hidden = kind === "delete";
     $("delete-note").hidden = kind !== "delete";
-    $("instruction").textContent = kind === "comment" ? "Co m\u00e1 agent s t\u00edmto textem ud\u011blat?" : "Nov\u00e9 zn\u011bn\u00ed (doslovn\u00e1 n\u00e1hrada):";
+    $("generation-options").hidden = kind !== "generate-alternatives";
+    $("crop-options").hidden = kind !== "crop-layout";
+    $("instruction").textContent = kind === "comment" ? "Co m\u00e1 agent s t\u00edmto textem ud\u011blat?" :
+        kind === "replace" ? "Nov\u00e9 zn\u011bn\u00ed (doslovn\u00e1 n\u00e1hrada):" : "What must stay, what should change? No generation runs until submitted to the agent.";
     $("edit-text").value = kind === "replace" ? selection.anchor.displayQuote : "";
     positionComposer(selection.rect);
     if (kind !== "delete") $("edit-text").focus();
@@ -161,7 +290,11 @@ $("edit-form").addEventListener("submit", event => {
     event.preventDefault();
     if (!selection || !kind) return;
     run(async () => {
-        const data = await api("add", { kind, text: $("edit-text").value, anchor: selection.anchor, revision: selection.revision, sourceRevision: selection.sourceRevision });
+        const data = await api("add", { kind, text: $("edit-text").value, anchor: selection.anchor, context: selection.context,
+            revision: selection.revision, sourceRevision: selection.sourceRevision,
+            ...(kind === "generate-alternatives" ? { count: Number($("variant-count").value) } : {}),
+            ...(kind === "crop-layout" ? { composition: { fit: $("crop-fit").value, position: $("crop-position").value, shape: $("crop-shape").value } } : {}),
+            ...(selectedCandidate && selection.anchor.type === "visual" ? { candidateIds: [selectedCandidate] } : {}) });
         closeComposer();
         update(data);
     });
@@ -174,6 +307,43 @@ $("refresh").addEventListener("click", () => run(async () => {
     if (!$("composer").hidden && kind) throw new Error("Nejprve ulo\u017ete nebo zav\u0159ete rozepsanou p\u0159ipom\u00ednku.");
     update(await api("refresh", {}));
 }));
+$("image-mode").addEventListener("click", () => {
+    closeComposer();
+    imageMode = !imageMode;
+    $("image-mode").setAttribute("aria-pressed", String(imageMode));
+    post("preview", { type: "image-mode", enabled: imageMode });
+    if (imageMode && visualSelection) post("preview", { type: "locate", ...visualSelection });
+    if (!imageMode) { selectedCandidate = null; galleryMode = false; }
+    renderCandidates(); previewCandidate();
+});
+$("original").addEventListener("click", () => { selectedCandidate = null; renderCandidates(); previewCandidate(); });
+$("compare").addEventListener("click", () => {
+    compareMode = !compareMode; $("compare").setAttribute("aria-pressed", String(compareMode)); previewCandidate();
+});
+$("large-view").addEventListener("click", () => {
+    document.body.classList.toggle("large-review");
+    $("large-view").setAttribute("aria-pressed", String(document.body.classList.contains("large-review")));
+});
+$("gallery-toggle").addEventListener("click", () => {
+    galleryMode = !galleryMode; $("gallery-toggle").setAttribute("aria-pressed", String(galleryMode)); renderCandidates(); previewCandidate();
+});
+$("save-candidate-comment").addEventListener("click", () => run(async () => {
+    update(await api("candidate-review", { id: selectedCandidate, comment: $("candidate-comment").value }));
+    $("candidate-comment").value = "";
+}));
+$("use-candidate").addEventListener("click", () => run(async () => {
+    const item = state.candidates.find(item => item.id === selectedCandidate);
+    update(await api("add", { kind: "use-candidate", text: `Apply candidate ${item.id} only to this visual; preserve all other content.`,
+        anchor: item.anchor, context: context || item.context || visualSelection?.context,
+        revision: item.revision, sourceRevision: item.sourceRevision, candidateIds: [item.id] }));
+    closeComposer();
+}));
+$("steer-candidate").addEventListener("click", () => {
+    selection = visualSelection;
+    $("composer").hidden = false;
+    document.querySelector("[data-kind=generate-alternatives]").click();
+    $("edit-text").value = `Use candidate ${selectedCandidate} as the reference. Preserve: . Change: .`;
+});
 $("submit").addEventListener("click", () => {
     if (!$("composer").hidden && kind) { error("Nejprve ulo\u017ete nebo zav\u0159ete rozepsanou p\u0159ipom\u00ednku."); return; }
     $("send-summary").textContent = `Po\u010det neodeslan\u00fdch p\u0159ipom\u00ednek: ${state.annotations.filter(item => item.status === "queued").length}.`;

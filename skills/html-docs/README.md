@@ -36,6 +36,26 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 - [Editable example source](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.html)
 - [Changes by version](CHANGELOG.md)
 
+## Optional visual storytelling
+
+Version **1.3.0** adds a small, opt-in image composition stylesheet:
+readable hero fade, image/text split, panorama, circle, oval, diagonal, and
+rounded organic crops. Use it in deck slides, article Slides, and article
+Read; print remains light and readable. Try the offline, editable
+[article gallery](visual.article.html) and [deck gallery](visual.deck.html).
+Their original fictional SVG needs no image service or external asset.
+
+Start with the claim, then brief the scene, text-safe space, crop-safe subjects,
+materials, authorized references, and invariants. UI colors retain the canonical
+single accent; natural image and authentic supplied logo colors are not UI
+accents. Brand profiles are **explicit opt-in**, not defaults.
+
+The [visual storytelling reference](references/visual-storytelling.md) includes
+markup and an optional, separately installed **Image generator** companion
+workflow. No compulsory chat, generation, login, Azure, or cloud dependency is
+added to ordinary authoring or recipients' HTML. Local supplied images work
+equally well; `bundle.js` embeds the approved assets for offline sharing.
+
 ## Review with Document review
 
 [Document review](https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review)

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>Candidate C: foreground detail</title>
+  <rect width="1600" height="900" fill="#c5d8dd"/>
+  <path d="M0 740L430 160L900 750L1280 370L1600 720V900H0Z" fill="#667986"/>
+  <path d="M0 760Q450 620 900 780T1600 740V900H0Z" fill="#527267"/>
+  <g fill="#314f42"><path d="M120 770L210 450L300 770Z"/><path d="M1110 850L1250 380L1390 850Z"/><path d="M1310 900L1430 490L1550 900Z"/></g>
+  <path d="M440 900Q750 700 1010 840T1440 900" fill="none" stroke="#9cbec9" stroke-width="45"/>
+</svg>

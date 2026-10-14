@@ -22,8 +22,11 @@ warning colors. A warning uses the selected accent; its explicit **Warning**
 label, not color alone, conveys its meaning. Charts distinguish series with
 labels, patterns, line styles, or grayscale.
 
-The only source of palette values is `assets/tokens.css`. Layout stylesheets
-have no fallback palette. Never override tokens or invent colors in a page.
+The only source of **UI** palette values is `assets/tokens.css`. Layout
+stylesheets have no fallback palette. Never override tokens or invent UI
+colors in a page. Natural image pixels and authentic authorized logo colors
+are content, not extra accents; they do not change when the accent cycles.
+This exception does not apply to semantic charts or diagrams.
 
 ## Canonical head and first paint
 
@@ -98,7 +101,10 @@ summaries stay hidden and detailed reference content remains readable.
 | Shape | `--radius`, `--radius-sm`, `--canvas` |
 | Depth | `--shadow-1`, `--shadow-2` |
 
-System fonts only: no font downloads, icon fonts, emoji, or decorative imagery.
+System fonts only: no font downloads, icon fonts, emoji, or arbitrary decorative
+imagery. Optional claim-supporting scenes use
+[visual storytelling](visual-storytelling.md), not a new UI palette. Brand
+imagery/profiles require explicit opt-in and authorized reference assets.
 The reading canvas is 1160px. Do not widen it to rescue a dense table.
 Accent `<em>` in slide titles is a deliberate semantic emphasis; the shared
 CSS renders it upright.
@@ -132,6 +138,12 @@ the runtime accent**. Keep such images neutral, as in
 embedding page's `color-scheme`. Use inline SVG when color carries emphasis;
 do not hard-code blue into an external diagram. Match image width/height
 attributes to the SVG's aspect ratio.
+
+Scene artwork is different from a semantic diagram: an original scene SVG
+loaded through `<img>` intentionally keeps its material colors. For optional
+hero fades, splits, panorama strips, and shaped crops, load `compositions.css`
+after the view styles and keep essential text in HTML. The library uses only
+canonical surface/text tokens around the image.
 
 ## Motion and print
 

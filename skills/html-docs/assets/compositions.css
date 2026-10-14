@@ -1,0 +1,121 @@
+/* Optional image compositions. Load after the chosen view stylesheets.
+   UI uses canonical tokens; authored image pixels retain their own colors. */
+.composition {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-width: 0;
+  margin: 24px 0;
+  color: var(--text);
+  break-inside: avoid;
+}
+.composition-media {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.composition .composition-media > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  object-fit: cover;
+  object-position: var(--image-position, 50% 50%);
+  flex: none;
+}
+.composition-copy {
+  position: relative;
+  min-width: 0;
+}
+.composition .composition-copy > :first-child { margin-top: 0; }
+.composition .composition-copy > :last-child { margin-bottom: 0; }
+.composition-caption {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: .85em;
+  line-height: 1.4;
+}
+.composition--hero {
+  display: grid;
+  align-items: center;
+  aspect-ratio: 16 / 7;
+  padding: 32px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.composition--hero > .composition-media {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  border-radius: inherit;
+  z-index: -2;
+}
+/* Copy stays over the opaque half; the fade connects it to the scene. */
+.composition--hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface) 50%,
+    color-mix(in srgb, var(--surface) 70%, transparent) 66%, transparent 86%);
+}
+.composition--hero > .composition-copy { width: 44%; }
+.composition--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+.composition--split .composition-media { aspect-ratio: 4 / 3; }
+.composition--panorama .composition-media { aspect-ratio: 24 / 7; }
+.composition--split .composition-media--circle {
+  width: min(100%, 340px);
+  justify-self: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.composition--split .composition-media--oval { aspect-ratio: 4 / 3; border-radius: 50%; }
+.composition-media--diagonal { clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%); }
+.composition-media--organic { border-radius: 24% 8% 26% 10% / 12% 20% 16% 24%; }
+
+/* Article presentation geometry is viewport-sized; decks use a fixed stage. */
+:is(.slide-content, .slide-body) .composition { margin: 0; }
+.slide-body .composition--hero { max-height: 390px; aspect-ratio: auto; height: 100%; }
+.slide-body .composition--split .composition-media { max-height: 340px; }
+[data-view="slides"] .slide-content .composition .slide-title {
+  font-size: clamp(28px, 3.2vw, 46px);
+  max-width: none;
+}
+[data-view="slides"] .slide-content .composition-copy {
+  font-size: clamp(22px, 2.2vw, 34px);
+  line-height: 1.35;
+}
+[data-view="slides"] .slide-content .composition-caption { font-size: clamp(16px, 1.5vw, 24px); }
+[data-view="slides"] .composition--split .composition-media { max-height: 42vh; }
+
+@media screen and (max-width: 760px) {
+  .doc .card-body .composition--split { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .doc .card-body .composition--hero { aspect-ratio: auto; padding: 20px; }
+  .doc .card-body .composition--hero > .composition-copy { width: 48%; }
+}
+@media print {
+  .composition { margin: 16px 0; }
+  .composition--hero {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  [data-print="read"] .composition--hero { min-height: 180px; }
+  [data-print="slides"] .slide-content .composition .slide-title { font-size: 36px; max-width: none; }
+  [data-print="slides"] .slide-content .composition-copy { font-size: 25px; line-height: 1.35; }
+  [data-print="slides"] .slide-content .composition-caption { font-size: 18px; }
+  [data-print="slides"] .composition--split .composition-media { max-height: 280px; }
+  [data-print="slides"] .composition--split .composition-media--circle { width: min(100%, 280px); }
+}

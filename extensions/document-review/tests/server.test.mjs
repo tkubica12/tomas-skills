@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir, symlink } from "node:fs/promises";
 import path from "node:path";
-import { fixture, html } from "./helpers.mjs";
+import { fixture, html, visualAnchor, register } from "./helpers.mjs";
 import { openDocument, startServer } from "../server.mjs";
 
 test("durable comment, replacement and deletion survive another panel and server restart", async t => {
@@ -23,6 +23,113 @@ test("durable comment, replacement and deletion survive another panel and server
     assert.equal(items[1].text, "<literal> & text");
     assert.equal(items[2].text, "");
     assert.equal(f.sent.length, 0);
+});
+
+test("candidate registration is durable, immutable, bounded and root/hash restricted", async t => {
+    const f = await fixture(t);
+    const before = await readFile(f.filePath, "utf8");
+    const saved = await register(f);
+    assert.equal(saved.candidates.length, 3);
+    assert.equal((await fetch(new URL(saved.candidates[0].assetUrl, f.origin))).status, 200);
+    assert.equal(f.sent.length, 0);
+    assert.equal(await readFile(f.filePath, "utf8"), before);
+    const second = await startServer({ ...f.config, instanceId: "candidate-restart" });
+    t.after(() => second.close());
+    assert.equal((await second.state()).candidates.length, 3);
+    await assert.rejects(register(f), /immutable/);
+    await assert.rejects(register(f, { candidates: [{ id: "escape", label: "Unsafe", assetPath: "../outside.svg" }] }));
+    await assert.rejects(register(f, { candidates: [{ id: "bad", label: "Invalid crop", composition: { position: "150% 50%" } }] }), /Position/);
+    await register(f, { candidates: [{ id: "crop-only", label: "Crop only", composition: { position: "80% 50%" }, parentIds: ["variant-a"] }] });
+    assert.equal((await f.server.state()).candidates[3].assetUrl, null);
+    await writeFile(path.join(f.root, "assets", "candidate-a.svg"), "<svg>changed</svg>");
+    assert.equal((await fetch(new URL(saved.candidates[0].assetUrl, f.origin))).status, 409);
+});
+
+test("favorites/comments are not application; explicit image requests retain candidate lineage", async t => {
+    const f = await fixture(t);
+    const saved = await register(f);
+    await f.api("candidate-review", { id: "variant-b", favorite: true, comment: "Keep the sky, reduce foreground." });
+    let state = await f.server.state();
+    assert.equal(state.candidates[1].favorite, true);
+    assert.equal(state.candidates[1].comments.length, 1);
+    assert.equal(state.annotations.length, 0);
+    assert.equal(f.sent.length, 0);
+    for (const kind of ["image-edit", "generate-alternatives", "crop-layout", "use-candidate"]) {
+        assert.equal((await f.api("add", { kind, text: "Keep the claim and scene; change only the requested visual.",
+            anchor: visualAnchor, revision: saved.revision, sourceRevision: saved.sourceRevision,
+            candidateIds: ["variant-b"], count: 3, composition: { fit: "contain", position: "50% 50%" } })).status, 200);
+    }
+    assert.equal((await f.api("add", { kind: "generate-alternatives", text: "Too many", anchor: visualAnchor,
+        revision: saved.revision, sourceRevision: saved.sourceRevision, count: 6 })).status, 400);
+    assert.equal((await f.api("submit", {})).status, 200);
+    state = await f.server.state();
+    assert.equal(state.annotations[1].count, 3);
+    assert.equal(state.annotations[3].candidates[0].assetHash, state.candidates[1].assetHash);
+    assert.match(f.sent[0].prompt, /favorite is NOT permission/);
+    assert.match(f.sent[0].prompt, /crop-layout/);
+    assert.equal(await readFile(f.filePath, "utf8"), html);
+    await writeFile(f.filePath, html + "\n<!-- changed -->");
+    assert.equal((await f.server.state()).candidates[0].stale, true);
+    await assert.rejects(register(f), /Refresh/);
+});
+
+test("version-one review history migrates without losing or rewriting text records on read", async t => {
+    const f = await fixture(t);
+    await f.api("add", await f.selection());
+    const state = await f.server.state();
+    const original = JSON.parse(await readFile(state.storePath, "utf8"));
+    original.version = 1;
+    delete original.candidates;
+    await writeFile(state.storePath, JSON.stringify(original));
+    const migrated = await f.server.state();
+    assert.equal(migrated.version, 2);
+    assert.deepEqual(migrated.annotations[0].anchor, original.annotations[0].anchor);
+    assert.deepEqual(migrated.candidates, []);
+    assert.equal(JSON.parse(await readFile(state.storePath, "utf8")).version, 1);
+    await f.api("candidate-review", { id: "missing", favorite: true });
+    assert.equal(JSON.parse(await readFile(state.storePath, "utf8")).version, 1);
+    await register(f);
+    assert.equal(JSON.parse(await readFile(state.storePath, "utf8")).version, 2);
+});
+
+test("generation resolution requires exactly the requested registered outputs and original bytes stay guarded", async t => {
+    const f = await fixture(t);
+    const state = await f.server.state();
+    await f.api("add", { kind: "generate-alternatives", text: "Preserve geometry. Try two lighting variants.", anchor: visualAnchor,
+        revision: state.revision, sourceRevision: state.sourceRevision, count: 2 });
+    await f.api("submit", {});
+    const request = (await f.server.state()).annotations[0];
+    const outcome = { ids: [request.id], status: "resolved", note: "Two candidates generated, original unchanged.", sourceRevision: state.sourceRevision };
+    await assert.rejects(f.server.outcome(outcome), /Register generated/);
+    await register(f, { candidates: ["a", "b"].map(id => ({ id: `output-${id}`, label: id,
+        assetPath: `assets/candidate-${id}.svg`, requestId: request.id })) });
+    await f.server.outcome(outcome);
+    assert.equal((await f.server.state()).annotations[0].status, "resolved");
+    const registered = await f.server.state();
+    await f.api("add", { kind: "use-candidate", text: "Use output A.", anchor: registered.candidates[0].anchor,
+        revision: state.revision, sourceRevision: state.sourceRevision, candidateIds: ["output-a"] });
+    await writeFile(path.join(f.root, "assets", "original.svg"), '<svg xmlns="http://www.w3.org/2000/svg">different original</svg>');
+    assert.equal((await f.api("submit", {})).status, 409);
+    assert.equal(f.sent.length, 1);
+});
+
+test("oversize candidates and hidden or escaped symlink assets retain the rendering boundary", async t => {
+    const f = await fixture(t);
+    await writeFile(path.join(f.root, "assets", "large.png"), Buffer.alloc(12 * 1024 * 1024 + 1));
+    await assert.rejects(register(f, { candidates: [{ id: "large", label: "Large", assetPath: "assets/large.png" }] }), /12 MiB/);
+    await mkdir(path.join(f.root, ".private"));
+    await writeFile(path.join(f.root, ".private", "image.svg"), "<svg/>");
+    await assert.rejects(register(f, { candidates: [{ id: "hidden", label: "Hidden", assetPath: ".private/image.svg" }] }), /root/);
+    const source = path.join(f.root, "small-root");
+    await mkdir(source);
+    await writeFile(path.join(source, "preview.html"), html);
+    await symlink(path.join(f.root, "assets"), path.join(source, "escape"), "junction");
+    const restricted = await startServer({ ...f.config, document: await openDocument({ filePath: path.join(source, "preview.html") }) });
+    t.after(() => restricted.close());
+    const state = await restricted.state();
+    await assert.rejects(restricted.registerCandidates({ revision: state.revision, sourceRevision: state.sourceRevision,
+        anchor: { ...visualAnchor, assetSource: "escape/original.svg" },
+        candidates: [{ id: "escape", label: "Escape", assetPath: "escape/candidate-a.svg" }] }), /root/);
 });
 
 test("submission is explicit, durable, exactly one batch, and not equivalent to applied", async t => {

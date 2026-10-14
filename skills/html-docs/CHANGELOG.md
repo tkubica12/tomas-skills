@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.3.0 — 2026-10-14
+
+**Optional claim-led image compositions, without changing the core runtime.**
+
+### Added
+
+- Opt-in `assets/compositions.css`: readable hero fade with protected HTML
+  copy, image/text split, panorama strip, circle/oval, diagonal, and rounded
+  organic crops. Works in deck slides, article Slides and Read, with responsive
+  reading and light print treatment. Existing templates do not load it.
+- `visual.article.html` and `visual.deck.html`: editable offline galleries of
+  all seven compositions using original, explicitly fictional
+  `assets/sample-scene.svg`, included under MIT. Existing component galleries
+  point to these examples.
+- `references/visual-storytelling.md`: scene briefs tied to a claim, text-safe
+  space, crop-safe subjects, materials, authorized references and invariants,
+  and an optional separately installed Image generator companion. No mandatory
+  chat or service prerequisite.
+- Focused browser regression runner `assets/test-compositions.js`, reusing the
+  existing Playwright/Chromium discovery and built-in bundler; isolated offline
+  exports, crop geometry, readability, narrow reading, print, and hash focus.
+- Documented existing stable-hash focus hooks for embedded deck/article
+  previews. No new navigation API or runtime behavior.
+
+### Clarified
+
+- Canonical UI tokens, default palettes and one accent remain unchanged.
+  Natural image and authentic authorized logo colors are image content, not
+  additional UI accents. Semantic diagrams still follow the controls.
+- Brand profiles require explicit opt-in and authorized references; ordinary
+  authoring, reading, presentation, bundling and printing remain independent
+  of Azure, cloud services, login, image generation, and chat.
+
+### Upgrading a document
+
+No change is needed for existing text/diagram documents. For optional images,
+copy the new assets and load `compositions.css` after the chosen view styles.
+Keep assets local, rebuild the standalone file, and validate all offered views.
+
 ## 1.2.0 — 2026-09-30
 
 **Four Microsoft-logo accent families, with readable light-mode shades.**

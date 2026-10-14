@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">A fictional courtyard workshop</title>
+  <desc id="desc">A terracotta vessel on a timber workbench at the right of a sunlit stone courtyard. The left wall is open space. Original illustrative artwork, not a photograph or measured evidence.</desc>
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1">
+      <stop stop-color="#efe6d8"/>
+      <stop offset="1" stop-color="#d5c7af"/>
+    </linearGradient>
+    <linearGradient id="clay" x2="1" y2=".2">
+      <stop stop-color="#a95134"/>
+      <stop offset=".5" stop-color="#d5865c"/>
+      <stop offset="1" stop-color="#aa5637"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h1600v900H0z"/>
+  <path fill="#c6b69d" d="M0 665h1600v235H0z"/>
+  <path fill="#e5dac8" d="M0 210h800v22H0zM0 425h820v18H0z"/>
+  <path fill="#d0c1a8" d="M280 0h16v210h-16zM595 232h14v193h-14z"/>
+  <path fill="#847a65" d="M884 170h536v435H884z"/>
+  <path fill="#b2bcac" d="M906 192h492v391H906z"/>
+  <path fill="#6d806a" d="M906 493l94-155 135 130 130-212 133 170v157H906z"/>
+  <path fill="#748c74" d="M906 531l166-116 192 152 134-84v100H906z"/>
+  <path fill="#e6d7bb" d="M1138 192h24v391h-24z"/>
+  <ellipse cx="1185" cy="733" rx="282" ry="58" fill="#a89b83"/>
+  <path fill="#79634b" d="M880 650h555v52H880z"/>
+  <path fill="#aa8056" d="M855 612h600v58H855z"/>
+  <path fill="#604d3b" d="M907 697h38v150h-38zM1375 697h38v150h-38z"/>
+  <path fill="#c59768" d="M869 623h572v9H869z"/>
+  <ellipse cx="1171" cy="620" rx="102" ry="21" fill="#76513b"/>
+  <path fill="url(#clay)" d="M1117 414h108c-13 39-8 64 15 99 30 43 36 100-14 114h-110c-50-14-44-71-14-114 23-35 28-60 15-99z"/>
+  <ellipse cx="1171" cy="414" rx="54" ry="12" fill="#81412e"/>
+  <ellipse cx="1171" cy="414" rx="39" ry="7" fill="#4e332b"/>
+  <path d="M1141 467c-20 48-45 92-15 135" fill="none" stroke="#e3a279" stroke-width="12" stroke-linecap="round"/>
+  <path fill="#dbceac" d="M1289 588h91v26h-91z"/>
+  <path fill="#928061" d="M1328 515h12v81h-12z"/>
+  <path fill="#637453" d="M1334 550c-46-48-74-35-46-6 16 16 27 17 46 17 38-53 65-44 39-10-10 13-24 15-39 15z"/>
+</svg>

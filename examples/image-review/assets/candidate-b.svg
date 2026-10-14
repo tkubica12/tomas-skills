@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>Candidate B: warm evening</title>
+  <rect width="1600" height="900" fill="#e6c5a8"/>
+  <circle cx="1100" cy="430" r="125" fill="#fff0bc"/>
+  <path d="M0 740L470 170L850 700L1260 310L1600 710V900H0Z" fill="#8c7782"/>
+  <path d="M0 810Q450 670 820 800T1600 810V900H0Z" fill="#686652"/>
+  <path d="M460 900Q710 720 950 830T1420 900" fill="none" stroke="#e2bf96" stroke-width="55"/>
+</svg>

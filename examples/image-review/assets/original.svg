@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>Original fictional mountain landscape</title>
+  <rect width="1600" height="900" fill="#d4e8f1"/>
+  <circle cx="1200" cy="210" r="100" fill="#fff8cf"/>
+  <path d="M0 710L420 210L880 730L1230 380L1600 750V900H0Z" fill="#687f8b"/>
+  <path d="M0 790Q430 620 820 800T1600 760V900H0Z" fill="#526b50"/>
+  <path d="M480 900Q720 740 1000 830T1450 900" fill="none" stroke="#bad7df" stroke-width="55"/>
+</svg>

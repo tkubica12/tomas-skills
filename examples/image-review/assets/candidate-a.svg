@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>Candidate A: quiet sky</title>
+  <rect width="1600" height="900" fill="#dceaf2"/>
+  <circle cx="1250" cy="230" r="100" fill="#fff8cf"/>
+  <path d="M0 800L360 450L820 820L1220 390L1600 760V900H0Z" fill="#81949c"/>
+  <path d="M0 830Q450 750 800 860T1600 800V900H0Z" fill="#6b8064"/>
+</svg>
