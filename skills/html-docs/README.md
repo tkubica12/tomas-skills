@@ -38,7 +38,7 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 
 ## Optional visual storytelling
 
-Version **1.3.0** adds a small, opt-in image composition stylesheet:
+Version **1.3.1** includes a small, opt-in image composition stylesheet:
 readable hero fade, image/text split, panorama, circle, oval, diagonal, and
 rounded organic crops. Use it in deck slides, article Slides, and article
 Read; print remains light and readable. Try the offline, editable
@@ -51,9 +51,11 @@ single accent; natural image and authentic supplied logo colors are not UI
 accents. Brand profiles are **explicit opt-in**, not defaults.
 
 The [visual storytelling reference](references/visual-storytelling.md) includes
-markup and an optional, separately installed **Image generator** companion
-workflow. No compulsory chat, generation, login, Azure, or cloud dependency is
-added to ordinary authoring or recipients' HTML. Local supplied images work
+markup and the optional, separately installed **image-generator skill and
+Python CLI** workflow, not an image-generation canvas. Follow that skill's
+instructions and CLI for generation; `document-review` is the separate canvas
+for local candidate review. No compulsory chat, generation, login, Azure, or
+cloud dependency is added to ordinary authoring or recipients' HTML. Local supplied images work
 equally well; `bundle.js` embeds the approved assets for offline sharing.
 
 ## Review with Document review

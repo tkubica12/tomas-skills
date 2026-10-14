@@ -3,7 +3,7 @@ name: html-docs
 description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # One document, up to three views
@@ -146,7 +146,8 @@ file, including during export.
      discipline.
    - [Visual storytelling](references/visual-storytelling.md), only when images
      help: claim-led briefs, text/crop-safe scenes, materials, references and
-     invariants; optional reusable compositions and Image generator companion.
+     invariants; optional reusable compositions and the separately installed
+     `image-generator` skill/Python CLI, not an image-generation canvas.
 4. **Start from the template and use the galleries.**
    [Article components](article.components.html) (including a companion
    sheet) and [deck components](deck.components.html) are local working
