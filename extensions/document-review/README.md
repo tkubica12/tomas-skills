@@ -1,5 +1,7 @@
 # Document review
 
+Version **2.0.0**. See [changes](CHANGELOG.md).
+
 **Canvas extension for GitHub Copilot App**, opening rendered **local HTML**
 in a side panel next to the agent conversation. It is a companion to the
 [html-docs skill](https://github.com/tkubica12/tomas-skills/tree/main/skills/html-docs):
@@ -9,6 +11,9 @@ the mouse or keyboard, then comment, replace, or delete. The Czech UI saves
 annotations immediately; **Predat agentovi** explicitly sends a batch to the
 current conversation. Replace/delete are precise requests, not immediate
 source writes. The agent performs edits using its normal tools and permissions.
+Optional image review compares immutable candidates in the **real HTML slide**,
+with unchanged text/styles/layout and a targeted preview-only image/crop
+override. It never calls Foundry or handles cloud credentials.
 
 ## Install
 
@@ -93,11 +98,48 @@ must be reconciled or reported blocked by the agent.
 
 ## Persistence and boundaries
 
+### Image-review workflow
+
+Enable **Hodnotit obrazky**, then click an image or focus it with Tab and press
+Enter/Space. Disabling this mode restores original tab stops and ordinary
+document/lightbox clicks. Supported visuals: `img`/`picture`, SVG `image` and
+inline SVG, plus a single CSS background URL on `[data-review-visual]`, `.visual`
+or `.hero`. Mark CSS components explicitly rather than guessing arbitrary
+decorative backgrounds. Canvas/WebGL pixels and layered/gradient backgrounds
+are not selectable assets. Keep unique IDs or `data-visual-id` attributes and
+stable slide/card IDs when authoring. Ambiguous generated targets are blocked,
+not matched by proximity.
+
+Selection saves `selectedVisual` in the durable review so the agent can inspect
+its exact anchor/hashes with `get_review`. Register local candidates using
+`register_candidates` (schema below). The UI retains original comparison,
+same-slide candidate view, large view, raw-image gallery, comments and favorites.
+Candidate IDs are immutable; never overwrite an approved original or reuse an
+ID after changing its file. Images remain within the smallest asset root and
+the existing 12 MiB boundary. Registration and favorites do not edit or submit.
+
+Choose **Use in document: queue request**, then explicitly submit the batch.
+The agent verifies source and asset hashes, edits only the selected editable
+source visual, rebuilds its exports, records the outcome and refreshes.
+Preview DOM is never serialized back into source. **Request next variants from
+this** references the selected candidate and asks for 1-5 bounded outputs with
+preserve/change instructions. `image-edit` preserves the original/reference;
+`generate-alternatives` creates candidates; `crop-layout` requests no generation.
+Generation outputs are registered with their annotation `requestId` before
+resolution; generating alternatives need not change the source. A favorite is
+**not application consent**.
+
+Try the [public offline fixture](../../examples/image-review/README.md), which
+uses fictional original SVGs. Do not distribute private review stores or images.
+
 Annotations live in `$COPILOT_HOME/extensions/document-review/artifacts/<key>/review.json`
 (default `~/.copilot`). The key uses the canonical HTML and editable-source
 paths, not the canvas panel ID, so multiple panels and restarts retain work.
 Cancelled annotations remain in the audit data. Nothing is stored in or
 committed to the document repository.
+Version-two stores add candidates and selected visual identity. Version-one
+text records remain readable; migration is persisted only during a successful
+atomic update. Previous text anchors/status/history are retained.
 
 Updates use an exclusive cross-process lock and atomic file replacement.
 If a process crashes while holding `review.lock`, the UI reports its path.
@@ -133,6 +175,65 @@ are needed at runtime; Copilot supplies its SDK.
 - `refresh`: load the current HTML; retain original annotation anchors.
 - `set_outcome`: record `resolved` or `blocked` with IDs, a note, and current
   `sourceRevision`. Use only after source verification.
+- `register_candidates`: register immutable local image/crop candidates;
+  never applies, submits or generates.
+
+`register_candidates` input (all hashes come from `get_review`):
+
+```json
+{
+  "revision": "<preview SHA-256>",
+  "sourceRevision": "<editable source SHA-256>",
+  "anchor": {
+    "type": "visual", "selector": "#scene", "visualId": "scene",
+    "slideSelector": "#slide-one", "slideId": "slide-one",
+    "assetKind": "img", "assetSource": "assets/original.jpg",
+    "displayQuote": "Original image"
+  },
+  "candidates": [
+    {
+      "id": "variant-a", "label": "A: more text-safe space",
+      "assetPath": "assets/candidate-a.jpg",
+      "composition": { "fit": "cover", "position": "65% 50%", "shape": "rounded" },
+      "parentIds": [], "generationId": "optional-job-manifest-id"
+    }
+  ]
+}
+```
+
+Copy `selectedVisual` directly when available; it also includes `assetIdentity`
+and `originalHash`. It can also include `context` (view, hash, theme, accent and
+open card IDs), which restores the same active deck/article slide and palette
+inside the candidate iframe. Embedded image/SVG identities use bounded SHA-256
+descriptors rather than copying large data URIs into annotation records.
+Optional `requestId` links an output to a submitted image
+generation annotation. Paths resolve from `rootPath`, not the package directory.
+Omit `assetPath` for a crop-only candidate; then composition must be nonempty.
+Allowed `fit`: cover/contain/fill. Position: two percentages 0-100. Shapes:
+original/rounded/circle/oval/diagonal/organic. At most 20 registrations per call,
+200 candidates per document, 100 comments per candidate. Parents must already
+exist for that same target; candidates preserve their original source revision.
+
+Image annotations share the existing authenticated internal `/api/add` route:
+
+```json
+{
+  "kind": "generate-alternatives",
+  "text": "Preserve candidate A's geometry; soften only the lighting.",
+  "anchor": "<selectedVisual.anchor object, not a string>",
+  "revision": "<selectedVisual.revision>",
+  "sourceRevision": "<selectedVisual.sourceRevision>",
+  "candidateIds": ["variant-a"], "count": 3
+}
+```
+
+Kinds: `image-edit`, `generate-alternatives`, `crop-layout`, `use-candidate`.
+`text` is required (1-12,000 characters). `count` is required only for generation
+(1-5). `composition` is used for crop/layout. `use-candidate` requires exactly
+one candidate ID. References must belong to the same current target/revision.
+These are UI-created durable requests, **not a host action to bypass user
+submission**. The iframe has no API secret and cannot submit them by itself.
+Text annotations and all existing host actions remain unchanged.
 
 ## Validation
 
@@ -155,6 +256,11 @@ approved package feeds.
 The optional html-docs integration check needs `REVIEW_HTML_DOCS_FILE` pointing
 to an editable HTML document and `REVIEW_HTML_DOCS_ROOT` to its asset root.
 Without these, only that integration check is skipped.
+The real visual deck/article comparison check additionally uses
+`REVIEW_HTML_DOCS_VISUAL_ROOT` pointing to `skills\html-docs`; it exercises
+`visual.deck.html` and `visual.article.html`. The public fixture check runs when
+`examples\image-review` exists alongside the catalog; portable installed
+extensions skip it when that separate example is absent.
 
 Tests use temporary documents, isolated review storage and a fake session sender;
 they never send an actual message or modify a user's document.

@@ -25,6 +25,16 @@ button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0
 #error { background: color-mix(in srgb, var(--true-color-red, #cf222e) 10%, var(--bg)); }
 main { display: flex; flex: 1; min-height: 0; position: relative; }
 iframe { width: 100%; height: 100%; border: 0; background: white; flex: 1; min-width: 0; }
+#image-review { padding: 10px 16px; max-height: 35vh; overflow: auto; border-bottom: 1px solid var(--border); }
+#candidates { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.candidate { border: 1px solid var(--border); border-radius: 8px; padding: 6px; display: flex; align-items: center; gap: 6px; }
+#candidate-tools { max-width: 650px; }
+#image-gallery { flex: 1; overflow: auto; padding: 16px; }
+#image-gallery figure { margin: 0 0 18px; }
+#image-gallery img { max-width: 100%; max-height: 60vh; object-fit: contain; }
+body.large-review #image-review { max-height: 22vh; }
+body.large-review #sidebar { display: none; }
+input, select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); padding: 6px; border-radius: 5px; }
 aside { flex: 0 0 320px; width: 320px; overflow: auto; padding: 16px; border-left: 1px solid var(--border); background: var(--bg); }
 h2 { font-size: 16px; margin: 0 0 8px; }
 .muted { color: var(--muted); font-size: 12px; }

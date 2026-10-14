@@ -1,0 +1,30 @@
+common_requirements: |
+  Photorealistic materials and coherent natural light. No labels, captions,
+  logos, recognizable people or watermarks. Leave negative space for slide text.
+size: 3840x2160
+quality: high
+instances_per_prompt: 1
+max_attempts: 3
+output_dir: output
+azure: {}
+preferences:
+  detail: high
+  realism: high
+  freshness: Compare current deployed versions and lifecycle before selection.
+  cost: Compare current regional pricing and approve an inference budget.
+images:
+  - name: hero
+    description: An abstract landscape illustrating a network of connected ideas.
+    prompts:
+      - |
+        A photorealistic aerial landscape at dawn: small illuminated islands
+        linked by narrow bridges above still water, believable stone textures,
+        soft amber sunlight, gentle atmospheric haze, restrained teal and gold
+        palette, wide cinematic composition. Keep the upper left third quiet
+        for a later text overlay. No words, labels, people or watermarks.
+      - |
+        A photorealistic elevated oblique view of the same conceptual landscape:
+        connected small islands above still water, fine stone and water detail,
+        cool blue morning light, subtle amber lights along the bridges, calm
+        restrained palette. Emphasize depth and interconnection while keeping
+        the upper left third clear for later text. No words, people or watermarks.

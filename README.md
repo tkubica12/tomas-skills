@@ -10,6 +10,7 @@ adds in-context review of rendered documents before sharing them.
 | --- | --- | --- |
 | [goal-card](skills/goal-card/README.md) | Designs or improves a bounded Goal Card for build, experiment, or research work: explicit outcomes, evidence checks, an autonomy envelope, a preflight, repair paths, and stopping limits, without executing the task. | — |
 | [html-docs](skills/html-docs/README.md) | Creates browser-ready documents, presentations, and one-pagers. One shareable HTML file can hold the live slides, the matching detailed handout, and a one-page summary, each exportable to PDF. | [Presentation + reading example](examples/html-docs/README.md) |
+| [image-generator](skills/image-generator/README.md) | Optional Entra-authenticated Foundry image authoring with lazy deployment discovery, strict native dimensions, reference/edit capabilities and reproducible manifests. No cloud dependency for ordinary HTML authoring. | [Offline image review](examples/image-review/README.md) |
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
@@ -17,7 +18,7 @@ adds in-context review of rendered documents before sharing them.
 
 | Canvas extension | What it does | Requires |
 | --- | --- | --- |
-| [document-review](extensions/document-review/README.md) | Review local HTML in a GitHub Copilot App side-panel Canvas. Select text, then comment, replace, or delete; explicitly send saved annotations to the agent for source edits. A companion to `html-docs`. | GitHub Copilot App with extension canvas support |
+| [document-review](extensions/document-review/README.md) | Review text and image variants in the original HTML slide context, save comments/favorites, and explicitly submit precise source edits or bounded generation requests. A companion to `html-docs`; generation is optional. | GitHub Copilot App with extension canvas support |
 
 ## Install skills
 
@@ -28,6 +29,7 @@ Use [GitHub CLI](https://cli.github.com/) with `gh skill` support (version
 gh skill preview tkubica12/tomas-skills html-docs
 gh skill install tkubica12/tomas-skills goal-card
 gh skill install tkubica12/tomas-skills html-docs
+gh skill install tkubica12/tomas-skills image-generator
 gh skill install tkubica12/tomas-skills first-principles
 gh skill install tkubica12/tomas-skills web-research
 gh skill install tkubica12/tomas-skills aca-web-publish
@@ -83,6 +85,17 @@ prerequisites.
 With the document built, open it in `document-review`, select passages and save
 comments or exact replacements. Explicitly hand the batch to the agent, then
 review the source edits and regenerated output before publishing.
+
+For illustrated slides, optionally use `image-generator` to discover a suitable
+authorized Foundry deployment and generate assets. Open the HTML in
+`document-review`, enable image review and select a visual. The agent registers
+candidate image paths and crop metadata; compare them **in the same slide**
+before choosing **Use in document** and explicitly submitting the request.
+A favorite is never approval to apply. The [small offline fixture](examples/image-review/README.md)
+uses only original fictional SVGs and needs no Azure login or paid calls.
+Cloud generation and credentials stay outside the canvas. Exact native 4K
+requires a deployment whose documented capabilities support the requested size;
+neither resizing nor unknown capabilities count as native 4K.
 
 ## Repository layout
 

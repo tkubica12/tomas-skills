@@ -24,6 +24,14 @@ actions, notes) are in [sheet](sheet.md) and in the gallery's companion sheet.
 | figure with lightbox | yes | figure only, no lightbox |
 | closing takeaway | yes | use `slide--end` |
 | two columns, quote, table | no | yes |
+| optional hero, split, panorama, circle/oval, diagonal/organic image crop | Read and Slides | yes |
+
+Optional image compositions have a separate, small stylesheet
+`assets/compositions.css`; the core templates do not load it. See
+[visual storytelling](visual-storytelling.md) for the markup contract and
+[visual article](../visual.article.html) / [visual deck](../visual.deck.html)
+for all seven live examples. Their original fictional SVG is local and
+bundles offline. These compositions do not change the canonical UI palette.
 
 ## Reveal
 

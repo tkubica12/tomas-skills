@@ -25,12 +25,17 @@ export function createStore(document, root = artifactRoot) {
     async function read() {
         try {
             const value = JSON.parse(await readFile(file, "utf8"));
-            requireValue(value.version === 1 && value.key === document.key && Array.isArray(value.annotations),
+            requireValue([1, 2].includes(value.version) && value.key === document.key && Array.isArray(value.annotations) &&
+                (value.version === 1 || Array.isArray(value.candidates)),
                 "invalid_store", "The saved review is invalid. Preserve it and repair it before continuing.", 500);
+            if (value.version === 1) {
+                value.version = 2;
+                value.candidates = [];
+            }
             return value;
         } catch (error) {
             if (error.code !== "ENOENT") throw error;
-            return { version: 1, key: document.key, filePath: document.filePath, sourcePath: document.sourcePath, annotations: [] };
+            return { version: 2, key: document.key, filePath: document.filePath, sourcePath: document.sourcePath, annotations: [], candidates: [] };
         }
     }
     async function update(change) {

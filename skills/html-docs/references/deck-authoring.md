@@ -45,6 +45,11 @@ Long explanations belong in an article, not an interactive slide.
 Available static components: `arrow-list`, `summary-grid`, `sequence`, `steps`,
 `callout`, `code`, `figure`, plus deck-only `two-col`, `quote`, and plain tables.
 The gallery demonstrates each. At most one callout per authored slide.
+For optional claim-supporting scenes, load `compositions.css` after `deck.css`.
+See [visual storytelling](visual-storytelling.md) and
+[visual deck gallery](../visual.deck.html) for a readable hero fade, split,
+panorama, circle/oval, and diagonal/organic crops. Keep the canonical UI tokens;
+natural material or authorized logo colors remain image content.
 **No reveals, tabs, detail grids, buttons, links, or media controls inside
 slides.** Legacy reveal handling remains for older files, but new documents
 and the validator enforce a non-interactive presentation surface.
@@ -77,6 +82,23 @@ behavior. Navigation focuses the slide, and the index returns focus when
 closed. The current ID remains in the URL hash and survives reload. An open
 deck holds a screen wake lock so the display does not sleep or lock while
 presenting; see [slides mode](slides-mode.md#keeping-the-screen-awake).
+
+### Focusing a slide in an embedded preview
+
+No extra runtime API is needed. Load the iframe's document with `#s-headroom`;
+after the deferred runtime boots, `.deck-stage .slide[data-current]` is that
+slide and receives focus. After load, assign the iframe window's
+`location.hash` to another stable slide ID: the runtime's `hashchange` handler
+navigates, resets the fragment step, fits the body, and focuses the slide.
+If the requested hash is already current, focus the current section with
+`focus({ preventScroll: true })` instead; no new hash event fires.
+
+`[data-deck="prev"]`, `[data-deck="next"]`, and `[data-deck="index"]` are the
+generated navigation controls. Index entries use `[data-go]` and their
+zero-based slide index. Prefer stable hashes over index numbers. Merely
+setting `data-current`, or using `history.replaceState`, bypasses navigation
+and is not a supported focus operation. Same-origin iframe access is required;
+a cross-origin or opaque sandbox preview needs its own host bridge.
 
 ## Fit is a guardrail, not a design tool
 

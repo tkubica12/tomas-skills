@@ -98,7 +98,10 @@ the runtime. The exporter wraps deferred scripts because an inline script's
    sources, fictional inputs, and the reasoning behind each cue.
 2. Inspect opening, divider, diagram, busiest slide, and closing in all eight
    palettes at laptop and projector sizes. Diagrams must inherit the selected
-   accent; no independent warning or category colors.
+   accent; no independent warning or category colors. Natural scene colors and
+   authorized logo pixels are not UI accents. For optional compositions, check
+   hero copy stays over the opaque surface and every crop preserves its
+   important subjects in Read, Slides, and print.
 3. Test `?view=slides#card-id`, reload, theme/accent persistence, keyboard focus,
    native Space on controls, index selection, fragments and whole-slide skips.
 4. Check narrow reading layouts and browser zoom. A landscape presentation
@@ -122,6 +125,19 @@ node assets\validate.js article.components.html
 node assets\validate.js deck.template.html
 node assets\validate.js deck.components.html
 node assets\validate.js sheet.template.html
+node assets\sync-head.js --check visual.article.html visual.deck.html
+node assets\validate.js visual.article.html
+node assets\validate.js visual.deck.html
+node assets\test-compositions.js
 ```
 
 Regenerate affected standalone outputs and refresh representative screenshots.
+
+`test-compositions.js` uses the existing validator's Playwright/browser
+discovery; it adds no dependencies. It bundles both fictional visual galleries
+into isolated folders under `test-results\compositions`, checks image sizing,
+focal crops, circle/oval/diagonal/organic geometry, hero text-safe contrast,
+natural-image color preservation, no-JS/offline load, narrow reading,
+presentation hash focus, and print geometry across both themes and viewport
+sizes. Pass `--shots` to capture representative compositions. Output remains
+under the ignored `test-results` folder, not in distributable assets.

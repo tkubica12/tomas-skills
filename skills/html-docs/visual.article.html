@@ -1,0 +1,423 @@
+<!doctype html>
+<!--
+MIT License
+Copyright (c) 2026 Tomáš Kubica
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en" data-default-accent="blue" data-default-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="doc-id" content="html-docs-visual-article">
+<meta name="description" content="Seven optional image compositions in article reading and presentation modes, using original fictional SVG artwork.">
+<title>Images support a claim — article composition gallery</title>
+<script data-doc-bootstrap>
+/* Inline in the head before styles with sync-head.js. No deferred bootstrap. */
+(() => {
+  "use strict";
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const id = document.querySelector('meta[name="doc-id"]')?.content ||
+    location.pathname.replace(/\.standalone(?=\.html$)/i, "");
+  const prefix = "html-docs:" + id + ":";
+  const choices = { theme: ["light", "dark"], accent: ["blue", "red", "green", "yellow"] };
+  const read = (name) => {
+    try { return localStorage.getItem(prefix + name); }
+    catch { return null; /* Storage may be unavailable for local files. */ }
+  };
+  const write = (name, value) => {
+    try { localStorage.setItem(prefix + name, value); }
+    catch { /* The current view still works without persistence. */ }
+  };
+  function refresh() {
+    for (const name of Object.keys(choices)) {
+      const current = root.getAttribute("data-" + name);
+      const next = choices[name][(choices[name].indexOf(current) + 1) % choices[name].length];
+      document.querySelectorAll('[data-action="toggle-' + name + '"]').forEach(button => {
+        button.textContent = name === "theme" ? (next === "dark" ? "Dark" : "Light") :
+          "Accent: " + current[0].toUpperCase() + current.slice(1);
+        button.setAttribute("aria-label", name === "theme" ? "Switch to " + next + " theme" :
+          "Accent: " + current + ". Switch to " + next);
+      });
+    }
+  }
+  for (const [name, values] of Object.entries(choices)) {
+    const fallback = name === "theme" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : values[0];
+    const value = [params.get(name), read(name), root.getAttribute("data-default-" + name), fallback]
+      .map(candidate => name === "accent" && candidate === "orange" ? "red" : candidate)
+      .find(candidate => values.includes(candidate));
+    root.setAttribute("data-" + name, value);
+  }
+  root.classList.add("js");
+  if (["slides", "sheet"].includes(params.get("view"))) root.setAttribute("data-view", params.get("view"));
+
+  // Print what is on screen. data-print selects the matching print stylesheet.
+  const printTarget = () => {
+    if (document.querySelector(".deck-stage")) return "slides";
+    const view = root.getAttribute("data-view");
+    if (view === "slides" || (view === "sheet" && document.querySelector(".sheet"))) return view;
+    return document.querySelector(".doc") || !document.querySelector(".sheet") ? "read" : "sheet";
+  };
+  let printing = null;
+  addEventListener("beforeprint", () => {
+    if (root.hasAttribute("data-print")) return; // Set by an automated export.
+    const target = printTarget();
+    printing = document.title;
+    root.setAttribute("data-print", target);
+    // The browser proposes the title as the PDF file name.
+    if (target !== "read" && document.querySelector(".doc")) {
+      document.title += target === "slides" ? " - Slides" : " - Sheet";
+    }
+  });
+  addEventListener("afterprint", () => {
+    if (printing === null) return;
+    root.removeAttribute("data-print");
+    document.title = printing;
+    printing = null;
+  });
+
+  // Keep the display awake while presenting, like presentation software does.
+  let lock = null;
+  let awake = false;
+  async function holdScreen() {
+    if (!awake || lock || document.visibilityState !== "visible" || !navigator.wakeLock) return;
+    try {
+      const sentinel = await navigator.wakeLock.request("screen");
+      if (!awake || lock) { sentinel.release(); return; }
+      lock = sentinel;
+      root.setAttribute("data-awake", "");
+      sentinel.addEventListener("release", () => {
+        if (lock !== sentinel) return;
+        lock = null;
+        root.removeAttribute("data-awake");
+      });
+    } catch { /* Denied by battery saver or an embedding policy; retried on input. */ }
+  }
+  function keepAwake(on) {
+    awake = !!on;
+    if (awake) holdScreen();
+    else if (lock) lock.release();
+  }
+  // The browser drops the lock when the tab is hidden; some require a gesture.
+  document.addEventListener("visibilitychange", holdScreen);
+  document.addEventListener("pointerdown", holdScreen);
+  document.addEventListener("keydown", holdScreen);
+
+  window.HtmlDocs = { read, write, refresh, keepAwake };
+  document.addEventListener("DOMContentLoaded", refresh);
+  document.addEventListener("click", event => {
+    if (event.target.closest('[data-action="print"]')) window.print();
+  });
+  document.addEventListener("click", event => {
+    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
+    if (!button) return;
+    const name = button.getAttribute("data-action").slice(7);
+    const values = choices[name];
+    const next = values[(values.indexOf(root.getAttribute("data-" + name)) + 1) % values.length];
+    root.setAttribute("data-" + name, next);
+    write(name, next);
+    // Replace a URL override too, so reloading preserves a deliberate change.
+    const url = new URL(location.href);
+    if (url.searchParams.has(name)) {
+      url.searchParams.set(name, next);
+      history.replaceState(null, "", url.href);
+    }
+    refresh();
+  });
+})();
+</script>
+<style data-doc-tokens>
+/* Canonical tokens. Inline with sync-head.js; one accent family at a time. */
+:root {
+  color-scheme: light;
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f2f2f2; --surface-3: #e8e8e8;
+  --border: #dedede; --border-strong: #b8b8b8;
+  --text: #161616; --text-muted: #565656; --text-faint: #686868;
+  --accent-light: #006da0; --accent-dark: #00a4ef;
+  --accent: var(--accent-light);
+  --accent-strong: var(--accent);
+  --accent-quiet: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, var(--bg));
+  --accent-border: color-mix(in srgb, var(--accent) 36%, var(--bg));
+  --warn: var(--accent); --warn-soft: var(--accent-soft); --warn-border: var(--accent-border);
+  --code-bg: var(--surface-2); --code-border: var(--border);
+  --focus: var(--accent);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.04), 0 12px 28px rgba(0,0,0,.06);
+  --radius: 10px; --radius-sm: 6px; --canvas: 1160px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
+}
+/* Screen only: every PDF and printout uses the light palette. */
+@media screen {
+  [data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
+    --border: #363636; --border-strong: #595959;
+    --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
+    --accent: var(--accent-dark);
+    --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+  }
+}
+[data-accent="red"], :root:not([data-accent])[data-default-accent="red"],
+[data-accent="orange"], :root:not([data-accent])[data-default-accent="orange"] {
+  --accent-light: #bc3a16; --accent-dark: #f25022;
+}
+[data-accent="green"], :root:not([data-accent])[data-default-accent="green"] {
+  --accent-light: #4c7100; --accent-dark: #7fba00;
+}
+[data-accent="yellow"], :root:not([data-accent])[data-default-accent="yellow"] {
+  --accent-light: #805b00; --accent-dark: #ffb900;
+}
+</style>
+<link rel="stylesheet" href="assets/article.css">
+<link rel="stylesheet" href="assets/slides.css">
+<link rel="stylesheet" href="assets/compositions.css">
+<script src="assets/article.js" defer></script>
+<script src="assets/slides.js" defer></script>
+</head>
+<body>
+<div class="controls" role="group" aria-label="Article controls">
+  <button type="button" class="ctrl" data-action="expand-all">Expand all</button>
+  <button type="button" class="ctrl" data-action="collapse-all">Collapse all</button>
+  <button type="button" class="ctrl" data-action="toggle-slides" aria-pressed="false">Slides</button>
+  <button type="button" class="ctrl" data-action="print" aria-label="Save the current view as PDF or print it">PDF</button>
+  <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
+  <button type="button" class="ctrl" data-action="toggle-accent">Accent: Blue</button>
+</div>
+<div class="doc">
+  <header class="doc-header" id="opening">
+    <div class="slide-content slide-content--title">
+      <h2 class="slide-title">Images support<br><em>a claim.</em></h2>
+      <p class="slide-lead">Use a scene only when it makes the idea clearer.</p>
+    </div>
+    <p class="eyebrow">Optional composition gallery</p>
+    <h1>Images support a claim</h1>
+    <p class="subtitle">Seven reusable compositions in reading and presentation modes. This original fictional courtyard scene illustrates crop decisions; it is not a photograph or measured evidence.</p>
+  </header>
+  <nav class="doc-nav" aria-label="Related material">
+    <a href="visual.deck.html">Deck composition gallery</a>
+    <a href="article.components.html">Article components</a>
+  </nav>
+  <main>
+    <section class="chapter" id="ch-compositions">
+      <h2 class="chapter-label">The image serves the argument</h2>
+      <article class="card card--lead" id="card-hero" data-open>
+        <div class="slide-content">
+          <div class="composition composition--hero">
+            <div class="composition-media">
+              <img src="assets/sample-scene.svg" alt="A terracotta vessel sits on the right of a clear courtyard wall." width="1600" height="900">
+            </div>
+            <div class="composition-copy">
+              <h2 class="slide-title">Reserve space<br>for the claim</h2>
+              <p>The fade protects text.</p>
+            </div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="true">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">A hero needs text-safe space</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--hero">
+            <div class="composition-media">
+              <img src="assets/sample-scene.svg" alt="The workshop's left wall is empty while the vessel rests on the right." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Reserve space for the claim</h4><p>The fade protects text.</p></div>
+          </div>
+          <p>The copy sits over an opaque canonical surface; the fade joins that surface to the image. The vessel stays on the right, away from the words. Long prose belongs below the hero, not over the scene.</p>
+        </div>
+      </article>
+      <article class="card" id="card-split">
+        <div class="slide-content">
+          <h2 class="slide-title">Separate the claim<br><em>from the scene.</em></h2>
+          <div class="composition composition--split">
+            <div class="composition-media" style="--image-position: 74% 50%">
+              <img src="assets/sample-scene.svg" alt="A clay vessel stands on a timber bench in a stone courtyard." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><p>Timber, clay, and stone establish a coherent setting.</p></div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">A split keeps text independent</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media" style="--image-position: 74% 50%">
+              <img src="assets/sample-scene.svg" alt="The terracotta vessel, timber bench, and stone wall retain their natural material colors." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Keep the material story coherent</h4><p>Clay, timber, and stone explain the setting without becoming a second UI palette. The text stays on its own surface.</p></div>
+          </div>
+          <p>On narrow reading screens the image precedes the text. In presentation mode they remain side by side. The document's accent changes the interface, not the clay.</p>
+        </div>
+      </article>
+      <article class="card" id="card-panorama">
+        <div class="slide-content">
+          <h2 class="slide-title">Establish context.<br><em>Keep the stage.</em></h2>
+          <figure class="composition composition--panorama">
+            <div class="composition-media" style="--image-position: 50% 65%">
+              <img src="assets/sample-scene.svg" alt="A wide courtyard crop retains the vessel and its work surface." width="1600" height="900">
+            </div>
+            <figcaption class="composition-caption">Keep the subject inside the strip.</figcaption>
+          </figure>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">A panorama establishes context</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <figure class="composition composition--panorama">
+            <div class="composition-media" style="--image-position: 50% 65%">
+              <img src="assets/sample-scene.svg" alt="The panorama includes a vessel, bench, window, and open courtyard wall." width="1600" height="900">
+            </div>
+            <figcaption class="composition-caption">Original fictional artwork. The crop favors the vessel and bench rather than the upper wall.</figcaption>
+          </figure>
+          <p>The strip gives the reader a setting without competing with the argument. Check the crop: a shallow strip can remove the vessel's rim or the work surface if positioned carelessly.</p>
+        </div>
+      </article>
+      <article class="card" id="card-circle">
+        <div class="slide-content">
+          <h2 class="slide-title">Focus on<br><em>one subject.</em></h2>
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--circle" style="--image-position: 100% 50%">
+              <img src="assets/sample-scene.svg" alt="A circular crop centers the vessel on its workbench." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><p>Preserve the rim and base.</p></div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">A circle isolates the subject</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--circle" style="--image-position: 100% 50%">
+              <img src="assets/sample-scene.svg" alt="The circular image preserves the vessel's complete silhouette." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Protect identifying details</h4><p>The vessel's rim and base remain inside the circle. Faces, hands, tools, and logos need the same protection when relevant.</p></div>
+          </div>
+          <p>Use a circle to isolate a subject, not to turn an evidence diagram into a decorative badge.</p>
+        </div>
+      </article>
+      <article class="card" id="card-oval">
+        <div class="slide-content">
+          <h2 class="slide-title">Keep a little<br><em>more context.</em></h2>
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--oval" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="An oval crop retains the vessel, workbench, and neighboring plant." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><p>Widen the setting, not the message.</p></div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">An oval retains the setting</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--oval" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="An oval frame leaves space around the vessel and bench." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Let context explain the subject</h4><p>An oval keeps more of the workshop visible. Its corners still crop the source, so inspect the full subject rather than only its center.</p></div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-diagonal">
+        <div class="slide-content">
+          <h2 class="slide-title">Direction needs<br><em>crop-safe space.</em></h2>
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--diagonal" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="Angled edges frame the vessel without cutting into it." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><p>Keep the subject away from angled edges.</p></div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">A diagonal needs wider margins</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--diagonal" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="The diagonal frame leaves generous space around the vessel." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Budget for the shape's cut</h4><p>A diagonal suggests direction while removing image area. Leave extra crop-safe room before placing subjects near the edge.</p></div>
+          </div>
+        </div>
+      </article>
+      <article class="card" id="card-organic">
+        <div class="slide-content">
+          <h2 class="slide-title">Let the material<br><em>shape the frame.</em></h2>
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--organic" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="An asymmetric rounded crop echoes the handmade clay vessel." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><p>Use a restrained contour, not arbitrary decoration.</p></div>
+          </div>
+        </div>
+        <h3 class="card-head">
+          <button type="button" class="card-toggle" aria-expanded="false">
+            <span class="card-num" aria-hidden="true"></span>
+            <span class="card-titles"><span class="card-title">An organic crop echoes the material</span></span>
+            <span class="card-mark" aria-hidden="true"></span>
+          </button>
+        </h3>
+        <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--organic" style="--image-position: 80% 50%">
+              <img src="assets/sample-scene.svg" alt="Rounded asymmetric corners preserve the clay vessel's silhouette." width="1600" height="900">
+            </div>
+            <div class="composition-copy"><h4>Choose a contour with a reason</h4><p>The rounded frame echoes handmade clay. Keep the contour restrained and the subject intact. Do not mask labels or evidence.</p></div>
+          </div>
+          <p>No image-generation service is needed to use this gallery. Local artwork, supplied photographs, or optional generated images all use the same offline markup.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+  <section class="takeaway" id="closing">
+    <p>Choose the image that makes the claim clearer.</p>
+    <div class="slide-content slide-content--end">
+      <h2 class="slide-title">Make the claim<br><em>clearer.</em></h2>
+    </div>
+  </section>
+  <footer class="doc-footer"><p>All scenes and scenarios are fictional. Original SVG artwork is included under the skill's MIT license.</p></footer>
+</div>
+</body>
+</html>

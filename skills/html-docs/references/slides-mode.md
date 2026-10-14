@@ -41,6 +41,12 @@ hidden in reading mode, the reading PDF, and the no-JavaScript fallback. **All
 essential information must therefore also exist in the reading body.** The
 slides PDF prints exactly these surfaces; see [PDF export](pdf-export.md).
 
+Optional image-led cues can use `compositions.css`, loaded after the view
+styles. See [visual storytelling](visual-storytelling.md) and the
+[visual article gallery](../visual.article.html): the same hero, split, strip,
+and shaped-crop classes work inside `.slide-content` and `.card-body`, without
+generation/cloud dependencies or a change to the single-accent UI palette.
+
 ## Authoring budget
 
 - One claim per slide; at most **45 words**, including diagram labels.
@@ -108,6 +114,28 @@ default with `data-default-accent="blue"` (or `red`/`green`/`yellow`) and option
 `?view=slides#card-headroom` opens that card's concise surface.
 `?view=slides&theme=dark&accent=red#opening` opens a red-orange/dark title slide.
 Exiting presentation removes `view=slides` and opens the current reading card.
+
+### Focusing a slide in an embedded preview
+
+Load the iframe with `?view=slides#card-headroom` to enter Slides and focus
+that card's concise surface after the deferred runtime boots. A chapter
+divider uses the chapter ID instead of a card ID. The current slide container
+has `[data-slide-current]`; its surface is the direct `.slide-content` child,
+or the direct `.chapter-label` child for a divider.
+
+After load, assign the iframe window's `location.hash` to a stable slide ID.
+While presenting, the runtime's `hashchange` handler selects that slide,
+resets fragments, and focuses its surface. If initially in Read, set the hash
+then click `[data-action="toggle-slides"]` once; the toggle resolves the hash
+on entry. Do not toggle when already presenting. If the hash is already
+current, explicitly focus its surface with `focus({ preventScroll: true })`.
+
+Generated controls use `[data-slide="prev|next|index"]`; index entries use
+`[data-go]` with a zero-based index. Prefer stable hashes. The document event
+`html-docs:present` announces presentation entry to other views; it is **not**
+a navigation command. Setting attributes directly or `history.replaceState`
+does not run the navigation handler. Same-origin iframe access is required;
+opaque sandbox/cross-origin frames need their host's separate bridge.
 
 ## Sharing and review
 

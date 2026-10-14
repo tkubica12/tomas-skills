@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fictional landscape image review</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #171717; color: white; font-family: system-ui, sans-serif; }
+    .slide { width: 100%; min-height: 100vh; display: grid; grid-template-columns: 42% 58%; align-items: center; padding: 5vw; gap: 3vw; }
+    h1 { font-size: clamp(24px, 4vw, 64px); line-height: 1.1; }
+    p { font-size: clamp(16px, 1.7vw, 28px); line-height: 1.5; }
+    .scene { width: 100%; height: 65vh; object-fit: cover; border-radius: 24px; }
+    button { padding: 10px; }
+    @media print { body { background: white; color: black; } .slide { min-height: auto; } .scene { height: 110mm; } }
+  </style>
+</head>
+<body>
+  <!-- MIT: original fictional example artwork; see the repository LICENSE. -->
+  <section class="slide" id="landscape-slide">
+    <div><p>Fictional planning example</p><h1>Leave room for the next idea</h1><p id="claim">The landscape supports the claim; the words remain unchanged.</p>
+      <button id="normal-navigation" onclick="document.body.dataset.navigated='yes'">Normal document action</button></div>
+    <img class="scene" id="landscape" data-visual-id="landscape" src="assets/original.svg" alt="Fictional mountain landscape">
+  </section>
+</body>
+</html>

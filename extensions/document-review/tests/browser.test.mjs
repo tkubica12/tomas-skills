@@ -4,11 +4,14 @@ import { createRequire } from "node:module";
 import { readdir, access, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fixture, html } from "./helpers.mjs";
+import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+import { fixture, html, register } from "./helpers.mjs";
 import { openDocument, startServer } from "../server.mjs";
 
 const require = createRequire(import.meta.url);
 const playwright = require(process.env.PLAYWRIGHT_MODULE || path.join(os.homedir(), "AppData", "Roaming", "npm", "node_modules", "playwright"));
+const publicFixture = fileURLToPath(new URL("../../../examples/image-review/slide.html", import.meta.url));
 async function browserPath() {
     if (process.env.PLAYWRIGHT_CHROMIUM) return process.env.PLAYWRIGHT_CHROMIUM;
     const root = path.join(os.homedir(), "AppData", "Local", "ms-playwright");
@@ -28,6 +31,16 @@ async function browserFixture(t) {
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript(() => {
+        window.reviewTestTrace = [];
+        document.addEventListener("click", event => {
+            window.reviewTestTrace.push({ click: event.target.id || event.target.dataset?.kind });
+        }, true);
+        window.addEventListener("message", event => {
+            if (event.data?.type !== "selection") return;
+            window.reviewTestTrace.push({ selection: event.data.anchor });
+        });
+    });
     await page.goto(f.server.url);
     const frame = page.frameLocator("#preview");
     await frame.locator("#first").waitFor();
@@ -57,9 +70,22 @@ async function select(frame, selector, start = 0, end) {
         getSelection().addRange(range);
         element.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
     }, { start, end });
+    const page = frame.owner().page();
+    await page.locator("#composer").waitFor({ state: "visible" });
+    await page.locator("#composer").evaluate(() => new Promise(resolve =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 async function save(page, kind, value) {
+    await page.waitForFunction(() => !busy && !document.querySelector("#composer").hidden);
+    await page.locator("#composer").evaluate(() => new Promise(resolve =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.locator(`[data-kind=${kind}]`).click();
+    if (await page.locator("#edit-form").isHidden()) throw new Error(JSON.stringify(await page.evaluate(() => ({
+        composerHidden: document.querySelector("#composer").hidden,
+        formHidden: document.querySelector("#edit-form").hidden,
+        error: document.querySelector("#error").textContent,
+        selection, kind, previewUrl, trace: window.reviewTestTrace
+    }))));
     if (kind !== "delete") await page.locator("#edit-text").fill(value);
     await page.locator("#save").click();
     await page.locator("#composer").waitFor({ state: "hidden" });
@@ -209,4 +235,248 @@ test("html-docs real article and generated slides retain working controls", { sk
     await frame.locator('[data-action="toggle-slides"]').click();
     assert.notEqual(await frame.locator("html").getAttribute("data-view"), "slides");
     assert.equal(errors.length, 0, errors.join("\n"));
+});
+
+test("image mode preserves normal navigation; candidates compare in real unchanged slide context", async t => {
+    const f = await browserFixture(t);
+    await register(f);
+    await f.frame.locator("#toggle").click();
+    assert.equal(await f.frame.locator("body").getAttribute("data-toggled"), "yes");
+    await f.frame.locator("#scene").click();
+    assert.equal(await f.page.locator("#composer").isHidden(), true);
+    await f.page.locator("#image-mode").click();
+    await f.frame.locator("#scene").click();
+    await f.page.locator("#composer").waitFor({ state: "visible" });
+    await f.page.locator("#candidates .candidate").nth(2).waitFor();
+    const selected = (await f.server.state()).selectedVisual;
+    assert.equal(selected.anchor.selector, "#scene");
+    await f.page.locator("#dismiss").click();
+    await f.page.locator("#candidates").getByRole("button", { name: "Variant a", exact: true }).click();
+    const comparison = f.page.frameLocator("#comparison");
+    await comparison.locator('#scene[src*="/candidate/"]').waitFor();
+    await comparison.locator("#scene").evaluate(image => image.decode());
+    assert.match(await comparison.locator("#scene").getAttribute("src"), /candidate\/.*\/variant-a/);
+    assert.equal(await comparison.locator("#scene-claim").textContent(), await f.frame.locator("#scene-claim").textContent());
+    assert.equal(await comparison.locator("#first").innerHTML(), await f.frame.locator("#first").innerHTML());
+    assert.equal(await comparison.locator("#scene").evaluate(node => node.style.objectPosition), "70% 50%");
+    assert.equal(await f.frame.locator("#scene").getAttribute("src"), "../assets/original.svg");
+    await f.page.locator("#compare").click();
+    assert.equal(await f.page.locator("#preview").isVisible(), true);
+    assert.equal(await f.page.locator("#comparison").isVisible(), true);
+    await f.page.locator("#large-view").click();
+    assert.equal(await f.page.locator("body").evaluate(node => node.classList.contains("large-review")), true);
+    await f.page.locator("#gallery-toggle").click();
+    assert.equal(await f.page.locator("#image-gallery img").count(), 4);
+    await f.page.locator("#gallery-toggle").click();
+    await f.page.locator("#candidates .candidate").first().getByRole("button", { name: "Favorite", exact: true }).click();
+    await f.page.locator("#candidate-comment").fill("Preserve the scene; soften the mountain.");
+    await f.page.locator("#save-candidate-comment").click();
+    assert.equal((await f.server.state()).annotations.length, 0);
+    assert.equal(f.sent.length, 0);
+    await f.page.locator("#use-candidate").click();
+    await f.page.locator("#submit:not([disabled])").waitFor();
+    const request = (await f.server.state()).annotations[0];
+    assert.equal(request.kind, "use-candidate");
+    assert.deepEqual(request.candidateIds, ["variant-a"]);
+    assert.equal(f.sent.length, 0);
+    await f.page.locator("#submit").click();
+    await f.page.locator("#confirm-submit").click();
+    await f.page.waitForFunction(() => document.querySelector("#submit").disabled);
+    assert.equal(f.sent.length, 1);
+    assert.equal(f.errors.length, 0, f.errors.join("\n"));
+});
+
+test("keyboard image selection, SVG and CSS components and bounded steering remain explicit", async t => {
+    const f = await browserFixture(t);
+    await f.page.locator("#image-mode").click();
+    await f.frame.locator("#scene").focus();
+    await f.page.keyboard.press("Enter");
+    await f.page.locator("#composer").waitFor({ state: "visible" });
+    await save(f.page, "image-edit", "Preserve the geometry; change the light.");
+    await f.frame.locator("#inline-scene").click();
+    await save(f.page, "crop-layout", "Keep original artwork; crop only.");
+    await f.frame.locator("#background-scene").click();
+    await f.page.locator("[data-kind=generate-alternatives]").click();
+    await f.page.locator("#edit-text").fill("Keep the landscape. Try three sky treatments.");
+    await f.page.locator("#variant-count").fill("3");
+    await f.page.locator("#save").click();
+    await f.page.locator("#composer").waitFor({ state: "hidden" });
+    const items = (await f.server.state()).annotations;
+    assert.deepEqual(items.map(item => item.anchor.assetKind), ["img", "svg", "background"]);
+    assert.equal(items[2].count, 3);
+    assert.equal(items[1].composition.position, "50% 50%");
+    assert.equal(f.sent.length, 0);
+    await f.page.locator("#image-mode").click();
+    assert.equal(await f.frame.locator("#scene").getAttribute("tabindex"), null);
+    await select(f.frame, "#second");
+    await save(f.page, "comment", "Text review still works.");
+    assert.equal((await f.server.state()).annotations.length, 4);
+});
+
+test("inline SVG candidate preview, original gallery and crop-only override do not replace source", async t => {
+    const f = await browserFixture(t);
+    await f.page.locator("#image-mode").click();
+    await f.frame.locator("#inline-scene").click();
+    await f.page.locator("#composer").waitFor({ state: "visible" });
+    await f.page.waitForFunction(() => state?.selectedVisual?.anchor.selector === "#inline-scene");
+    const selected = (await f.server.state()).selectedVisual;
+    assert.match(selected.anchor.assetSource, /^inline:sha256:[a-f0-9]{64}$/);
+    await f.server.registerCandidates({ ...selected, candidates: [
+        { id: "svg-image", label: "SVG candidate", assetPath: "assets/candidate-a.svg" },
+        { id: "svg-crop", label: "SVG crop", composition: { shape: "oval" } }
+    ] });
+    await f.page.locator("#dismiss").click();
+    await f.page.locator("#candidates").getByRole("button", { name: "SVG candidate", exact: true }).click();
+    const frame = f.page.frameLocator("#comparison");
+    try { await frame.locator("img#inline-scene").waitFor({ timeout: 5000 }); }
+    catch (error) { throw new Error(`${error.message}; canvas error: ${await f.page.locator("#error").textContent()}`); }
+    assert.equal(await f.frame.locator("svg#inline-scene").count(), 1);
+    await f.page.locator("#candidates").getByRole("button", { name: "SVG crop", exact: true }).click();
+    await frame.locator("svg#inline-scene").waitFor();
+    assert.equal(await frame.locator("#inline-scene").evaluate(node => node.style.clipPath), "ellipse(50% 50%)");
+    await f.page.locator("#gallery-toggle").click();
+    assert.equal(await f.page.locator("#image-gallery img").count(), 2);
+    assert.match(await f.page.locator("#image-gallery img").first().getAttribute("src"), /^data:image\/svg/);
+    await f.page.locator("#gallery-toggle").click();
+    await f.page.locator("#original").click();
+    assert.equal(await f.page.locator("#comparison").isHidden(), true);
+    assert.equal(await f.frame.locator("#inline-scene").getAttribute("style"), null);
+    assert.equal(f.sent.length, 0);
+    assert.equal(f.errors.length, 0, f.errors.join("\n"));
+});
+
+test("public fictional fixture registers three offline candidates without altering its slide text", { skip: !existsSync(publicFixture) }, async t => {
+    const f = await fixture(t);
+    const document = await openDocument({ filePath: publicFixture });
+    const server = await startServer({ ...f.config, document });
+    t.after(() => server.close());
+    const browser = await playwright.chromium.launch({ executablePath: await browserPath(), headless: true });
+    t.after(() => browser.close());
+    const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(server.url);
+    const original = page.frameLocator("#preview");
+    await original.locator("#landscape").waitFor();
+    await page.locator("#image-mode").click();
+    await original.locator("#landscape").click();
+    await page.waitForFunction(() => state?.selectedVisual?.anchor.selector === "#landscape");
+    const selected = (await server.state()).selectedVisual;
+    await server.registerCandidates({ ...selected, candidates: ["a", "b", "c"].map(id => ({
+        id, label: `Candidate ${id}`, assetPath: `assets/candidate-${id}.svg`,
+        composition: { fit: "cover", position: "65% 50%", shape: "rounded" }
+    })) });
+    await page.locator("#dismiss").click();
+    await page.locator("#candidates").getByRole("button", { name: "Candidate b", exact: true }).click();
+    const candidate = page.frameLocator("#comparison");
+    await candidate.locator('#landscape[src*="/candidate/"]').waitFor();
+    await page.waitForFunction(() => !document.querySelector("#error").textContent);
+    assert.equal(await candidate.locator("#claim").textContent(), await original.locator("#claim").textContent());
+    assert.equal(await candidate.locator("h1").textContent(), await original.locator("h1").textContent());
+    assert.match(await candidate.locator("#landscape").getAttribute("src"), /candidate\/.*\/b/);
+    assert.equal((await server.state()).annotations.length, 0);
+    assert.equal(f.sent.length, 0);
+    assert.deepEqual(errors, []);
+});
+
+test("html-docs deck and article candidates restore the same active slide, text and palette", { skip: !process.env.REVIEW_HTML_DOCS_VISUAL_ROOT }, async t => {
+    for (const mode of ["deck", "article"]) await t.test(mode, async t => {
+        const f = await fixture(t);
+        const rootPath = process.env.REVIEW_HTML_DOCS_VISUAL_ROOT;
+        const document = await openDocument({ filePath: path.join(rootPath, `visual.${mode}.html`), rootPath });
+        const server = await startServer({ ...f.config, document });
+        t.after(() => server.close());
+        const browser = await playwright.chromium.launch({ executablePath: await browserPath(), headless: true });
+        t.after(() => browser.close());
+        const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+        const errors = [];
+        page.on("pageerror", error => errors.push(error.message));
+        await page.goto(server.url);
+        const original = page.frameLocator("#preview");
+        const id = mode === "deck" ? "s-circle" : "card-circle";
+        await original.locator(`#${id}`).waitFor({ state: "attached" });
+        await original.locator("body").evaluate(() => document.readyState === "complete" ? Promise.resolve() :
+            new Promise(resolve => window.addEventListener("load", resolve, { once: true })));
+        await original.locator("body").evaluate((body, id) => {
+            location.hash = id;
+            document.documentElement.dataset.theme = "dark";
+            document.documentElement.dataset.accent = "red";
+        }, id);
+        await original.locator("body").evaluate(() => new Promise(resolve =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        if (mode === "article") await original.locator('[data-action="toggle-slides"]').click();
+        const current = mode === "deck" ? `.slide[data-current]#${id}` : `[data-slide-current]#${id}`;
+        try { await original.locator(current).waitFor({ state: "attached", timeout: 5000 }); }
+        catch (error) {
+            throw new Error(`${error.message}; ${JSON.stringify(await original.locator("body").evaluate(() => ({
+                view: document.documentElement.dataset.view, hash: location.hash,
+                active: [...document.querySelectorAll("[data-slide-current]")].map(node => ({ id: node.id, text: node.textContent.slice(0, 80) }))
+            })))}, page errors: ${JSON.stringify(errors)}`);
+        }
+        const image = original.locator(`${current} ${mode === "article" ? ".slide-content " : ""}img`).first();
+        await image.waitFor();
+        await page.locator("#image-mode").click();
+        await image.click();
+        await page.waitForFunction(id => state?.selectedVisual?.anchor.slideId === id, id);
+        const selected = (await server.state()).selectedVisual;
+        assert.equal(selected.context.view, mode === "deck" ? "deck" : "slides");
+        const before = await original.locator(current).textContent();
+        await server.registerCandidates({ ...selected, candidates: [{ id: `${mode}-test`, label: "Context candidate",
+            assetPath: "assets/sample-scene.svg", composition: { position: "70% 50%", shape: "rounded" } }] });
+        await page.locator("#dismiss").click();
+        await page.locator("#candidates").getByRole("button", { name: "Context candidate", exact: true }).click();
+        const candidate = page.frameLocator("#comparison");
+        await candidate.locator('img[src*="/candidate/"]').waitFor();
+        await candidate.locator(current).waitFor({ state: "attached" });
+        assert.equal(await candidate.locator(current).textContent(), before);
+        assert.equal(await candidate.locator("html").getAttribute("data-theme"), "dark");
+        assert.equal(await candidate.locator("html").getAttribute("data-accent"), "red");
+        assert.equal(await candidate.locator(current).count(), 1);
+        assert.equal((await server.state()).annotations.length, 0);
+        assert.equal(f.sent.length, 0);
+        assert.deepEqual(errors, []);
+    });
+});
+
+test("large embedded standalone images use bounded fingerprints, not oversized annotation payloads", async t => {
+    const f = await browserFixture(t);
+    const embedded = `data:image/svg+xml;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="160"><rect width="300" height="160" fill="green"/><!--' +
+        "padding".repeat(20000) + '--></svg>').toString("base64")}`;
+    assert.ok(embedded.length > 128 * 1024);
+    await writeFile(f.filePath, html.replace('src="../assets/original.svg"', `src="${embedded}"`));
+    await f.server.refresh();
+    await f.page.reload();
+    await f.frame.locator("#scene").waitFor();
+    await f.page.locator("#image-mode").click();
+    await f.frame.locator("#scene").click();
+    await f.page.waitForFunction(() => state?.selectedVisual?.anchor.selector === "#scene");
+    const selected = (await f.server.state()).selectedVisual;
+    assert.match(selected.anchor.assetSource, /^inline:sha256:[a-f0-9]{64}$/);
+    await save(f.page, "image-edit", "Preserve geometry; adjust the light.");
+    assert.ok(JSON.stringify((await f.server.state()).annotations[0]).length < 4000);
+    await f.page.locator("#gallery-toggle").click();
+    assert.equal(await f.page.locator("#image-gallery img").count(), 1);
+    assert.equal(await f.page.locator("#image-gallery img").getAttribute("src"), embedded);
+    assert.equal(f.sent.length, 0);
+    assert.equal(f.errors.length, 0, f.errors.join("\n"));
+});
+
+test("CSS image crop changes only a background layer, never the overlaid claim text", async t => {
+    const f = await browserFixture(t);
+    await f.page.locator("#image-mode").click();
+    await f.frame.locator("#background-scene").click();
+    await f.page.waitForFunction(() => state?.selectedVisual?.anchor.selector === "#background-scene");
+    const selected = (await f.server.state()).selectedVisual;
+    await f.server.registerCandidates({ ...selected, candidates: [{ id: "background", label: "Background candidate",
+        assetPath: "assets/candidate-b.svg", composition: { position: "65% 50%", shape: "oval" } }] });
+    await f.page.locator("#dismiss").click();
+    await f.page.locator("#candidates").getByRole("button", { name: "Background candidate", exact: true }).click();
+    const frame = f.page.frameLocator("#comparison");
+    await frame.locator("#background-scene > div[aria-hidden=true]").waitFor();
+    assert.equal(await frame.locator("#background-caption").innerHTML(), await f.frame.locator("#background-caption").innerHTML());
+    assert.equal(await frame.locator("#background-scene").evaluate(node => node.style.clipPath), "");
+    assert.equal(await frame.locator("#background-scene > div").evaluate(node => node.style.clipPath), "ellipse(50% 50%)");
+    assert.match(await frame.locator("#background-scene > div").evaluate(node => node.style.backgroundImage), /candidate\/.*\/background/);
+    assert.equal(f.sent.length, 0);
+    assert.equal(f.errors.length, 0, f.errors.join("\n"));
 });

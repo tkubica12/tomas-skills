@@ -12,6 +12,7 @@
     <div class="identity"><strong>Document review</strong><span id="filename"></span></div>
     <div class="tools">
       <button id="refresh" type="button">Obnovit n&aacute;hled</button>
+      <button id="image-mode" type="button" aria-pressed="false">Hodnotit obr&aacute;zky</button>
       <button id="toggle-list" type="button" aria-expanded="false" aria-controls="sidebar">P&#345;ipom&iacute;nky <span id="count">0</span></button>
       <button id="submit" class="primary" type="button" disabled>P&#345;edat agentovi</button>
     </div>
@@ -19,8 +20,30 @@
   <div class="hint">Ozna&#269; text my&#353;&iacute; nebo kl&aacute;vesnic&iacute; &rarr; komentuj, nahra&#271; nebo sma&#382;. Zm&#283;ny se provedou a&#382; po p&#345;ed&aacute;n&iacute; agentovi.</div>
   <div id="notice" role="status" aria-live="polite" hidden></div>
   <div id="error" role="alert" hidden></div>
+  <section id="image-review" hidden aria-label="Image variant review">
+    <div class="tools">
+      <strong id="visual-name">Image review</strong>
+      <button id="original" type="button">Original</button>
+      <button id="compare" type="button" aria-pressed="false">Compare in slide</button>
+      <button id="large-view" type="button" aria-pressed="false">Large view</button>
+      <button id="gallery-toggle" type="button" aria-pressed="false">Image gallery</button>
+    </div>
+    <div id="candidates"></div>
+    <div id="candidate-tools" hidden>
+      <label for="candidate-comment">Candidate comment (saved, not sent)</label>
+      <textarea id="candidate-comment" rows="2" maxlength="4000"></textarea>
+      <div class="tools">
+        <button id="save-candidate-comment" type="button">Save comment</button>
+        <button id="use-candidate" type="button">Use in document: queue request</button>
+        <button id="steer-candidate" type="button">Request next variants from this</button>
+      </div>
+      <div id="candidate-comments"></div>
+    </div>
+  </section>
   <main>
     <iframe id="preview" title="N&aacute;hled dokumentu pro p&#345;ipom&iacute;nkov&aacute;n&iacute;" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+    <iframe id="comparison" title="Candidate in the same slide" sandbox="allow-scripts" referrerpolicy="no-referrer" hidden></iframe>
+    <section id="image-gallery" hidden aria-label="Original image gallery"></section>
     <aside id="sidebar" hidden>
       <h2>P&#345;ipom&iacute;nky</h2>
       <p class="muted">Ukl&aacute;daj&iacute; se automaticky. Odeslan&eacute; neznamen&aacute; proveden&eacute;.</p>
@@ -35,10 +58,19 @@
       <button type="button" data-kind="comment">Komentovat</button>
       <button type="button" data-kind="replace">Nahradit</button>
       <button type="button" data-kind="delete">Smazat</button>
+      <button type="button" data-kind="image-edit" hidden>Edit image</button>
+      <button type="button" data-kind="generate-alternatives" hidden>Generate alternatives</button>
+      <button type="button" data-kind="crop-layout" hidden>Crop/layout only</button>
     </div>
     <form id="edit-form" hidden>
       <label id="instruction" for="edit-text"></label>
       <textarea id="edit-text" rows="4" maxlength="12000"></textarea>
+      <div id="generation-options" hidden><label for="variant-count">Next variants (1-5)</label><input id="variant-count" type="number" min="1" max="5" value="3"></div>
+      <div id="crop-options" hidden>
+        <label for="crop-fit">Fit</label><select id="crop-fit"><option>cover</option><option>contain</option><option>fill</option></select>
+        <label for="crop-position">Position (two percentages)</label><input id="crop-position" value="50% 50%" pattern=".*" maxlength="40">
+        <label for="crop-shape">Shape</label><select id="crop-shape"><option>original</option><option>rounded</option><option>circle</option><option>oval</option><option>diagonal</option><option>organic</option></select>
+      </div>
       <p id="delete-note" hidden>Agent odstran&iacute; pouze vybran&yacute; &uacute;sek. Soubor se te&#271; nem&#283;n&iacute;.</p>
       <button id="save" type="submit" class="primary">Ulo&#382;it p&#345;ipom&iacute;nku</button>
     </form>
