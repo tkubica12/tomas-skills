@@ -1,7 +1,7 @@
 # Provenance
 
 This is a clean, portable MIT adaptation of the optional image-authoring
-workflow inspected at `D:\presentations\.agents\skills\image-generator`.
+workflow from a read-only local installation of `image-generator`.
 Its skill metadata declares **MIT** and identifies Tomáš Kubica's
 `tkubica12/presentation-forge` distribution and the original
 `tkubica12/image-generator-skill` project. The inspected package version was

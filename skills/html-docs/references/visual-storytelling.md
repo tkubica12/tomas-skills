@@ -172,20 +172,40 @@ Open [article gallery](../visual.article.html) in Read and Slides, and
 They are editable offline examples, with one original fictional asset and no
 external resources. The standard component galleries link to them.
 
-## Optional Image generator companion
+## Optional image-generator skill and Python CLI
 
-If a separately installed **Image generator** (`image-generator`) canvas is available and the user
-wants generated or edited artwork, the agent can hand off the brief above.
-Inspect that companion's actual capabilities before invoking it; do not
-assume tool names, install it automatically, or make a chat interview mandatory.
-The user may approve a direct brief, supply an existing local asset, or skip
-generation entirely.
+If the separately installed **image-generator skill** is available and the user
+wants generated or edited artwork, load its `SKILL.md` and follow its
+[documented Python CLI](../../image-generator/README.md),
+`scripts\generate_images.py`, using the brief above. This companion is **not a
+canvas** and declares no `image-generator` canvas or agent tool. Do not invent
+one or inspect canvas capabilities to run generation. The separately installed
+`document-review` canvas is for reviewing local image candidates, not cloud
+execution.
 
-Any provider login/cloud prerequisites belong only to that optional companion.
-Accept its output only after checking the invariant/reference requirements,
-save the approved image locally, then use the same composition markup. Do not
-include credentials, service calls, remote URLs, or generation APIs in the
-HTML/runtime. Changing an image requires rebuilding the standalone export.
+Author complete prompts and plan offline first; a chat deployment or interview
+is not mandatory. Use the CLI's optional `--discover` mode for authorized
+read-only discovery, honoring explicit resource/subscription configuration
+before the current Azure identity's authorized scope. Resolve the actual
+provider/model/version and documented native dimensions/reference capabilities
+behind deployment aliases. Unknown, ambiguous, absent or unsuitable/legacy
+models require an explicit user choice; never silently resize a strict native
+4K request or freeze resource/model/version defaults in the document.
+
+Only after concrete approval for the selected model, image count, references,
+dimensions, retry limit and expected charges may the agent use
+`--generate --approve-inference`. Deployment or cloud/RBAC changes are separate
+operations requiring explicit approval for the concrete resource, region,
+model/version, SKU/capacity and cost implications. Do not install the skill or
+change cloud resources automatically. The user may supply an existing local
+asset or skip generation entirely.
+
+Provider login/cloud prerequisites belong only to that optional skill/CLI.
+Check returned dimensions, metadata and invariant/reference fidelity before
+accepting an output. Save the approved image locally, then use the same
+composition markup. Keep credentials, service calls, required remote assets
+and generation APIs out of the HTML/runtime. Ordinary authoring remains
+cloud-free. Changing an image requires rebuilding the standalone export.
 
 ## Check before handoff
 

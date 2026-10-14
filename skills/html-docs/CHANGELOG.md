@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.1 — 2026-10-14
+
+**Documentation-only correction to the optional companion workflow.**
+
+- Identify `image-generator` as the separately installed skill and Python CLI,
+  not a canvas or invented agent tool. Load its instructions for offline
+  planning, optional authorized discovery and explicitly approved inference.
+- Preserve actual model/capability checks, strict native dimensions, concrete
+  cloud-operation consent and offline HTML boundaries. `document-review`
+  remains the separate canvas for local image-candidate review.
+- No template, composition stylesheet or runtime changes.
+
 ## 1.3.0 — 2026-10-14
 
 **Optional claim-led image compositions, without changing the core runtime.**
