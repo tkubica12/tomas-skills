@@ -150,8 +150,12 @@ canonical surface/text tokens around the image.
 Only short, user-driven point reveals animate. Reduced motion removes the
 transition and shows all points. No autoplay, looping motion, or scroll effects.
 
-Dark tokens are wrapped in `@media screen`: **every printout and PDF uses the
-light palette** with the selected accent, whatever the screen theme. Print
+Screen and print themes are independent: **printouts and PDFs default to light**
+with the selected accent, whatever the screen theme. Explicit
+`data-print-theme="dark"`, the **PDF theme** control, `?print-theme=dark`, or
+`export-pdf.js --theme dark` opts into the canonical dark print palette.
+Use background graphics for dark output; inspect actual PDF pages.
+Print
 the view that is on screen: the reading PDF shows the full reference without
 duplicate summaries, the slides PDF one page per slide with all fragments, and
 the sheet PDF one page per `.sheet-page`. See [PDF export](pdf-export.md).

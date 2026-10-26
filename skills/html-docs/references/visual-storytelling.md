@@ -146,6 +146,43 @@ the DOM. Reading order must match visual order; do not reverse it with CSS.
 </figure>
 ```
 
+### Shared content edges
+
+A panorama below related cards normally spans **the first card's left edge to
+the last card's right edge**. Keep the existing `.summary-grid` and
+`.composition.composition--panorama` as siblings in the same `.slide-body`,
+`.slide-content`, or `.card-body`. The composition already has `width: 100%`;
+no new layout wrapper or slide-edge bleed is needed. Put its caption inside
+the figure; related prose and quote containers use the same parent width.
+Align the containers, not every glyph of a padded quotation.
+
+```html
+<div class="summary-grid">
+  <div class="summary-item">Clay holds the form.</div>
+  <div class="summary-item">Timber supports the work.</div>
+</div>
+<figure class="composition composition--panorama">
+  <div class="composition-media" style="--image-position: 50% 65%">
+    <img src="assets/sample-scene.svg"
+         alt="The wide courtyard crop keeps the complete vessel and bench."
+         width="1600" height="900">
+  </div>
+  <figcaption class="composition-caption">Original fictional scene.</figcaption>
+</figure>
+```
+
+Do not substitute an intrinsic-width centered image (`width: auto` plus a
+fixed height and `object-fit: contain`): it breaks the shared outer edges.
+For illustrative scenes, use the existing full-width media frame, CSS `cover`,
+and `--image-position`, checking important subjects at each aspect ratio.
+Do not rewrite the original image. Diagrams and logos are not scenes: use the
+ordinary uncropped figure/`contain` path so labels, geometry, and marks stay
+intact. Do not apply cover or masks universally.
+
+Review asks **“Which outer edges align?”**, **“Are these unordered peers?”**
+and **“Why is anything emphasized?”** Browser measurements can check chosen
+edges and colors, not whether a progression, emphasis, or crop is meaningful.
+
 ## View contracts, galleries, and print
 
 - **Deck:** place a composition inside `.slide-body`. A hero can carry the
@@ -158,11 +195,12 @@ the DOM. Reading order must match visual order; do not reverse it with CSS.
   essential reasoning must still live in the reading body.
 - **Narrow reading:** split compositions stack in DOM order. Hero copy stays
   within its protected half. Shorten hero text instead of shrinking fonts.
-- **Print:** no animations or filters; hero surfaces use light tokens, crops
+- **Print:** no animations or filters; hero surfaces use the chosen print tokens
+  (light by default, dark only by explicit choice), crops
   and text remain visible. Reading figures avoid internal page breaks;
   presentation keeps one page per slide. Print with backgrounds enabled
-  (the PDF exporter does), and check the actual pages. With backgrounds
-  disabled, light text still reads over a white paper surface.
+  (the PDF exporter does), and check the actual pages. Dark printing requires
+  background graphics; choose light printing for ink-saving output.
 - **Sheets:** not a new sheet layout or density allowance. Prefer the existing
   sheet components; if an image is essential, use one small local figure and
   revalidate paper fit. Do not copy an entire hero into a fixed paper budget.
@@ -211,7 +249,8 @@ cloud-free. Changing an image requires rebuilding the standalone export.
 
 Run the existing validator on source and isolated standalone exports. Test
 all eight palettes at laptop/projector sizes, narrow Read, no JavaScript,
-offline load, keyboard navigation, and light print/PDF page counts. Inspect
+offline load, keyboard navigation, and default-light plus explicit-dark
+print/PDF page counts. Inspect
 the hero copy's contrast, cropped subject silhouette, and meaningful alt text;
 an overflow test cannot decide whether the scene supports the claim.
 

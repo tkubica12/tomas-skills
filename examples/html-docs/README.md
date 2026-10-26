@@ -25,8 +25,10 @@ exporter. These were generated from the standalone HTML:
 
 [![First page of the document PDF, the one-page sheet PDF, and three slide PDF pages.](pdf-preview.png)](queue-is-not-capacity.sheet.pdf)
 
-PDF pages rendered as images: document, sheet, and slides. Every PDF uses the
-light palette, even when the screen shows the dark theme.
+PDF pages rendered as images: document, sheet, and slides. These example PDFs
+use the backward-compatible light default, even when the screen is dark.
+Version 1.4.0 also supports explicit dark output with **PDF theme** or
+`export-pdf.js --theme dark`; use a separate output folder to keep both.
 
 ## Open it
 
@@ -57,6 +59,8 @@ If you cloned the repository, open either the standalone above or the
   or swipe horizontally on touch. The screen stays awake while presenting.
 - **PDF:** prints the view on screen: the full document, one page per slide
   while presenting, or the sheet. Choose **Save as PDF** in the print dialog.
+- **PDF theme:** chooses light (default) or dark printing independently of
+  the screen theme. Keep background graphics enabled for dark output.
 - **Theme:** **Dark / Light** switches the whole document and diagram.
 - **Accent:** cycles blue, red (red-orange), green, yellow. Only one accent
   family is used at a time, alongside black, white, and grayscale; the default

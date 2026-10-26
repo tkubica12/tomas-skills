@@ -3,7 +3,7 @@
    html-docs PDF export. Prints each view a document offers to its own PDF,
    through the same print stylesheets the in-page PDF button uses.
 
-     node assets\export-pdf.js <document>.html [--out <folder>] [--only read,slides,sheet]
+     node assets\export-pdf.js <document>.html [--out <folder>] [--only read,slides,sheet] [--theme light|dark]
 
    One view:    <name>.pdf
    Several:     <name>.document.pdf, <name>.slides.pdf, <name>.sheet.pdf
@@ -17,15 +17,29 @@ const { pathToFileURL } = require("node:url");
 const { playwright, chromiumPath, frame, printPlan, preparePrint, printOverflow, renderPdf, pdfPages } = require("./validate.js");
 
 const args = process.argv.slice(2);
-const input = args.find(arg => !arg.startsWith("--") && !["--out", "--only"].includes(args[args.indexOf(arg) - 1]));
-const option = name => args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
-if (!input || !fs.existsSync(input)) {
-  console.error("usage: node export-pdf.js <document.html> [--out <folder>] [--only read,slides,sheet]");
+let input;
+const options = {};
+for (let index = 0; index < args.length; index++) {
+  const arg = args[index];
+  if (["--out", "--only", "--theme"].includes(arg) && args[index + 1] && !args[index + 1].startsWith("--")) {
+    options[arg] = args[++index];
+  } else if (!arg.startsWith("--") && !input) input = arg;
+  else {
+    console.error("Invalid or incomplete argument: " + arg);
+    process.exit(2);
+  }
+}
+if (!input || !fs.existsSync(input) || (options["--theme"] && !["light", "dark"].includes(options["--theme"]))) {
+  console.error("usage: node export-pdf.js <document.html> [--out <folder>] [--only read,slides,sheet] [--theme light|dark]");
   process.exit(2);
 }
 const file = path.resolve(input);
-const outDir = path.resolve(option("--out") || path.dirname(file));
-const only = option("--only")?.split(",").map(s => s.trim()).filter(Boolean);
+const outDir = path.resolve(options["--out"] || path.dirname(file));
+const only = options["--only"]?.split(",").map(s => s.trim()).filter(Boolean);
+if (only?.some(view => !["read", "slides", "sheet"].includes(view))) {
+  console.error("--only must contain read, slides, or sheet");
+  process.exit(2);
+}
 const base = path.basename(file).replace(/\.html?$/i, "").replace(/\.standalone$/i, "");
 const suffix = { read: "document", slides: "slides", sheet: "sheet" };
 
@@ -50,11 +64,14 @@ const suffix = { read: "document", slides: "slides", sheet: "sheet" };
       throw new Error("the page did not load cleanly; nothing written:\n  " + problems.join("\n  "));
     }
     const all = await printPlan(page);
+    if (only?.some(view => !all.some(item => item.target === view))) {
+      throw new Error("--only requested a view this document does not offer");
+    }
     const plan = only ? all.filter(item => only.includes(item.target)) : all;
     if (!plan.length) throw new Error("no printable view" + (only ? " matches --only " + only.join(",") : ""));
     fs.mkdirSync(outDir, { recursive: true });
     for (const { target, pages } of plan) {
-      await preparePrint(page, target);
+      await preparePrint(page, target, options["--theme"]);
       const clipped = await printOverflow(page, target);
       const pdf = await renderPdf(page);
       const count = pdfPages(pdf);

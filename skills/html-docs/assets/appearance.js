@@ -6,7 +6,8 @@
   const id = document.querySelector('meta[name="doc-id"]')?.content ||
     location.pathname.replace(/\.standalone(?=\.html$)/i, "");
   const prefix = "html-docs:" + id + ":";
-  const choices = { theme: ["light", "dark"], accent: ["blue", "red", "green", "yellow"] };
+  const choices = { theme: ["light", "dark"], accent: ["blue", "red", "green", "yellow"],
+    "print-theme": ["light", "dark"] };
   const read = (name) => {
     try { return localStorage.getItem(prefix + name); }
     catch { return null; /* Storage may be unavailable for local files. */ }
@@ -20,16 +21,19 @@
       const current = root.getAttribute("data-" + name);
       const next = choices[name][(choices[name].indexOf(current) + 1) % choices[name].length];
       document.querySelectorAll('[data-action="toggle-' + name + '"]').forEach(button => {
-        button.textContent = name === "theme" ? (next === "dark" ? "Dark" : "Light") :
+        button.textContent = name === "print-theme" ? "PDF theme: " + (current === "dark" ? "Dark" : "Light") :
+          name === "theme" ? (next === "dark" ? "Dark" : "Light") :
           "Accent: " + current[0].toUpperCase() + current.slice(1);
-        button.setAttribute("aria-label", name === "theme" ? "Switch to " + next + " theme" :
+        button.setAttribute("aria-label", name === "print-theme" ? "PDF theme: " + current + ". Switch to " + next :
+          name === "theme" ? "Switch to " + next + " theme" :
           "Accent: " + current + ". Switch to " + next);
       });
     }
   }
   for (const [name, values] of Object.entries(choices)) {
     const fallback = name === "theme" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : values[0];
-    const value = [params.get(name), read(name), root.getAttribute("data-default-" + name), fallback]
+    const value = [params.get(name), read(name),
+      root.getAttribute(name === "print-theme" ? "data-print-theme" : "data-default-" + name), fallback]
       .map(candidate => name === "accent" && candidate === "orange" ? "red" : candidate)
       .find(candidate => values.includes(candidate));
     root.setAttribute("data-" + name, value);
@@ -95,7 +99,7 @@
     if (event.target.closest('[data-action="print"]')) window.print();
   });
   document.addEventListener("click", event => {
-    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
+    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"], [data-action="toggle-print-theme"]');
     if (!button) return;
     const name = button.getAttribute("data-action").slice(7);
     const values = choices[name];

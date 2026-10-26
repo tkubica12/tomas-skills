@@ -45,6 +45,11 @@ Long explanations belong in an article, not an interactive slide.
 Available static components: `arrow-list`, `summary-grid`, `sequence`, `steps`,
 `callout`, `code`, `figure`, plus deck-only `two-col`, `quote`, and plain tables.
 The gallery demonstrates each. At most one callout per authored slide.
+Sequence arrows express an ordered progression, not a ranking. Items are
+neutral unless `sequence-item--emphasis` marks a content-justified subject at
+any position. Use `summary-grid` for unordered peers. Related cards, panorama,
+captions, text, and quote containers normally share the same content-width
+outer edges; ask why an item is emphasized and which edges should align.
 For optional claim-supporting scenes, load `compositions.css` after `deck.css`.
 See [visual storytelling](visual-storytelling.md) and
 [visual deck gallery](../visual.deck.html) for a readable hero fade, split,
@@ -57,6 +62,8 @@ and the validator enforce a non-interactive presentation surface.
 Use the shared single-accent palette for every component and inline SVG.
 **Accent** and **Dark/Light** affect the whole deck, not one slide. See
 [design system](design-system.md) for defaults, persistence, and head syncing.
+**PDF theme** is independent of the screen theme: light is the print default;
+dark requires an explicit author/operator choice. See [PDF export](pdf-export.md).
 
 ## Pacing and controls
 

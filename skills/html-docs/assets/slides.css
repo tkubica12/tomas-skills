@@ -51,6 +51,9 @@ html:not(.js) .controls { display: none; }
   [data-view="slides"] .slide-points li {
     padding-left: 24px; margin: 0; border-left: 3px solid var(--accent);
   }
+  [data-view="slides"] .slide-content .summary-grid {
+    margin: 0; font-size: clamp(22px, 2.2vw, 34px);
+  }
   [data-view="slides"] .slide-content svg,
   [data-view="slides"] .slide-content img {
     display: block; width: 100%; height: auto; max-height: 45vh; flex: 0 1 auto; min-height: 0;
@@ -132,6 +135,7 @@ html:not(.js) .controls { display: none; }
    Fixed sizes, not viewport units: a page has no projector to scale for. */
 @page slide { size: 297mm 167.0625mm; margin: 0; @bottom-right { content: none; } }
 @media print {
+  [data-print="slides"] .slide-content .summary-grid { margin: 0; font-size: 25px; }
   [data-print="slides"] body { padding: 0; background: var(--bg); }
   [data-print="slides"] .doc { max-width: none; }
   [data-print="slides"] .controls,

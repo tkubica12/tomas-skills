@@ -3,7 +3,7 @@ name: html-docs
 description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.3.1"
+  version: "1.4.0"
 ---
 
 # One document, up to three views
@@ -66,7 +66,17 @@ full `.card-body`; do not create a separate document or repeat the body on scree
 - Sheets are paper: every `.sheet-page` fits exactly one page at full type
   size, with no interactive content. Overflow means shorter text or another
   page, never smaller type.
-- Keep the **PDF** control. PDFs always use the light palette.
+- Keep the **PDF** and **PDF theme** controls. Printing defaults to light,
+  independently of the screen theme; dark PDF requires an explicit choice.
+  Preserve the selected accent family in either palette.
+- Position is not meaning: sequence items are neutral by default. Use arrows
+  only for an ordered progression, the existing summary grid for unordered
+  peers, and `sequence-item--emphasis` only for a stated content reason.
+- Align related blocks to one content grid. A panorama below cards normally
+  shares the first card's left and last card's right edges; captions, text,
+  and quotes respect those same outer edges, not necessarily the slide edges.
+  Reuse the full-width composition; crop illustrative scenes with CSS and a
+  safe focal position, not diagrams/logos or original image files.
 - Use the documented components. Do not modify shared CSS or JavaScript to
   accommodate one document; shorten or restructure its content instead.
 - No emoji. Use CSS-drawn controls and arrows.
@@ -167,7 +177,8 @@ file, including during export.
    all eight light/dark × blue/red/green/yellow combinations, including opening,
    closing, diagram, and every sheet page at laptop and projector sizes. A
    slide must look spacious and a sheet composed, not merely pass an overflow
-   check.
+   check. Ask: why is this item emphasized; are these peers or a progression;
+   which outer edges align? Geometry cannot answer semantic questions.
 
 When canonical head assets change, synchronize sources before exporting:
 
@@ -210,6 +221,8 @@ travels with it.
 
 ```powershell
 node assets\export-pdf.js my-document.standalone.html
+# Explicit opt-in; use a separate folder to retain both palettes.
+node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
 ```
 
 This writes one PDF per view the document offers: `my-document.pdf` for a
@@ -218,6 +231,11 @@ It refuses to write a view whose pages clip or whose page count differs from
 its slides or sheet pages. Open and inspect every PDF before delivering it.
 Recipients can make the same PDFs themselves with the **PDF** button. See
 [PDF export](references/pdf-export.md).
+Light remains the default even on a dark screen. Authors can set
+`data-print-theme="dark"` on `<html>`; operators can use **PDF theme**,
+`?print-theme=dark`, or the exporter's `--theme dark`. `--theme light`
+overrides an authored dark choice. Inspect every requested palette in the
+actual PDFs, not only print-emulated HTML.
 
 ## Optional review in GitHub Copilot App
 

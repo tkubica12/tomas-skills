@@ -57,8 +57,9 @@ with networking disabled and system theme opposite the requested theme:
 
 A print pass then selects every view the document offers, as the **PDF**
 button would, from a dark screen theme. It checks the print target follows the
-view, the light palette is used, nothing clips in print, and the generated PDF
-has exactly one page per slide or sheet page.
+view, then renders both light and explicit dark palettes. Nothing may clip,
+each generated PDF has exactly one page per slide or sheet page, and pagination
+must not change with the palette. Screen dark alone must still print light.
 
 Exit code 0 means every assertion passed. `--shots` captures reading, the
 full sheet, and every presentation surface with points revealed in each
@@ -71,10 +72,13 @@ When PDF is requested, export and then open each file:
 
 ```powershell
 node assets\export-pdf.js my-document.standalone.html --out validation\pdf
+node assets\export-pdf.js my-document.standalone.html --theme dark --out validation\dark-pdf
 ```
 
 See [PDF export](pdf-export.md). Inspect every page: sheet composition,
-slide pages matching the presentation, and reading page breaks.
+slide pages matching the presentation, reading page breaks, and the selected
+accent. For dark output check actual page edges and page-number contrast too;
+print-emulated HTML is not proof of the PDF's page background.
 
 ## Isolated export
 
@@ -102,6 +106,10 @@ the runtime. The exporter wraps deferred scripts because an inline script's
    authorized logo pixels are not UI accents. For optional compositions, check
    hero copy stays over the opaque surface and every crop preserves its
    important subjects in Read, Slides, and print.
+   Ask why an item is emphasized, whether the relationship is ordered or peers,
+   and which edges should align. Neutral peers must look equal; sequence arrows
+   mean progression, not a disguised ranking. Panoramas, captions, related prose,
+   and quote containers normally share the outer card edges at content width.
 3. Test `?view=slides#card-id`, reload, theme/accent persistence, keyboard focus,
    native Space on controls, index selection, fragments and whole-slide skips.
 4. Check narrow reading layouts and browser zoom. A landscape presentation
@@ -129,6 +137,7 @@ node assets\sync-head.js --check visual.article.html visual.deck.html
 node assets\validate.js visual.article.html
 node assets\validate.js visual.deck.html
 node assets\test-compositions.js
+node assets\test-print.js
 ```
 
 Regenerate affected standalone outputs and refresh representative screenshots.
@@ -139,5 +148,16 @@ into isolated folders under `test-results\compositions`, checks image sizing,
 focal crops, circle/oval/diagonal/organic geometry, hero text-safe contrast,
 natural-image color preservation, no-JS/offline load, narrow reading,
 presentation hash focus, and print geometry across both themes and viewport
-sizes. Pass `--shots` to capture representative compositions. Output remains
+sizes. It measures the shared outer edges of peer cards, panorama, caption,
+and related text, without claiming to judge their semantics.
+Pass `--shots` to capture representative compositions. Output remains
 under the ignored `test-results` folder, not in distributable assets.
+
+`test-print.js` checks neutral sequence items and explicit emphasis at every
+position in all eight appearances and print. It exercises the actual PDF
+button, print-target/title restoration, independent print-theme controls,
+URL/storage/author precedence, selected accents, authored no-JS dark printing,
+and CLI errors. It exports real default-light, explicit-dark, authored-dark,
+and forced-light PDFs of a combined article, deck, and standalone sheet,
+requiring matching counts. Files remain in `test-results\print` for rendered
+page inspection. These measurements do not replace visual review.

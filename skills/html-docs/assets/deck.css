@@ -268,7 +268,7 @@ html:not(.js) .slide {
   border-left: 4px solid var(--accent-quiet);
   border-radius: var(--radius-sm);
 }
-.sequence > li:last-child { border-left-color: var(--accent-strong); background: var(--accent-soft); }
+.sequence > li.sequence-item--emphasis { border-left-color: var(--accent-strong); background: var(--accent-soft); }
 .sequence > li:not(:last-child)::after {
   content: "";
   position: absolute;
@@ -566,6 +566,7 @@ th {
 
 @media print {
   @page { size: 297mm 167mm; margin: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .js body { overflow: visible; }
   .js .deck-stage {
     position: static;

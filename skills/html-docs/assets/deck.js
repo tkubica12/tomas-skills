@@ -61,6 +61,7 @@
       'aria-label="Animate points one at a time, or show each slide whole">Animations</button>' +
       '<button type="button" data-deck="full">Full screen</button>' +
       '<button type="button" data-action="print" aria-label="Save as PDF or print">PDF</button>' +
+      '<button type="button" data-action="toggle-print-theme">PDF theme: Light</button>' +
       '<button type="button" data-action="toggle-theme">Dark</button>' +
       '<button type="button" data-action="toggle-accent">Accent: Blue</button>';
 

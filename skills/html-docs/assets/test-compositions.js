@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
-const { playwright, chromiumPath, frame, preparePrint } = require("./validate.js");
+const { playwright, chromiumPath, frame, preparePrint, printOverflow } = require("./validate.js");
 
 const root = path.resolve(__dirname, "..");
 const output = path.join(root, "test-results", "compositions");
@@ -89,6 +89,22 @@ async function compositions(page, selector) {
   for (const result of results) for (const [name, value] of Object.entries(result)) {
     if (name !== "type") check(result.type + ": " + name, value);
   }
+  const edges = await page.locator(selector + " .composition--panorama").evaluateAll(nodes => nodes.map(node => {
+    const grid = node.previousElementSibling;
+    const cards = grid?.querySelectorAll(".summary-item");
+    if (!cards?.length) return false;
+    const first = cards[0].getBoundingClientRect();
+    const last = cards[cards.length - 1].getBoundingClientRect();
+    const related = [node, node.querySelector(".composition-media"), node.querySelector("figcaption")];
+    if (node.nextElementSibling?.matches("p, blockquote")) related.push(node.nextElementSibling);
+    return related.every(element => {
+      const rect = element.getBoundingClientRect();
+      return Math.abs(rect.left - first.left) <= 1 && Math.abs(rect.right - last.right) <= 1;
+    }) && Array.from(cards).every(card => getComputedStyle(card).backgroundColor ===
+      getComputedStyle(cards[0]).backgroundColor && getComputedStyle(card).borderColor ===
+      getComputedStyle(cards[0]).borderColor);
+  }));
+  for (const aligned of edges) check("peer cards, panorama, caption, and related prose share neutral outer edges", aligned);
 }
 
 async function select(page, kind, name) {
@@ -168,6 +184,8 @@ async function main() {
             .evaluate(node => document.activeElement === node));
           await preparePrint(page, "slides");
           await compositions(page, kind === "deck" ? ".slide" : ".slide-content");
+          const clipped = await printOverflow(page, "slides");
+          check("print slide surfaces fit: " + clipped.join(", "), clipped.length === 0);
           check("print uses canonical light surface", await page.evaluate(() =>
             getComputedStyle(document.documentElement).getPropertyValue("--surface").trim()) === "#ffffff");
           if (kind === "article") {

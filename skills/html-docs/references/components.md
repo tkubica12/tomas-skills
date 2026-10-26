@@ -128,6 +128,23 @@ evolution, a maturity ladder. Rendered inline with arrows between items.
 Three to five items. `.seq-note` is optional but should be present or absent
 consistently across the whole list.
 
+All items are **neutral by default**, including the last. Order does not imply
+improvement, recommendation, or importance. When the argument justifies emphasis,
+put `class="sequence-item--emphasis"` on the relevant `<li>`, at any position:
+
+```html
+<li class="sequence-item--emphasis">
+  <span class="seq-title">Change</span>
+  <span class="seq-note">The intervention under review.</span>
+</li>
+```
+
+State why that item matters in the content. Ask during visual review: “Why is
+this item emphasized?” Do not highlight an endpoint merely to finish the row.
+For unordered alternatives or peer categories, use the existing **summary
+grid**, without sequence arrows. The component galleries show both neutral
+progression and explicit middle-item emphasis.
+
 ## Steps
 
 Instructions to follow in order. Numbered, stacked, each with a heading and a
@@ -149,7 +166,8 @@ Use steps for procedure, sequence for concept. Do not mix them in one list.
 
 ## Summary grid
 
-Two to six labelled takeaways, used to close a chapter or an argument.
+Two to six labelled takeaways or unordered peer choices. Unlike a sequence,
+their position implies neither progression nor priority; all peers look equal.
 
 ```html
 <div class="summary-grid">
@@ -162,6 +180,9 @@ Two to six labelled takeaways, used to close a chapter or an argument.
 
 The label is one or two words. The body is one sentence with a verb in it, not
 a fragment.
+Keep related figures, captions, explanation, or quotes in the same parent
+content width: a panorama below this grid spans its outer edges, not one column.
+See [shared edges](visual-storytelling.md#shared-content-edges).
 
 ## Arrow list
 

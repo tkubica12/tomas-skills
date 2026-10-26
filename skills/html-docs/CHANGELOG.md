@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.4.0 — 2026-10-26
+
+**Content-led emphasis, shared content edges, and explicit dark PDFs.**
+
+### Changed
+
+- Sequence items are neutral by default, including the last. Add
+  `sequence-item--emphasis` to any item only when the content justifies it.
+  Ordered progressions keep their arrows; unordered peers reuse `summary-grid`.
+- Authoring instructions and component galleries distinguish order, peer
+  choices, and semantic emphasis. Visual review asks why something is
+  emphasized; geometry alone cannot judge that.
+- Visual galleries demonstrate peer cards, a full-width panorama, captions,
+  and related prose on the same content grid. Reuse the existing composition
+  width and safe CSS focal cropping for illustrative scenes; do not crop
+  diagrams/logos or rewrite original assets.
+
+### Added
+
+- Explicit dark printing across Read, article Slides, Deck, and standalone or
+  companion Sheet. Light remains the backward-compatible default regardless
+  of screen theme. `data-print-theme="dark"`, **PDF theme**, and
+  `?print-theme=dark` support author/reader choice; `export-pdf.js --theme
+  light|dark` overrides it for a run. Both palettes preserve the accent family.
+- Canonical dark page backgrounds and readable reading-page numbers/margins,
+  shared by browser printing and the PDF exporter, not document-specific CSS.
+- Focused semantic/print regressions, actual PDF exports and exact pagination
+  checks, browser print-control/precedence/no-JS checks, and shared-edge
+  measurements in the composition suite. Eight screen appearances and
+  offline/no-JS behavior remain supported.
+
+### Upgrading a document
+
+Copy the updated assets, add the `toggle-print-theme` control from the template
+if desired (decks create it automatically), run `node assets\sync-head.js`,
+and rebuild standalone HTML and PDFs. Remove old last-item neutralizing
+overrides; opt into meaningful emphasis explicitly. Existing documents still
+print light unless an author or operator explicitly selects dark. Use separate
+output folders when keeping both PDF palettes, and inspect the actual pages.
+
 ## 1.3.1 — 2026-10-14
 
 **Documentation-only correction to the optional companion workflow.**

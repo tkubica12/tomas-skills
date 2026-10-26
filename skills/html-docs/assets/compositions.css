@@ -90,6 +90,7 @@
 :is(.slide-content, .slide-body) .composition { margin: 0; }
 .slide-body .composition--hero { max-height: 390px; aspect-ratio: auto; height: 100%; }
 .slide-body .composition--split .composition-media { max-height: 340px; }
+.slide-body > .summary-grid + .composition { margin-top: 24px; }
 [data-view="slides"] .slide-content .composition .slide-title {
   font-size: clamp(28px, 3.2vw, 46px);
   max-width: none;

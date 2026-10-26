@@ -17,7 +17,8 @@
   const id = document.querySelector('meta[name="doc-id"]')?.content ||
     location.pathname.replace(/\.standalone(?=\.html$)/i, "");
   const prefix = "html-docs:" + id + ":";
-  const choices = { theme: ["light", "dark"], accent: ["blue", "red", "green", "yellow"] };
+  const choices = { theme: ["light", "dark"], accent: ["blue", "red", "green", "yellow"],
+    "print-theme": ["light", "dark"] };
   const read = (name) => {
     try { return localStorage.getItem(prefix + name); }
     catch { return null; /* Storage may be unavailable for local files. */ }
@@ -31,16 +32,19 @@
       const current = root.getAttribute("data-" + name);
       const next = choices[name][(choices[name].indexOf(current) + 1) % choices[name].length];
       document.querySelectorAll('[data-action="toggle-' + name + '"]').forEach(button => {
-        button.textContent = name === "theme" ? (next === "dark" ? "Dark" : "Light") :
+        button.textContent = name === "print-theme" ? "PDF theme: " + (current === "dark" ? "Dark" : "Light") :
+          name === "theme" ? (next === "dark" ? "Dark" : "Light") :
           "Accent: " + current[0].toUpperCase() + current.slice(1);
-        button.setAttribute("aria-label", name === "theme" ? "Switch to " + next + " theme" :
+        button.setAttribute("aria-label", name === "print-theme" ? "PDF theme: " + current + ". Switch to " + next :
+          name === "theme" ? "Switch to " + next + " theme" :
           "Accent: " + current + ". Switch to " + next);
       });
     }
   }
   for (const [name, values] of Object.entries(choices)) {
     const fallback = name === "theme" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : values[0];
-    const value = [params.get(name), read(name), root.getAttribute("data-default-" + name), fallback]
+    const value = [params.get(name), read(name),
+      root.getAttribute(name === "print-theme" ? "data-print-theme" : "data-default-" + name), fallback]
       .map(candidate => name === "accent" && candidate === "orange" ? "red" : candidate)
       .find(candidate => values.includes(candidate));
     root.setAttribute("data-" + name, value);
@@ -106,7 +110,7 @@
     if (event.target.closest('[data-action="print"]')) window.print();
   });
   document.addEventListener("click", event => {
-    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"]');
+    const button = event.target.closest('[data-action="toggle-theme"], [data-action="toggle-accent"], [data-action="toggle-print-theme"]');
     if (!button) return;
     const name = button.getAttribute("data-action").slice(7);
     const values = choices[name];
@@ -147,9 +151,20 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, "SF Mono", "Liberation Mono", Menlo, monospace;
 }
-/* Screen only: every PDF and printout uses the light palette. */
+/* Screen theme and print theme are independent; print stays light by default. */
 @media screen {
   [data-theme="dark"], :root:not([data-theme])[data-default-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
+    --border: #363636; --border-strong: #595959;
+    --text: #f2f2f2; --text-muted: #b5b5b5; --text-faint: #a0a0a0;
+    --accent: var(--accent-dark);
+    --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.3), 0 12px 28px rgba(0,0,0,.4);
+  }
+}
+@media print {
+  :root[data-print-theme="dark"] {
     color-scheme: dark;
     --bg: #101010; --surface: #191919; --surface-2: #232323; --surface-3: #2c2c2c;
     --border: #363636; --border-strong: #595959;
@@ -182,6 +197,7 @@
 
 <div class="controls" role="group" aria-label="Sheet controls">
   <button type="button" class="ctrl" data-action="print" aria-label="Save as PDF or print">PDF</button>
+  <button type="button" class="ctrl" data-action="toggle-print-theme">PDF theme: Light</button>
   <button type="button" class="ctrl" data-action="toggle-theme">Dark</button>
   <button type="button" class="ctrl" data-action="toggle-accent">Accent: Blue</button>
 </div>

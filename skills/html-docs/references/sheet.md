@@ -9,7 +9,7 @@ page by accident.
 
 | Shape | Markup | Controls |
 |---|---|---|
-| **Standalone sheet** | `sheet.template.html`; the `.sheet` is the only content | PDF, Dark/Light, Accent |
+| **Standalone sheet** | `sheet.template.html`; the `.sheet` is the only content | PDF, PDF theme, Dark/Light, Accent |
 | **Companion sheet** | `<section class="sheet">` after `.doc` in an article | adds **Sheet** beside Slides |
 
 A companion sheet is a **third depth**: slide cues for the room, the sheet for

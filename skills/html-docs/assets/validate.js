@@ -73,8 +73,12 @@ async function printPlan(page) {
     return plan;
   });
 }
-async function preparePrint(page, target) {
-  await page.evaluate(t => document.documentElement.setAttribute("data-print", t), target);
+async function preparePrint(page, target, theme) {
+  if (theme !== undefined && !["light", "dark"].includes(theme)) throw new Error("Print theme must be light or dark");
+  await page.evaluate(({ target, theme }) => {
+    document.documentElement.setAttribute("data-print", target);
+    if (theme !== undefined) document.documentElement.setAttribute("data-print-theme", theme);
+  }, { target, theme });
   await page.emulateMedia({ media: "print" });
   await frame(page);
 }
@@ -97,8 +101,9 @@ async function appearance(page, theme, accent) {
   const original = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
   check("canonical accent shade", original === accentColors[accent][theme]);
   await page.emulateMedia({ media: "print" });
-  check("every family prints its light shade", await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()) === accentColors[accent].light);
+  const printTheme = await page.locator("html").getAttribute("data-print-theme") === "dark" ? "dark" : "light";
+  check("every family prints its selected shade", await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()) === accentColors[accent][printTheme]);
   await page.emulateMedia({ media: "screen" });
   if (theme === "light") {
     const contrasts = await page.evaluate(() => {
@@ -327,6 +332,7 @@ async function printChecks(browser, file, kind) {
     check("document has a print target", plan.length > 0);
     check("PDF control present", await page.locator('[data-action="print"]').count() > 0 || kind === "deck");
     const title = await page.title();
+    const originalTheme = await page.locator("html").getAttribute("data-print-theme");
     for (const { target, pages } of plan) {
       if (kind === "article" && target !== "read") {
         await page.locator(`[data-action="toggle-${target}"]`).click();
@@ -335,21 +341,28 @@ async function printChecks(browser, file, kind) {
       check(`print follows the ${target} view`, await page.locator("html").getAttribute("data-print") === target);
       await page.evaluate(() => dispatchEvent(new Event("afterprint")));
       check("print state is restored", await page.locator("html").getAttribute("data-print") === null && await page.title() === title);
-      await preparePrint(page, target);
-      check(`${target} PDF uses the light palette`, await page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#fafafa"));
-      check(`${target} PDF uses the light accent shade`, await page.evaluate(() => {
-        const style = getComputedStyle(document.documentElement);
-        return style.getPropertyValue("--accent").trim() === style.getPropertyValue("--accent-light").trim();
-      }));
-      const clipped = await printOverflow(page, target);
-      check(`${target} print surfaces fit: ${clipped.join(", ")}`, clipped.length === 0);
-      const count = pdfPages(await renderPdf(page));
-      check(`${target} PDF has ${pages ?? "some"} page(s), got ${count}`, pages === null ? count > 0 : count === pages);
+      let lightCount;
+      for (const theme of ["light", "dark"]) {
+        await preparePrint(page, target, theme);
+        check(`${target} PDF uses the ${theme} palette`, await page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()) ===
+          (theme === "dark" ? "#101010" : "#fafafa"));
+        check(`${target} PDF uses the ${theme} accent shade`, await page.evaluate(theme => {
+          const style = getComputedStyle(document.documentElement);
+          return style.getPropertyValue("--accent").trim() === style.getPropertyValue("--accent-" + theme).trim();
+        }, theme));
+        const clipped = await printOverflow(page, target);
+        check(`${target} print surfaces fit: ${clipped.join(", ")}`, clipped.length === 0);
+        const count = pdfPages(await renderPdf(page));
+        check(`${target} PDF has ${pages ?? "some"} page(s), got ${count}`, pages === null ? count > 0 : count === pages);
+        if (theme === "light") lightCount = count;
+        else check(`${target} palette does not change pagination`, count === lightCount);
+        console.log(`  PASS print ${target}/${theme}: ${count} page(s)`);
+      }
+      await page.evaluate(theme => document.documentElement.setAttribute("data-print-theme", theme), originalTheme);
       await page.evaluate(() => document.documentElement.removeAttribute("data-print"));
       await page.emulateMedia({ media: "screen" });
       if (kind === "article" && target !== "read") await page.keyboard.press("Escape");
-      console.log(`  PASS print ${target}: ${count} page(s)`);
     }
   } finally { await context.close(); }
 }
@@ -428,7 +441,7 @@ async function main() {
         check("no duplicate sheet in reference fallback", await page.locator(".sheet:visible").count() === 0);
       }
     } finally { await plainContext.close(); }
-    console.log(`${checks}/${checks} checks passed; all eight palettes, paired shades, light contrast, legacy orange, print targets, offline, reduced motion, no-JS.`);
+    console.log(`${checks}/${checks} checks passed; all eight palettes, paired shades, light contrast, legacy orange, light/dark PDFs, offline, reduced motion, no-JS.`);
   } finally { await browser.close(); }
 }
 

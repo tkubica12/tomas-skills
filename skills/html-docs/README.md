@@ -38,12 +38,17 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 
 ## Optional visual storytelling
 
-Version **1.3.1** includes a small, opt-in image composition stylesheet:
+Version **1.4.0** includes a small, opt-in image composition stylesheet:
 readable hero fade, image/text split, panorama, circle, oval, diagonal, and
 rounded organic crops. Use it in deck slides, article Slides, and article
-Read; print remains light and readable. Try the offline, editable
+Read; print defaults to light, with explicit dark export supported. Try the offline, editable
 [article gallery](visual.article.html) and [deck gallery](visual.deck.html).
 Their original fictional SVG needs no image service or external asset.
+
+Sequence items are neutral unless an author explicitly marks the subject with
+`sequence-item--emphasis`. Use ordered arrows for progressions and the existing
+summary grid for unordered peers. Related cards, panorama, caption, and text
+share a content-width grid; the visual galleries demonstrate these outer edges.
 
 Start with the claim, then brief the scene, text-safe space, crop-safe subjects,
 materials, authorized references, and invariants. UI colors retain the canonical
@@ -100,7 +105,11 @@ for installation scopes, persistent annotations, and preview limits.
 Dark mode uses the four exact Microsoft logo colors; light mode uses darker
 counterparts for readable accents. The light shades are this skill's design,
 not official Microsoft logo variants. The same family follows every view,
-diagram, and control; PDFs use its light shade. Existing `orange` links,
+diagram, and control; PDFs use its light shade by default. **PDF theme**
+selects light or dark printing independently of the screen. Authors can set
+`data-print-theme="dark"` on `<html>`; `?print-theme=dark` or the exporter's
+`--theme dark` is an explicit operator override. Dark PDFs retain the selected
+family's dark shade. Existing `orange` links,
 defaults, and saved preferences resolve to the red-orange `red` family.
 
 The agent follows [SKILL.md](SKILL.md), starts from the included templates,
@@ -111,6 +120,7 @@ and validates the result. The linked source remains editable; the generated
 node assets\bundle.js my-document.html
 node assets\validate.js my-document.html
 node assets\export-pdf.js my-document.standalone.html
+node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
 ```
 
 See [validation setup](references/validation.md) for browser overrides and

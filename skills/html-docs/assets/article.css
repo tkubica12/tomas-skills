@@ -553,7 +553,7 @@ html:not(.js) .detail-more { display: none; }
   border-left: 3px solid var(--accent-quiet);
   border-radius: var(--radius-sm);
 }
-.sequence > li:last-child { border-left-color: var(--accent-strong); background: var(--accent-soft); }
+.sequence > li.sequence-item--emphasis { border-left-color: var(--accent-strong); background: var(--accent-soft); }
 .sequence > li:not(:last-child)::after {
   content: "";
   position: absolute;
@@ -869,19 +869,21 @@ html:not(.js) .detail-more { display: none; }
 @page {
   size: A4;
   margin: 16mm 17mm 18mm;
+  background: var(--surface);
   @bottom-right {
     content: counter(page) " / " counter(pages);
     font: 8pt -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #686868;
+    color: var(--text-faint);
   }
 }
 @page read-letter {
   size: letter;
   margin: 16mm 17mm 18mm;
+  background: var(--surface);
   @bottom-right {
     content: counter(page) " / " counter(pages);
     font: 8pt -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #686868;
+    color: var(--text-faint);
   }
 }
 @media print {
