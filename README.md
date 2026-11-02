@@ -3,7 +3,8 @@
 Reusable skills for designing verifiable Goal Cards, researching a topic,
 explaining how it works, turning the result into a document people can both
 watch and read, producing narrated explanatory animation, publishing a website
-with private Blob-backed content, and
+with private Blob-backed content, finding personal Gmail messages with a local
+CLI, and
 preparing tested customer discovery interviews. A Copilot canvas extension
 adds in-context review of rendered documents before sharing them.
 
@@ -14,6 +15,7 @@ adds in-context review of rendered documents before sharing them.
 | [image-generator](skills/image-generator/README.md) | Optional Entra-authenticated Foundry image authoring with lazy deployment discovery, strict native dimensions, reference/edit capabilities and reproducible manifests. No cloud dependency for ordinary HTML authoring. | [Offline image review](examples/image-review/README.md) |
 | [first-principles](skills/first-principles/README.md) | Reconstructs mechanisms from constraints, develops useful connections, and derives predictions and limits. | [Why a cache can be fast and wrong](examples/first-principles/cache-freshness.md) |
 | [web-research](skills/web-research/README.md) | Finds primary evidence, checks consequential claims, and writes a cited answer with honest limits. | [Packaging portable agent skills](examples/web-research/portable-skills.md) |
+| [gmail-cli](skills/gmail-cli/README.md) | Searches and reads personal Gmail through local `gogcli`, with read-only guards, untrusted-content handling, and refresh-token setup guidance. No remote Gmail MCP required. | — |
 | [explanatory-video](skills/explanatory-video/README.md) | Authors Czech or English narrated explanatory animation in three duration profiles, with independent critique, keyless Azure speech, and human-feedback calibration. | Private pilot; no public sample |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
 | [customer-discovery-interview](skills/customer-discovery-interview/README.md) | Agrees discovery scope with you, generates a tested interview prompt for a customer project, and rehearses it with two subagents. The interview keeps a clean conversation record and a living requirements spec across sessions. | [Dispatch app move (simulated)](examples/customer-discovery-interview/README.md) |
@@ -34,6 +36,7 @@ gh skill install tkubica12/tomas-skills html-docs
 gh skill install tkubica12/tomas-skills image-generator
 gh skill install tkubica12/tomas-skills first-principles
 gh skill install tkubica12/tomas-skills web-research
+gh skill install tkubica12/tomas-skills gmail-cli --pin gmail-cli-v1.0.0
 gh skill install tkubica12/tomas-skills explanatory-video --pin main
 gh skill install tkubica12/tomas-skills aca-web-publish
 gh skill install tkubica12/tomas-skills customer-discovery-interview
