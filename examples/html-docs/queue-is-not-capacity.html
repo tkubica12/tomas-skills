@@ -207,6 +207,7 @@ SOFTWARE.
 <link rel="stylesheet" href="../../skills/html-docs/assets/article.css">
 <link rel="stylesheet" href="../../skills/html-docs/assets/slides.css">
 <link rel="stylesheet" href="../../skills/html-docs/assets/sheet.css">
+<link rel="stylesheet" href="../../skills/html-docs/assets/compositions.css">
 <script src="../../skills/html-docs/assets/article.js" defer></script>
 <script src="../../skills/html-docs/assets/slides.js" defer></script>
 <script src="../../skills/html-docs/assets/sheet.js" defer></script>
@@ -225,14 +226,27 @@ SOFTWARE.
 <div class="doc">
   <header class="doc-header" id="opening">
     <div class="slide-content slide-content--title">
-      <p class="slide-eyebrow">An engineering decision</p>
-      <h2 class="slide-title">A queue is not<br><em>extra capacity.</em></h2>
-      <p class="slide-lead">Buffer the burst. Budget the recovery.</p>
+      <div class="composition composition--hero">
+        <div class="composition-media" style="--image-position: 50% 60%">
+          <img src="images/01-opening.jpg" alt="In a miniature depot, a wide wooden chute pours parcels into a growing pile in front of one narrow lit doorway, where a single robot carries one parcel out." width="2560" height="1440">
+        </div>
+        <div class="composition-copy">
+          <p class="slide-eyebrow">An engineering decision</p>
+          <h2 class="slide-title">A queue is not<br><em>extra capacity.</em></h2>
+          <p class="slide-lead">Buffer the burst. Budget the recovery.</p>
+        </div>
+      </div>
     </div>
     <p class="eyebrow">Engineering decision · asynchronous work</p>
     <h1>A queue is not extra capacity</h1>
     <p class="subtitle">Accept a burst without promising an endless wait. Choose a queue limit, a recovery budget, and an honest response when useful work no longer fits.</p>
     <p class="meta">Fictional design review · illustrative assumptions, not production measurements</p>
+    <figure class="composition composition--panorama">
+      <div class="composition-media" style="--image-position: 50% 70%">
+        <img src="images/01-opening.jpg" alt="In a miniature depot, a wide wooden chute pours parcels into a growing pile in front of one narrow lit doorway, where a single robot carries one parcel out." width="2560" height="1440">
+      </div>
+      <figcaption class="composition-caption">A wide intake, one narrow exit. The illustrations are original generated scenes of a fictional depot, not evidence.</figcaption>
+    </figure>
   </header>
   <nav class="doc-nav" aria-label="Decision shortcut">
     <a href="#card-admission">The admission decision</a>
@@ -253,7 +267,17 @@ SOFTWARE.
         <div class="slide-content">
           <p class="slide-eyebrow">The illusion</p>
           <h2 class="slide-title">Fast acceptance.<br><em>Unchanged capacity.</em></h2>
-          <p class="slide-lead">The wait moved. The work did not.</p>
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/02-premise.jpg" alt="A robot at the front counter stamps parcels at speed while, behind it, two couriers still carry one parcel each through a single doorway." width="2560" height="1440">
+            </div>
+            <div class="composition-copy">
+              <ul class="slide-points">
+                <li class="frag">Accepted in milliseconds.</li>
+                <li class="frag">Finished at the same rate.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="true">
@@ -266,6 +290,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/02-premise.jpg" alt="A robot at the front counter stamps parcels at speed while, behind it, two couriers still carry one parcel each through a single doorway." width="2560" height="1440">
+            </div>
+            <div class="composition-copy"><h4>Fast at the counter, unchanged at the door</h4><p>Every parcel is stamped the moment it arrives. Behind the counter, the same two couriers still carry one parcel at a time.</p></div>
+          </div>
           <p>A fictional report service moves generation behind a queue. Requests return quickly, but the workers do the same work at the same rate. The waiting has moved out of the request; it has not disappeared.</p>
           <aside class="callout callout--note">
             <p class="callout-label">Assumptions</p>
@@ -355,10 +385,17 @@ SOFTWARE.
         <div class="slide-content">
           <p class="slide-eyebrow">Recovery</p>
           <h2 class="slide-title">Only spare capacity<br><em>drains the backlog.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">Completions must outrun new arrivals.</li>
-            <li class="frag">Full utilization leaves nothing for recovery.</li>
-          </ul>
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/03-headroom.jpg" alt="A large heap of parcels sits beside a conveyor that moves at a steady pace while a robot with a lantern watches the pile." width="2560" height="1440">
+            </div>
+            <div class="composition-copy">
+              <ul class="slide-points">
+                <li class="frag">Completions must outrun new arrivals.</li>
+                <li class="frag">Full utilization leaves nothing for recovery.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -371,6 +408,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/03-headroom.jpg" alt="A large heap of parcels sits beside a conveyor that moves at a steady pace while a robot with a lantern watches the pile." width="2560" height="1440">
+            </div>
+            <div class="composition-copy"><h4>The heap shrinks only with room to spare</h4><p>The conveyor already runs at its usual pace. New parcels keep arriving, so only the capacity left over can reach the pile.</p></div>
+          </div>
           <p>While arrivals exceed completions, unfinished work grows. After the burst, only the completion rate left over after new arrivals can drain that work. If the two rates are equal, the backlog stays.</p>
           <div class="reveal">
             <button type="button" class="reveal-toggle" aria-expanded="false">Work through a deliberately simple burst</button>
@@ -395,11 +438,18 @@ SOFTWARE.
       <article class="card" id="card-age">
         <div class="slide-content">
           <h2 class="slide-title">Watch the oldest<br><em>unfinished promise.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">Queue depth counts work.</li>
-            <li class="frag">Job age exposes delay.</li>
-            <li class="frag">Include in-flight jobs.</li>
-          </ul>
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--circle" style="--image-position: 46% 50%">
+              <img src="images/04-age.jpg" alt="A kneeling robot shines its headlamp on an old, cobweb-covered parcel forgotten at the back of a shelf." width="2560" height="1440">
+            </div>
+            <div class="composition-copy">
+              <ul class="slide-points">
+                <li class="frag">Queue depth counts work.</li>
+                <li class="frag">Job age exposes delay.</li>
+                <li class="frag">Include in-flight jobs.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -412,6 +462,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media composition-media--circle" style="--image-position: 46% 50%">
+              <img src="images/04-age.jpg" alt="A kneeling robot shines its headlamp on an old, cobweb-covered parcel forgotten at the back of a shelf." width="2560" height="1440">
+            </div>
+            <div class="composition-copy"><h4>Look for the forgotten parcel</h4><p>A short shelf can still hide one very old promise. Its age, not the number of parcels around it, shows how long someone has been waiting.</p></div>
+          </div>
           <p>The same queue length can represent cheap jobs or slow ones. A nearly empty queue can even hide a stuck job already claimed by a worker. Track age from acceptance through completion, including in-flight work.</p>
           <div class="reveal">
             <button type="button" class="reveal-toggle" aria-expanded="false">Separate the signals before setting an alert</button>
@@ -430,10 +486,17 @@ SOFTWARE.
       <article class="card" id="card-retries">
         <div class="slide-content">
           <h2 class="slide-title">Retries are<br><em>more arrivals.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">One identity per logical job.</li>
-            <li class="frag">One finite retry budget.</li>
-          </ul>
+          <div class="composition composition--split">
+            <div class="composition-copy">
+              <ul class="slide-points">
+                <li class="frag">One identity per logical job.</li>
+                <li class="frag">One finite retry budget.</li>
+              </ul>
+            </div>
+            <div class="composition-media">
+              <img src="images/05-retries.jpg" alt="A puzzled robot looks out of a sorting window at many identical parcels while another copy of the same parcel drops from the chute." width="2560" height="1440">
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -446,6 +509,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-copy"><h4>The same parcel, again and again</h4><p>Each copy looks like new work. Without one identity per logical job, the depot cannot tell a retry from a fresh request.</p></div>
+            <div class="composition-media">
+              <img src="images/05-retries.jpg" alt="A puzzled robot looks out of a sorting window at many identical parcels while another copy of the same parcel drops from the chute." width="2560" height="1440">
+            </div>
+          </div>
           <p>A caller that cannot see progress may submit the same report again. If both attempts run, duplicate work competes with the original backlog. Backoff spreads that demand over time; it does not make the work free.</p>
           <aside class="callout callout--rule">
             <p class="callout-label">Rule</p>
@@ -465,13 +534,20 @@ SOFTWARE.
       <h2 class="chapter-label">A bounded promise</h2>
       <article class="card" id="card-admission">
         <div class="slide-content">
-          <p class="slide-eyebrow">Admission</p>
-          <h2 class="slide-title">Bound the promise,<br><em>not just the queue.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">Useful completion deadline.</li>
-            <li class="frag">Hard storage limit.</li>
-            <li class="frag">Honest rejection.</li>
-          </ul>
+          <div class="composition composition--hero">
+            <div class="composition-media" style="--image-position: 50% 55%">
+              <img src="images/06-admission.jpg" alt="Robots queue in front of a brass barrier; a doorman robot holds up one hand, and two robots that will not fit turn back with their parcels." width="2560" height="1440">
+            </div>
+            <div class="composition-copy">
+              <p class="slide-eyebrow">Admission</p>
+              <h2 class="slide-title">Bound the promise,<br><em>not just the queue.</em></h2>
+              <ul class="slide-points">
+                <li class="frag">Useful deadline.</li>
+                <li class="frag">Hard storage limit.</li>
+                <li class="frag">Honest rejection.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -484,6 +560,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--hero">
+            <div class="composition-media" style="--image-position: 50% 55%">
+              <img src="images/06-admission.jpg" alt="Robots queue in front of a brass barrier; a doorman robot holds up one hand, and two robots that will not fit turn back with their parcels." width="2560" height="1440">
+            </div>
+            <div class="composition-copy"><h4>Say no at the door</h4><p>An early, honest rejection costs less than a promise that expires inside.</p></div>
+          </div>
           <p>The service should accept only the work it expects to finish while it is useful. Combine a hard queue/storage cap with an admission estimate that includes waiting, execution, and a safety margin. Reject clearly when either budget is exhausted.</p>
           <div class="reveal">
             <button type="button" class="reveal-toggle" aria-expanded="false">Derive a starting limit, then test its assumptions</button>
@@ -497,11 +579,12 @@ SOFTWARE.
       <article class="card" id="card-outcomes">
         <div class="slide-content">
           <h2 class="slide-title">Every job needs<br><em>a visible ending.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">Completed.</li>
-            <li class="frag">Failed.</li>
-            <li class="frag">Explicitly expired.</li>
-          </ul>
+          <div class="composition composition--panorama">
+            <div class="composition-media" style="--image-position: 50% 42%">
+              <img src="images/07-outcomes.jpg" alt="Three stations side by side: finished parcels on a shelf, a robot inspecting a damaged parcel with a magnifier, and an expired parcel filed in an archive drawer beside an hourglass." width="2560" height="1440">
+            </div>
+          </div>
+          <p class="slide-lead frag">Completed. Failed, with an owner. Explicitly expired. Never just waiting.</p>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -518,6 +601,12 @@ SOFTWARE.
             <div class="summary-item"><span class="summary-label">Submission</span>Return a stable job identity only after durable acceptance.</div>
             <div class="summary-item"><span class="summary-label">Resolution</span>Expose completion, terminal failure, or explicit expiry through status.</div>
           </div>
+          <figure class="composition composition--panorama">
+            <div class="composition-media" style="--image-position: 50% 42%">
+              <img src="images/07-outcomes.jpg" alt="Three stations side by side: finished parcels on a shelf, a robot inspecting a damaged parcel with a magnifier, and an expired parcel filed in an archive drawer beside an hourglass." width="2560" height="1440">
+            </div>
+            <figcaption class="composition-caption">Left to right: completed, failed and under investigation, explicitly expired. None of them is still waiting.</figcaption>
+          </figure>
           <div class="reveal">
             <button type="button" class="reveal-toggle" aria-expanded="false">Separate recovery from endless retry</button>
             <div class="reveal-body">
@@ -531,10 +620,17 @@ SOFTWARE.
         <div class="slide-content">
           <p class="slide-eyebrow">The decision test</p>
           <h2 class="slide-title">Prove recovery<br><em>under continuing load.</em></h2>
-          <ul class="slide-points">
-            <li class="frag">Burst. Slow dependency. Worker restart.</li>
-            <li class="frag">Account for every accepted job.</li>
-          </ul>
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/08-rehearsal.jpg" alt="A robot with a stopwatch and clipboard times a rehearsal while another robot plugs a worker back in and parcels keep moving along the conveyor." width="2560" height="1440">
+            </div>
+            <div class="composition-copy">
+              <ul class="slide-points">
+                <li class="frag">Burst. Slow dependency. Worker restart.</li>
+                <li class="frag">Account for every accepted job.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <h3 class="card-head">
           <button type="button" class="card-toggle" aria-expanded="false">
@@ -547,6 +643,12 @@ SOFTWARE.
           </button>
         </h3>
         <div class="card-body">
+          <div class="composition composition--split">
+            <div class="composition-media">
+              <img src="images/08-rehearsal.jpg" alt="A robot with a stopwatch and clipboard times a rehearsal while another robot plugs a worker back in and parcels keep moving along the conveyor." width="2560" height="1440">
+            </div>
+            <div class="composition-copy"><h4>Time the drain, not the intake</h4><p>The stopwatch runs until every accepted parcel has an ending, while new parcels keep arriving and a worker restarts.</p></div>
+          </div>
           <p>Rehearse a burst, a slow dependency, and a worker restart. Keep normal arrivals running during recovery. Check that accepted work reaches a visible ending and that new demand cannot consume the recovery budget unnoticed.</p>
           <aside class="callout callout--verdict">
             <p class="callout-label">Decision</p>
@@ -571,13 +673,20 @@ SOFTWARE.
   <section class="takeaway" id="closing">
     <p>A queue buys time only when you have the capacity to repay it.</p>
     <div class="slide-content slide-content--end">
-      <p class="slide-eyebrow">The key message</p>
-      <h2 class="slide-title">Buffer the burst.<br><em>Budget the recovery.</em></h2>
-      <p class="slide-lead">A queue buys time, not capacity.</p>
+      <div class="composition composition--hero">
+        <div class="composition-media" style="--image-position: 50% 55%">
+          <img src="images/09-closing.jpg" alt="At dusk, the depot crew rests on a bench beside an empty floor while the last robot carries the final parcel out through the lit doorway." width="2560" height="1440">
+        </div>
+        <div class="composition-copy">
+          <p class="slide-eyebrow">The key message</p>
+          <h2 class="slide-title">Buffer the burst.<br><em>Budget the recovery.</em></h2>
+          <p class="slide-lead">A queue buys time, not capacity.</p>
+        </div>
+      </div>
     </div>
   </section>
   <footer class="doc-footer">
-    <span>Original fictional example. Calculations use stated assumptions, not observed production results.</span>
+    <span>Original fictional example. Calculations use stated assumptions, not observed production results. Illustrations are original scenes generated with gpt-image-2.5 for this example.</span>
     <a href="#ch-capacity">Back to the argument</a>
   </footer>
 </div>

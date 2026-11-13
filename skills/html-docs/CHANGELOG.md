@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.0 — 2026-11-13
+
+**Chosen export palette and an illustrated example.**
+
+### Added
+
+- `--accent blue|red|green|yellow` for `export-pdf.js`, `export-pptx.js`, and
+  `test-pptx.js` overrides the document's default accent for that run, like
+  `--theme` for the print palette. `test-pptx.js` checks that the export uses
+  the requested accent; a dark green fixture joins the regression fixtures.
+- Before exporting a PDF or `.pptx`, the agent asks for light or dark and the
+  accent unless the user already chose, and keeps one folder per palette.
+
+### Changed
+
+- The example talk carries nine generated illustrations in hero, split,
+  circle, and panorama compositions on its opening, cards, and closing, in
+  Slides and Read. It ships light and dark PDFs and PowerPoint files with the
+  blue accent in `exports/light` and `exports/dark`; both `.pptx` files match
+  the browser in PowerPoint with no differing area.
+
+### Upgrading a document
+
+Copy `validate.js`, `export-pdf.js`, `export-pptx.js`, and `test-pptx.js` into
+the document's `assets` folder. Nothing changes in the HTML or runtime.
+
 ## 1.5.0 — 2026-11-13
 
 **Optional PowerPoint export of slides and decks.**

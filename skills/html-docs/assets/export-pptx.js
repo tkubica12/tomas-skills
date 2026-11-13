@@ -6,7 +6,8 @@
    boxes placed exactly where Chromium laid the text out.
 
      node assets\export-pptx.js <document>.html [--out <folder>] [--theme light|dark]
-                                [--text native|image] [--width 2560] [--no-notes]
+                                [--accent blue|red|green|yellow] [--text native|image]
+                                [--width 2560] [--no-notes]
 
    Deck: <name>.pptx    Article slides: <name>.slides.pptx
    Text PowerPoint cannot reproduce exactly (unusual fonts, effects, rotation,
@@ -944,7 +945,7 @@ async function exportPptx(input, options = {}) {
     const isDeck = await page.evaluate(() => !!document.querySelector(".deck-stage"));
     const selector = isDeck ? SURFACES.deck : SURFACES.article;
     const notes = options.notes === false || isDeck ? [] : await page.evaluate(pptxNotes, selector);
-    await preparePrint(page, "slides", options.theme);
+    await preparePrint(page, "slides", options.theme, options.accent);
     const clipped = await printOverflow(page, "slides");
     if (clipped.length) throw new Error(`slides clip: ${clipped.join(", ")}. Shorten the content; nothing written.`);
     const size = await page.evaluate(sel => {
@@ -958,7 +959,7 @@ async function exportPptx(input, options = {}) {
     await context.grantPermissions(["local-fonts"]).catch(() => {});
     const view = await context.newPage();
     await load(view, file);
-    await preparePrint(view, "slides", options.theme);
+    await preparePrint(view, "slides", options.theme, options.accent);
     await view.evaluate(async () => {
       try { window.__pptxLocalFonts = (await window.queryLocalFonts()).map(f => ({ family: f.family, fullName: f.fullName })); }
       catch { window.__pptxLocalFonts = null; }
@@ -1003,7 +1004,7 @@ async function exportPptx(input, options = {}) {
     fs.mkdirSync(outDir, { recursive: true });
     const out = path.join(outDir, isDeck ? base + ".pptx" : base + ".slides.pptx");
     fs.writeFileSync(out, pptx);
-    return { file: out, slides: deck.length, bytes: pptx.length, report, textMode, isDeck,
+    return { file: out, slides: deck.length, bytes: pptx.length, report, textMode, isDeck, colors: meta.colors, dark: meta.dark,
       titles: deck.map(s => s.stats.title), notes: deck.map(s => !!s.notes), references };
   } finally { await browser.close(); }
 }
@@ -1014,7 +1015,7 @@ if (require.main === module) {
   const options = {};
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
-    if (["--out", "--theme", "--text", "--width"].includes(arg) && args[index + 1] && !args[index + 1].startsWith("--")) {
+    if (["--out", "--theme", "--accent", "--text", "--width"].includes(arg) && args[index + 1] && !args[index + 1].startsWith("--")) {
       options[arg.slice(2)] = args[++index];
     } else if (arg === "--no-notes") options.notes = false;
     else if (!arg.startsWith("--") && !input) input = arg;
@@ -1025,9 +1026,10 @@ if (require.main === module) {
   }
   if (options.width !== undefined) options.width = Number(options.width);
   if (!input || !fs.existsSync(input) || (options.theme && !["light", "dark"].includes(options.theme)) ||
+    (options.accent && !["blue", "red", "green", "yellow"].includes(options.accent)) ||
     (options.text && !["native", "image"].includes(options.text)) ||
     (options.width !== undefined && !(options.width >= 1280 && options.width <= 7680))) {
-    console.error("usage: node export-pptx.js <document.html> [--out <folder>] [--theme light|dark] [--text native|image] [--width 1280-7680] [--no-notes]");
+    console.error("usage: node export-pptx.js <document.html> [--out <folder>] [--theme light|dark] [--accent blue|red|green|yellow] [--text native|image] [--width 1280-7680] [--no-notes]");
     process.exit(2);
   }
   exportPptx(input, options).then(({ file, slides, bytes, report, textMode }) => {

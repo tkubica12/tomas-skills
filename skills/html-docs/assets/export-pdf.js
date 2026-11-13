@@ -3,8 +3,10 @@
    html-docs PDF export. Prints each view a document offers to its own PDF,
    through the same print stylesheets the in-page PDF button uses.
 
-     node assets\export-pdf.js <document>.html [--out <folder>] [--only read,slides,sheet] [--theme light|dark]
+     node assets\export-pdf.js <document>.html [--out <folder>] [--only read,slides,sheet]
+                               [--theme light|dark] [--accent blue|red|green|yellow]
 
+   --theme and --accent override the document's authored print palette.
    One view:    <name>.pdf
    Several:     <name>.document.pdf, <name>.slides.pdf, <name>.sheet.pdf
    Fails without writing a file whose pages clip or whose page count is wrong.
@@ -21,7 +23,7 @@ let input;
 const options = {};
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
-  if (["--out", "--only", "--theme"].includes(arg) && args[index + 1] && !args[index + 1].startsWith("--")) {
+  if (["--out", "--only", "--theme", "--accent"].includes(arg) && args[index + 1] && !args[index + 1].startsWith("--")) {
     options[arg] = args[++index];
   } else if (!arg.startsWith("--") && !input) input = arg;
   else {
@@ -29,8 +31,9 @@ for (let index = 0; index < args.length; index++) {
     process.exit(2);
   }
 }
-if (!input || !fs.existsSync(input) || (options["--theme"] && !["light", "dark"].includes(options["--theme"]))) {
-  console.error("usage: node export-pdf.js <document.html> [--out <folder>] [--only read,slides,sheet] [--theme light|dark]");
+if (!input || !fs.existsSync(input) || (options["--theme"] && !["light", "dark"].includes(options["--theme"])) ||
+  (options["--accent"] && !["blue", "red", "green", "yellow"].includes(options["--accent"]))) {
+  console.error("usage: node export-pdf.js <document.html> [--out <folder>] [--only read,slides,sheet] [--theme light|dark] [--accent blue|red|green|yellow]");
   process.exit(2);
 }
 const file = path.resolve(input);
@@ -71,7 +74,7 @@ const suffix = { read: "document", slides: "slides", sheet: "sheet" };
     if (!plan.length) throw new Error("no printable view" + (only ? " matches --only " + only.join(",") : ""));
     fs.mkdirSync(outDir, { recursive: true });
     for (const { target, pages } of plan) {
-      await preparePrint(page, target, options["--theme"]);
+      await preparePrint(page, target, options["--theme"], options["--accent"]);
       const clipped = await printOverflow(page, target);
       const pdf = await renderPdf(page);
       const count = pdfPages(pdf);

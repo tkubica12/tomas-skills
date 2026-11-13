@@ -48,6 +48,11 @@ Screen **Dark / Light** never changes the print palette. Choose one of:
 - **Exporter:** `--theme light` or `--theme dark` overrides the document's print
   choice for that run without changing its source. Without the flag it honors
   the authored choice; a fresh offline context has no saved reader preference.
+  `--accent blue|red|green|yellow` likewise overrides the document's
+  `data-default-accent` for that run.
+
+Before exporting, ask for light or dark and the accent unless the user already
+chose; a PDF keeps only the palette it was printed with.
 
 Dark printing needs **Background graphics** enabled. It uses canonical dark
 surfaces and text, including reading-page margins and page numbers, rather than
@@ -59,7 +64,7 @@ an injected per-document stylesheet. For ink-saving print choose light.
 node assets\export-pdf.js my-document.html
 node assets\export-pdf.js my-document.standalone.html --out out --only sheet
 node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
-node assets\export-pdf.js my-document.standalone.html --theme light --out light-pdf
+node assets\export-pdf.js my-document.standalone.html --theme light --accent green --out light-green-pdf
 ```
 
 A document with one view writes `my-document.pdf`. A document with several

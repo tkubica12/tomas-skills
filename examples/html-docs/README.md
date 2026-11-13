@@ -2,33 +2,50 @@
 
 An original fictional engineering talk: **one HTML file for presenting live,
 reading the details afterward, and handing out a one-page brief**. Three
-chapters, eight cards, seven deeper reveals, and an inline theme/accent-aware
-diagram. The presentation follows those same chapters and cards, but uses
-**short speaker cues instead of the reading paragraphs**. A designed opening
-and closing complete thirteen slides. A companion **sheet** condenses the
-decision onto one A4 page.
+chapters, eight cards, seven deeper reveals, an inline theme/accent-aware
+diagram, and nine generated illustrations of one robot parcel depot in the
+skill's image compositions: hero, split, circle, and panorama. The
+presentation follows those same chapters and cards, but uses **short speaker
+cues instead of the reading paragraphs**. A designed opening and closing
+complete thirteen slides. A companion **sheet** condenses the decision onto
+one A4 page.
 
 [![Detailed reading view, the same file's dark-theme presentation, and its one-page sheet.](preview.png)](queue-is-not-capacity.standalone.html)
 
 Browser screenshots of one file: reading, presenting, and the sheet view.
 
-## PDFs from the same file
+## PDF and PowerPoint exports
 
 Each view prints to its own PDF, from the **PDF** button or the skill's
-exporter. These were generated from the standalone HTML:
+exporter, and the slides also export to PowerPoint. Every export freezes one
+palette, so the same file was exported twice, light and dark, both with the
+blue accent:
 
-| PDF | Pages | From |
-|---|---|---|
-| [Document](queue-is-not-capacity.document.pdf) | 7 × A4 | Reading view: full reference, reveals open, page numbers |
-| [Slides](queue-is-not-capacity.slides.pdf) | 13 × 16:9 | Slides view: one page per slide, every point shown |
-| [One-page brief](queue-is-not-capacity.sheet.pdf) | 1 × A4 | Sheet view: exactly one page per sheet page |
+| Export | Light | Dark | From |
+|---|---|---|---|
+| Document PDF, 9 × A4 | [PDF](exports/light/queue-is-not-capacity.document.pdf) | [PDF](exports/dark/queue-is-not-capacity.document.pdf) | Reading view: full reference, reveals open, page numbers |
+| Slides PDF, 13 × 16:9 | [PDF](exports/light/queue-is-not-capacity.slides.pdf) | [PDF](exports/dark/queue-is-not-capacity.slides.pdf) | Slides view: one page per slide, every point shown |
+| One-page brief PDF, 1 × A4 | [PDF](exports/light/queue-is-not-capacity.sheet.pdf) | [PDF](exports/dark/queue-is-not-capacity.sheet.pdf) | Sheet view: exactly one page per sheet page |
+| PowerPoint, 13 slides | [PPTX](exports/light/queue-is-not-capacity.slides.pptx) | [PPTX](exports/dark/queue-is-not-capacity.slides.pptx) | Slides view: picture design, editable text, speaker notes |
 
-[![First page of the document PDF, the one-page sheet PDF, and three slide PDF pages.](pdf-preview.png)](queue-is-not-capacity.sheet.pdf)
+[![Light and dark exports: first document page, the sheet, the first slide PDF page, and a slide rendered by PowerPoint.](exports-preview.png)](exports)
 
-PDF pages rendered as images: document, sheet, and slides. These example PDFs
-use the backward-compatible light default, even when the screen is dark.
-Version 1.4.0 also supports explicit dark output with **PDF theme** or
-`export-pdf.js --theme dark`; use a separate output folder to keep both.
+Pages rendered as images. The last column is PowerPoint's own rendering of
+the `.pptx`. `test-pptx.js` compared every slide of both files with the
+browser: no 32 × 32 slide-pixel area differs, at its 2% limit, including the
+slides whose text sits over a photograph's fade. Each `.pptx` is about 7.5 MB
+because every slide carries its design, including the illustration, as a
+2560-pixel picture; native text needs Segoe UI Variable.
+
+## Illustrations
+
+The nine illustrations are original scenes generated with `gpt-image-2.5`
+for this example: robot couriers, parcels, a sorting counter, and one narrow
+exit, in a warm miniature style. They are fictional illustrations, not
+evidence or measurements; numbers, labels, and the diagram stay in HTML and
+SVG. They are stored in [images](images) as 2560 × 1440 JPEGs, linked by the
+editable source and embedded by `bundle.js` in the standalone file, which is
+therefore about 9 MB.
 
 ## Open it
 
@@ -43,7 +60,8 @@ Version 1.4.0 also supports explicit dark output with **PDF theme** or
 
 If you cloned the repository, open either the standalone above or the
 [editable source](queue-is-not-capacity.html). The source links to
-`../../skills/html-docs/assets`; downloading it alone is not enough.
+`../../skills/html-docs/assets` and to the illustrations in `images`;
+downloading it alone is not enough.
 
 ### Controls
 
@@ -117,6 +135,17 @@ The companion sheet and PDFs were added later, with this follow-up prompt:
 > does not already state. Enable the Sheet view, rebuild the standalone file,
 > validate it, and export the document, slides, and sheet PDFs next to it.
 
+Version 1.6.0 added the illustrations and the PowerPoint exports with this
+follow-up prompt:
+
+> Make this example richer in the style of an image-led deck: generate a
+> consistent set of original illustrations of one fictional scene and place
+> them with the skill's hero, split, circle, and panorama compositions on the
+> opening, the cards, and the closing, in both Slides and Read. Keep numbers,
+> labels, and the diagram in HTML and SVG. Export light and dark PDFs and
+> PowerPoint files with the blue accent into separate folders, and verify
+> both PowerPoint files against the browser in desktop PowerPoint.
+
 ## Rebuild
 
 Edit the linked source, not the generated `.standalone.html`. From the
@@ -127,16 +156,24 @@ node skills\html-docs\assets\sync-head.js examples\html-docs\queue-is-not-capaci
 node skills\html-docs\assets\bundle.js examples\html-docs\queue-is-not-capacity.html
 ```
 
-For browser validation and PDFs, additionally provide Playwright and Chromium
-or a compatible installed browser:
+For browser validation and exports, additionally provide Playwright and
+Chromium or a compatible installed browser:
 
 ```powershell
 node skills\html-docs\assets\validate.js examples\html-docs\queue-is-not-capacity.html
-node skills\html-docs\assets\export-pdf.js examples\html-docs\queue-is-not-capacity.standalone.html
+$html = "examples\html-docs\queue-is-not-capacity.standalone.html"
+foreach ($theme in "light", "dark") {
+  $out = "examples\html-docs\exports\$theme"
+  node skills\html-docs\assets\export-pdf.js $html --theme $theme --accent blue --out $out
+  node skills\html-docs\assets\export-pptx.js $html --theme $theme --accent blue --out $out
+  node skills\html-docs\assets\test-pptx.js $html --theme $theme --accent blue
+}
 ```
 
-The PDF export rewrites the three PDFs in this folder, the same PDFs the
-**PDF** button produces in each view.
+This rewrites the PDFs and PowerPoint files in `exports`, the same PDFs the
+**PDF** button produces in each view. `test-pptx.js` needs desktop PowerPoint
+on Windows and writes its renders and difference maps under `validation\pptx`
+in the current folder; do not commit them.
 
 Follow [the validation guide](../../skills/html-docs/references/validation.md)
 to check the export in isolation and inspect all eight palettes. None of

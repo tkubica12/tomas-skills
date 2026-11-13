@@ -73,12 +73,14 @@ async function printPlan(page) {
     return plan;
   });
 }
-async function preparePrint(page, target, theme) {
+async function preparePrint(page, target, theme, accent) {
   if (theme !== undefined && !["light", "dark"].includes(theme)) throw new Error("Print theme must be light or dark");
-  await page.evaluate(({ target, theme }) => {
+  if (accent !== undefined && !Object.hasOwn(accentColors, accent)) throw new Error("Accent must be blue, red, green, or yellow");
+  await page.evaluate(({ target, theme, accent }) => {
     document.documentElement.setAttribute("data-print", target);
     if (theme !== undefined) document.documentElement.setAttribute("data-print-theme", theme);
-  }, { target, theme });
+    if (accent !== undefined) document.documentElement.setAttribute("data-accent", accent);
+  }, { target, theme, accent });
   await page.emulateMedia({ media: "print" });
   await frame(page);
 }
@@ -445,5 +447,5 @@ async function main() {
   } finally { await browser.close(); }
 }
 
-module.exports = { playwright, chromiumPath, frame, printPlan, preparePrint, printOverflow, renderPdf, pdfPages };
+module.exports = { playwright, chromiumPath, frame, printPlan, preparePrint, printOverflow, renderPdf, pdfPages, accentColors };
 if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });

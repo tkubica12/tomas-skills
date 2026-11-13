@@ -31,10 +31,16 @@ presenting, offline use, and readable content without JavaScript.
 Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 
 - [Example and opening instructions](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/README.md)
-- [Downloadable talk + document + sheet](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.standalone.html)
-- PDFs of the same file: [document](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.document.pdf),
-  [slides](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.slides.pdf),
-  [one-page brief](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.sheet.pdf)
+- [Downloadable talk + document + sheet](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.standalone.html),
+  with nine generated illustrations
+- Light exports of the same file: [document PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/light/queue-is-not-capacity.document.pdf),
+  [slides PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/light/queue-is-not-capacity.slides.pdf),
+  [one-page brief PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/light/queue-is-not-capacity.sheet.pdf),
+  [PowerPoint](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/light/queue-is-not-capacity.slides.pptx)
+- Dark exports: [document PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/dark/queue-is-not-capacity.document.pdf),
+  [slides PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/dark/queue-is-not-capacity.slides.pdf),
+  [one-page brief PDF](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/dark/queue-is-not-capacity.sheet.pdf),
+  [PowerPoint](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/exports/dark/queue-is-not-capacity.slides.pptx)
 - [Editable example source](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.html)
 - [Changes by version](CHANGELOG.md)
 
@@ -54,6 +60,12 @@ the browser, tolerating only one render pixel of pixel-grid snapping: no
 32 × 32 slide-pixel area may differ on more than 2% of its pixels, enough to
 catch one missing character. Native text needs the document's fonts on the
 recipient's machine. See [PowerPoint export](references/pptx-export.md).
+
+Version **1.6.0** adds `--accent` to both exporters and the verifier. A PDF or
+`.pptx` freezes one palette, so the agent asks for light or dark and the
+accent before exporting, unless you already said. The example now carries
+generated illustrations and ships light and dark PDFs and PowerPoint files;
+both `.pptx` files pass the PowerPoint comparison with no differing area.
 
 ## Optional visual storytelling
 
@@ -140,9 +152,9 @@ and validates the result. The linked source remains editable; the generated
 node assets\bundle.js my-document.html
 node assets\validate.js my-document.html
 node assets\export-pdf.js my-document.standalone.html
-node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
-node assets\export-pptx.js my-document.standalone.html
-node assets\test-pptx.js my-document.standalone.html
+node assets\export-pdf.js my-document.standalone.html --theme dark --accent green --out dark-pdf
+node assets\export-pptx.js my-document.standalone.html --theme light --accent blue
+node assets\test-pptx.js my-document.standalone.html --theme light --accent blue
 ```
 
 See [validation setup](references/validation.md) for browser overrides and

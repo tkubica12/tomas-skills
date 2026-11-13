@@ -16,7 +16,7 @@ a slides view, such as a standalone sheet, is refused.
 
 ```powershell
 node assets\export-pptx.js my-document.standalone.html
-node assets\export-pptx.js my-document.standalone.html --theme dark --out dark-pptx
+node assets\export-pptx.js my-document.standalone.html --theme dark --accent green --out dark-pptx
 node assets\export-pptx.js my-document.standalone.html --text image --out archive
 ```
 
@@ -24,6 +24,9 @@ node assets\export-pptx.js my-document.standalone.html --text image --out archiv
   dropped from the name, as for PDFs.
 - `--theme light|dark` follows the PDF rules: without it the authored
   `data-print-theme` applies, otherwise light.
+- `--accent blue|red|green|yellow` selects the accent family for that run;
+  without it the document's `data-default-accent` applies. Ask for theme and
+  accent before exporting, and keep one output folder per palette.
 - `--text native` (default) makes text editable. `--text image` makes
   picture-only slides that look identical on every machine but cannot be
   edited or searched; use it for archival copies or unknown recipient fonts.
@@ -90,8 +93,10 @@ PowerPoint for Mac or the web was not measured.
 
 ```powershell
 node assets\test-pptx.js my-document.standalone.html
-node assets\test-pptx.js my-document.standalone.html --theme dark
+node assets\test-pptx.js my-document.standalone.html --theme dark --accent green
 ```
+
+Pass the same `--theme` and `--accent` as the export being delivered.
 
 This exports into `validation\pptx\<name>\`, renders every slide in desktop
 PowerPoint through COM automation (read-only; the file is closed afterwards),
@@ -129,4 +134,5 @@ prove geometry, not quality. Click into a few text boxes to confirm they edit.
 - No animation or transitions: every point is visible.
 - Each slide picture is PNG, or JPEG at quality 92 when that is much smaller,
   as for photographs. A 16-slide text deck measures about 0.3 MB; a 15-slide
-  deck with rendered illustrations about 1.6 MB.
+  deck with rendered illustrations about 1.6 MB; the 13-slide example with a
+  photographic illustration on most slides about 7.5 MB.

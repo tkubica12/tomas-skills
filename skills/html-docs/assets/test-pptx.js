@@ -8,7 +8,8 @@
 
      node assets\test-pptx.js                      skill regression fixtures
      node assets\test-pptx.js my-document.standalone.html [--theme light|dark]
-                              [--text native|image] [--out validation\pptx]
+                              [--accent blue|red|green|yellow] [--text native|image]
+                              [--out validation\pptx]
 
    Writes <out>\<name>\: the .pptx, ref\ (Chromium), ppt\ (PowerPoint) and
    diff\ (red where they differ) per slide, and report.json. The render
@@ -22,6 +23,7 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 const { spawnSync } = require("node:child_process");
 const { exportPptx, crc32 } = require("./export-pptx.js");
+const { accentColors } = require("./validate.js");
 
 // Percent of any 64 x 64 render-pixel area (32 x 32 slide pixels, about a short word)
 // allowed to differ visibly. PowerPoint and Chromium each snap text to their own device
@@ -231,13 +233,15 @@ function powerPoint(pptx, dir) {
 
 /* ---------- one document ---------------------------------------------------- */
 
-async function verify(file, { name, theme, text, out, expect = {} }) {
+async function verify(file, { name, theme, accent, text, out, expect = {} }) {
   const dir = path.join(out, name);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(path.join(dir, "ref"), { recursive: true });
-  const result = await exportPptx(file, { out: dir, theme, text, reference: true });
+  const result = await exportPptx(file, { out: dir, theme, accent, text, reference: true });
   const label = `${name}: `;
   check(label + "slide count", result.slides === result.references.length && (!expect.slides || result.slides === expect.slides));
+  if (accent) check(label + "theme accent is the requested print shade",
+    "#" + result.colors.accent1.toLowerCase() === accentColors[accent][result.dark ? "dark" : "light"]);
   check(label + "every slide has a title", result.titles.every(t => t.trim()));
   if (result.isDeck) check(label + "decks carry no notes", result.notes.every(n => !n));
   else check(label + "article cards carry their reading text as notes", result.notes.some(n => n));
@@ -286,31 +290,31 @@ async function main() {
   const args = process.argv.slice(2), options = {};
   let input;
   for (let i = 0; i < args.length; i++) {
-    if (["--theme", "--text", "--out"].includes(args[i]) && args[i + 1] && !args[i + 1].startsWith("--")) options[args[i].slice(2)] = args[++i];
+    if (["--theme", "--accent", "--text", "--out"].includes(args[i]) && args[i + 1] && !args[i + 1].startsWith("--")) options[args[i].slice(2)] = args[++i];
     else if (!args[i].startsWith("--") && !input) input = args[i];
     else throw new Error("Invalid or incomplete argument: " + args[i]);
   }
   if ((options.theme && !["light", "dark"].includes(options.theme)) || (options.text && !["native", "image"].includes(options.text)) ||
-    (input && !fs.existsSync(input))) {
-    console.error("usage: node test-pptx.js [<document>.html] [--theme light|dark] [--text native|image] [--out <folder>]");
+    (options.accent && !Object.hasOwn(accentColors, options.accent)) || (input && !fs.existsSync(input))) {
+    console.error("usage: node test-pptx.js [<document>.html] [--theme light|dark] [--accent blue|red|green|yellow] [--text native|image] [--out <folder>]");
     process.exit(2);
   }
   if (input) {
     const out = path.resolve(options.out || path.join("validation", "pptx"));
     const name = path.basename(input).replace(/\.html?$/i, "").replace(/\.standalone$/i, "") + (options.theme === "dark" ? "-dark" : "") +
-      (options.text === "image" ? "-image" : "");
-    await verify(path.resolve(input), { name, theme: options.theme, text: options.text, out });
+      (options.accent ? "-" + options.accent : "") + (options.text === "image" ? "-image" : "");
+    await verify(path.resolve(input), { name, theme: options.theme, accent: options.accent, text: options.text, out });
   } else {
     const out = path.resolve(options.out || path.join(root, "test-results", "pptx"));
     const fixtures = [
       ["deck.components.html", "deck", {}, { slides: 16 }],
-      ["deck.components.html", "deck-dark", { theme: "dark" }, { slides: 16 }],
+      ["deck.components.html", "deck-dark-green", { theme: "dark", accent: "green" }, { slides: 16 }],
       ["deck.components.html", "deck-image", { text: "image" }, { slides: 16 }],
       ["article.components.html", "article", {}, { slides: 16 }],
       ["visual.deck.html", "visual-deck", {}, { slides: 9 }]
     ];
     for (const [file, name, opts, expect] of fixtures) await verify(path.join(root, file), { name, out, expect, ...opts });
-    for (const flags of [["--text", "svg"], ["--theme", "sepia"], ["--width", "100"], ["--theme"]]) {
+    for (const flags of [["--text", "svg"], ["--theme", "sepia"], ["--accent", "purple"], ["--width", "100"], ["--theme"]]) {
       const run = spawnSync(process.execPath, [path.join(__dirname, "export-pptx.js"), path.join(root, "deck.template.html"), ...flags], { encoding: "utf8" });
       check("invalid export option fails explicitly: " + flags.join(" "), run.status !== 0 && run.stderr.trim());
     }

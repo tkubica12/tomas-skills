@@ -3,7 +3,7 @@ name: html-docs
 description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF, with slides also exportable to PowerPoint; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, PPTX copies of slides, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # One document, up to three views
@@ -224,12 +224,21 @@ Preserve the MIT notice when redistributing the runtime. Include the notice
 from `LICENSE` in an HTML comment in a single-file deliverable, so the notice
 travels with it.
 
+## Choose the export palette
+
+A PDF or PowerPoint file freezes one palette. Before exporting, unless the
+user already said so, **ask** whether they want light or dark, offering light
+as the recommended choice, then which accent: blue, red, green, or yellow,
+recommending the document's `data-default-accent`. Ask one question at a
+time. Pass the answers as `--theme` and `--accent` to every exporter and
+verifier, and use one output folder per palette so the files keep their names.
+
 ## Export PDFs
 
 ```powershell
-node assets\export-pdf.js my-document.standalone.html
+node assets\export-pdf.js my-document.standalone.html --theme light --accent blue
 # Explicit opt-in; use a separate folder to retain both palettes.
-node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
+node assets\export-pdf.js my-document.standalone.html --theme dark --accent blue --out dark-pdf
 ```
 
 This writes one PDF per view the document offers: `my-document.pdf` for a
@@ -241,26 +250,28 @@ Recipients can make the same PDFs themselves with the **PDF** button. See
 Light remains the default even on a dark screen. Authors can set
 `data-print-theme="dark"` on `<html>`; operators can use **PDF theme**,
 `?print-theme=dark`, or the exporter's `--theme dark`. `--theme light`
-overrides an authored dark choice. Inspect every requested palette in the
-actual PDFs, not only print-emulated HTML.
+overrides an authored dark choice. `--accent` overrides the document's default
+accent for that run without changing the source. Inspect every requested
+palette in the actual PDFs, not only print-emulated HTML.
 
 ## Export PowerPoint
 
 Only when a `.pptx` is requested; never replace the HTML or PDF with it.
 
 ```powershell
-node assets\export-pptx.js my-document.standalone.html
-node assets\test-pptx.js my-document.standalone.html
+node assets\export-pptx.js my-document.standalone.html --theme light --accent blue
+node assets\test-pptx.js my-document.standalone.html --theme light --accent blue
 ```
 
 This writes `my-document.pptx` for a deck or `my-document.slides.pptx` for an
 article's slides. Each slide is the printed design as its background picture,
 with editable native text boxes exactly where the browser laid out the text;
 text PowerPoint cannot reproduce stays in the picture. Article slides carry
-their reading text as speaker notes. `--theme` matches the PDF exporter;
-`--text image` makes picture-only slides for archives or unknown recipient
-fonts. `test-pptx.js` renders every slide in desktop PowerPoint, compares it
-with the browser, and writes difference maps; it must pass before delivery.
+their reading text as speaker notes. `--theme` and `--accent` match the PDF
+exporter; `--text image` makes picture-only slides for archives or unknown
+recipient fonts. `test-pptx.js` renders every slide in desktop PowerPoint,
+compares it with the browser, and writes difference maps; it must pass before
+delivery.
 Then open the `.pptx` and inspect each slide. Tell recipients which fonts the
 native text needs. See [PowerPoint export](references/pptx-export.md).
 
