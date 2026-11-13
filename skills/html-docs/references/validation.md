@@ -80,6 +80,21 @@ slide pages matching the presentation, reading page breaks, and the selected
 accent. For dark output check actual page edges and page-number contrast too;
 print-emulated HTML is not proof of the PDF's page background.
 
+## PowerPoint deliverables
+
+When a `.pptx` is requested, export it and run the PowerPoint comparison:
+
+```powershell
+node assets\export-pptx.js my-document.standalone.html
+node assets\test-pptx.js my-document.standalone.html
+```
+
+`test-pptx.js` exports its own copy under `validation\pptx`. The comparison
+needs desktop PowerPoint on Windows; elsewhere it reports the
+render check as skipped. Inspect `diff\` for red marks, then open the `.pptx`
+and check every slide and a few text boxes. See
+[PowerPoint export](pptx-export.md).
+
 ## Isolated export
 
 ```powershell
@@ -138,6 +153,7 @@ node assets\validate.js visual.article.html
 node assets\validate.js visual.deck.html
 node assets\test-compositions.js
 node assets\test-print.js
+node assets\test-pptx.js
 ```
 
 Regenerate affected standalone outputs and refresh representative screenshots.
@@ -161,3 +177,12 @@ and CLI errors. It exports real default-light, explicit-dark, authored-dark,
 and forced-light PDFs of a combined article, deck, and standalone sheet,
 requiring matching counts. Files remain in `test-results\print` for rendered
 page inspection. These measurements do not replace visual review.
+
+`test-pptx.js` exports the deck gallery in light, dark, and picture-only text
+modes, the article gallery's slides, and the visual deck to
+`test-results\pptx`. It checks slide counts, titles, notes, and native text,
+renders every slide in desktop PowerPoint, and fails when any 32 × 32
+slide-pixel area differs from Chromium on more than 2% of its pixels after a
+2 px blur, tolerating one render pixel of pixel-grid snapping. It also checks
+invalid options and refuses a standalone sheet. Without desktop PowerPoint on
+Windows the render comparison is reported as skipped.

@@ -88,3 +88,6 @@ the bottom of a page. Inspect actual light and dark PDFs when both are requested
 including dark page edges, page numbers, accent, diagrams, and cropped subjects.
 Page counts must agree between palettes. Deliver PDFs beside the standalone HTML when they are
 requested; recipients who cannot open HTML attachments still get the content.
+
+When a `.pptx` is requested instead of or beside the slides PDF, see
+[PowerPoint export](pptx-export.md).

@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.5.0 — 2026-11-13
+
+**Optional PowerPoint export of slides and decks.**
+
+### Added
+
+- `export-pptx.js` writes the slides view of a deck (`<name>.pptx`) or an
+  article (`<name>.slides.pptx`). Each slide's background is the printed
+  design with the text removed; native, editable text boxes sit exactly where
+  Chromium laid out the text, with the document's fonts, colors, and line
+  breaks. Every slide has a title placeholder; article slides carry the card's
+  reading text as speaker notes. Theme colors and fonts come from the tokens.
+- Text PowerPoint cannot reproduce, such as effects, transforms, clipping, or
+  synthesized bold and italic, stays in the picture and is reported.
+  `--text image` writes picture-only slides; `--theme`, `--out`, `--width`,
+  and `--no-notes` are supported. Clipping slides and documents without a
+  slides view are refused.
+- `test-pptx.js` renders every slide in desktop PowerPoint, compares it with
+  Chromium after a 2 px blur, tolerating one render pixel of pixel-grid
+  snapping, and writes difference maps. It fails when any 32 × 32 slide-pixel
+  area differs on more than 2% of its pixels, which catches a single missing
+  character. The regression fixtures cover light, dark, and picture-only
+  decks, article slides, and the visual gallery; every slide measures 0%, and
+  the example deck at most 0.4%.
+
+### Upgrading a document
+
+Copy `export-pptx.js` and `test-pptx.js` into the document's `assets` folder.
+Nothing changes in the HTML, runtime, or PDFs.
+
 ## 1.4.0 — 2026-10-26
 
 **Content-led emphasis, shared content edges, and explicit dark PDFs.**

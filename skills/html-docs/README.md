@@ -11,7 +11,9 @@ prints exactly as previewed.
 Choose the views a document needs: **Read**, **Slides**, **Sheet**, or any
 combination; a standalone one-pager or a separate slide-first deck is also
 available. The **PDF** button prints the view on screen from a local file, and
-the skill exports the same PDFs with page-count checks. All shapes support
+the skill exports the same PDFs with page-count checks. When someone needs a
+PowerPoint file, the slides also export to `.pptx` with editable text that
+PowerPoint renders like the HTML. All shapes support
 light/dark themes, one switchable blue/red/green/yellow accent, keyboard
 navigation, reduced-motion-aware point builds, a screen that stays awake while
 presenting, offline use, and readable content without JavaScript.
@@ -35,6 +37,23 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
   [one-page brief](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.sheet.pdf)
 - [Editable example source](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.html)
 - [Changes by version](CHANGELOG.md)
+
+## Optional PowerPoint export
+
+Version **1.5.0** adds `export-pptx.js` for people who must receive a `.pptx`.
+HTML stays the source and PDF the primary handout. Each slide uses the printed
+design as its background picture, with native, editable text boxes placed
+where the browser laid out the text, using the document's fonts, colors, and
+line breaks. Article slides carry their reading text as speaker notes, and
+every slide has a title for the outline and accessibility checker. Text
+PowerPoint cannot draw identically stays in the picture; `--text image` makes
+picture-only slides for archives.
+
+`test-pptx.js` renders every slide in desktop PowerPoint and compares it with
+the browser, tolerating only one render pixel of pixel-grid snapping: no
+32 × 32 slide-pixel area may differ on more than 2% of its pixels, enough to
+catch one missing character. Native text needs the document's fonts on the
+recipient's machine. See [PowerPoint export](references/pptx-export.md).
 
 ## Optional visual storytelling
 
@@ -98,9 +117,10 @@ for installation scopes, persistent annotations, and preview limits.
   recipients. **PDF** uses the browser's Save as PDF.
 - **Export:** Node.js; the HTML exporter uses built-in modules, no npm
   dependencies.
-- **Validate and export PDFs:** Node.js, Playwright, and Chromium or a
-  compatible installed browser. Playwright is only for the author, not for the
-  document.
+- **Validate and export PDFs or PowerPoint:** Node.js, Playwright, and
+  Chromium or a compatible installed browser. Playwright is only for the
+  author, not for the document. The PowerPoint render check additionally
+  needs desktop PowerPoint on Windows.
 
 Dark mode uses the four exact Microsoft logo colors; light mode uses darker
 counterparts for readable accents. The light shades are this skill's design,
@@ -121,9 +141,12 @@ node assets\bundle.js my-document.html
 node assets\validate.js my-document.html
 node assets\export-pdf.js my-document.standalone.html
 node assets\export-pdf.js my-document.standalone.html --theme dark --out dark-pdf
+node assets\export-pptx.js my-document.standalone.html
+node assets\test-pptx.js my-document.standalone.html
 ```
 
 See [validation setup](references/validation.md) for browser overrides and
-isolated export checks, and [PDF export](references/pdf-export.md) for PDF
-naming and checks. Licensed under [MIT](LICENSE); preserve its notice when
+isolated export checks, [PDF export](references/pdf-export.md) for PDF
+naming and checks, and [PowerPoint export](references/pptx-export.md) for
+`.pptx` fidelity and fonts. Licensed under [MIT](LICENSE); preserve its notice when
 redistributing the runtime.

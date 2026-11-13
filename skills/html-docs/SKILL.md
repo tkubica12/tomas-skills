@@ -1,9 +1,9 @@
 ---
 name: html-docs
-description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, and shareable single-file documents.
+description: Create an HTML document that can be read in depth, presented as slides, and printed as a one-pager or datasheet, each exportable to PDF, with slides also exportable to PowerPoint; or a slide-first browser deck. Use for HTML articles, reports, talks, browser slides, one-pagers, datasheets, PDF handouts, PPTX copies of slides, and shareable single-file documents.
 license: MIT
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # One document, up to three views
@@ -18,8 +18,10 @@ deliberately different depths:
 | **Sheet** | A skimming decision-maker, on paper | One-pager or datasheet with fixed pages |
 
 Every view has a **PDF** form: the in-page **PDF** button prints the view on
-screen, and `export-pdf.js` writes the exact files. Offer only the views the
-document needs; a controls bar shows only those views.
+screen, and `export-pdf.js` writes the exact files. Slides and decks can also
+be exported to PowerPoint when someone needs a `.pptx`; the HTML stays the
+source. Offer only the views the document needs; a controls bar shows only
+those views.
 
 ## Choose the views
 
@@ -84,11 +86,13 @@ full `.card-body`; do not create a separate document or repeat the body on scree
 - When sharing, sending, attaching, or a single file is requested, **build the
   standalone export automatically** and deliver that file, not an assets folder.
   When PDF is requested, also deliver the exported PDFs of the requested views.
+  When PowerPoint is requested, also deliver the exported `.pptx` of the slides.
 
 Reading, presenting, and the PDF button need only a modern browser. Exporting
-HTML needs Node.js (built-in modules only). Validation and `export-pdf.js`
-additionally need Playwright and Chromium or a compatible installed browser;
-see [validation](references/validation.md).
+HTML needs Node.js (built-in modules only). Validation, `export-pdf.js`, and
+`export-pptx.js` additionally need Playwright and Chromium or a compatible
+installed browser; see [validation](references/validation.md). `test-pptx.js`
+compares PowerPoint's rendering only where desktop PowerPoint runs on Windows.
 
 ## Prepare
 
@@ -109,6 +113,7 @@ document-folder/
     deck.css     deck.js
     appearance.js  sync-head.js
     tokens.css   bundle.js   validate.js   export-pdf.js
+    export-pptx.js  test-pptx.js  (optional PowerPoint export)
     sample-diagram.svg
     compositions.css  sample-scene.svg  (optional visual storytelling)
   LICENSE
@@ -150,6 +155,8 @@ file, including during export.
    - [Slides mode](references/slides-mode.md): authored cues and navigation.
    - [Sheet](references/sheet.md): one-pagers, datasheets, paper budget.
    - [PDF export](references/pdf-export.md): PDF button and exact files.
+   - [PowerPoint export](references/pptx-export.md), only when a `.pptx` is
+     requested: method, fonts, kept text, and verification.
    - [Deck authoring](references/deck-authoring.md): slide-first layouts and
      fragments.
    - [Writing rules](references/writing-rules.md): direct prose and claim
@@ -237,6 +244,26 @@ Light remains the default even on a dark screen. Authors can set
 overrides an authored dark choice. Inspect every requested palette in the
 actual PDFs, not only print-emulated HTML.
 
+## Export PowerPoint
+
+Only when a `.pptx` is requested; never replace the HTML or PDF with it.
+
+```powershell
+node assets\export-pptx.js my-document.standalone.html
+node assets\test-pptx.js my-document.standalone.html
+```
+
+This writes `my-document.pptx` for a deck or `my-document.slides.pptx` for an
+article's slides. Each slide is the printed design as its background picture,
+with editable native text boxes exactly where the browser laid out the text;
+text PowerPoint cannot reproduce stays in the picture. Article slides carry
+their reading text as speaker notes. `--theme` matches the PDF exporter;
+`--text image` makes picture-only slides for archives or unknown recipient
+fonts. `test-pptx.js` renders every slide in desktop PowerPoint, compares it
+with the browser, and writes difference maps; it must pass before delivery.
+Then open the `.pptx` and inspect each slide. Tell recipients which fonts the
+native text needs. See [PowerPoint export](references/pptx-export.md).
+
 ## Optional review in GitHub Copilot App
 
 [Document review](https://github.com/tkubica12/tomas-skills/tree/main/extensions/document-review)
@@ -262,8 +289,9 @@ authoring; point to the extension link when the user wants this review workflow.
 
 ## Handoff
 
-Report the editable source, the shareable export, and any PDF paths; the
-chapter/card, slide, and sheet-page counts; validation results; and any
+Report the editable source, the shareable export, and any PDF or PowerPoint
+paths; the chapter/card, slide, and sheet-page counts; validation results,
+including `test-pptx.js` when a `.pptx` is delivered; and any
 deliberately omitted material. **Slides** and **Sheet** switch article views;
 arrows/Space advance points; PageDown/PageUp skip whole slides; **Index** or
 `O` jumps; `Escape` returns to reading. **PDF** prints the view on screen.
