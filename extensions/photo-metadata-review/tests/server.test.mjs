@@ -181,4 +181,15 @@ test("one approval button click submits without a second confirmation", async ()
     assert.deepEqual(requests.map(request => request.route), ["approve"]);
     assert.equal(requests[0].body.revision, "revision-1");
     assert.equal(controls.message.textContent, "Uloženo a odesláno asistentovi.");
+
+    state.data.photos = [
+        { id: "one.CR2", date: null, description: "Museum", confidence: "high", rawMatches: [] },
+        { id: "two.tif", date: null, description: "Museum", confidence: "high", rawMatches: [] }
+    ];
+    state.data.writeRequest = { status: "completed", result: { verifiedRaw: 1, verifiedTiff: 1 } };
+    await controls.refresh.listeners.click();
+    assert.match(controls["write-result"].textContent, /1 RAW a 1 TIFF/);
+    for (const row of controls.photos.children) {
+        assert.ok(!row.children[1].children.some(child => child.textContent === "RAW: nenalezen"));
+    }
 });

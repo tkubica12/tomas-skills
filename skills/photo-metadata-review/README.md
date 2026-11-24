@@ -15,7 +15,7 @@ using the Copilot app's extension installer.
 Python 3.11+, ExifTool with write and `ImageDataHash` support for the requested
 formats, and the packages in `requirements.txt` are needed. Pillow fully
 decodes JPEGs; rawpy uses LibRaw to decode supported RAW files, and tifffile
-can decode supported linear DNGs. The helper does not download tools or
+decodes TIFF image pages and supported linear DNGs. The helper does not download tools or
 install packages. Follow the machine's approved package and software sources;
 inspect existing configurations before installing dependencies.
 A personal Windows installation may keep its Python environment in `.venv`
@@ -33,7 +33,9 @@ directories. It must not already exist. `PHOTO_DIR` contains the exact
 JPG/JPEG files to review; `RAW_DIR`, when supplied, is searched only for
 matching RAW files directly in that directory. Omit `--raw` for JPEG-only
 work. Use `--files name1.jpg name2.jpg` to limit the review to named direct
-children rather than every JPG/JPEG in `PHOTO_DIR`. The helper does not
+children rather than every JPG/JPEG in `PHOTO_DIR`. To review independent CR2,
+ARW, DNG or TIFF photographs, explicitly select them with `--files image.CR2 image.tif`
+and omit `--raw`; no artificial JPEG pair is needed. The helper does not
 recurse. Pass the ExifTool executable path as `EXIFTOOL`.
 
 ```powershell
@@ -42,8 +44,13 @@ python scripts\photo_review.py status --state REVIEW_DIR\state.json
 ```
 
 Initialization reads the files, records capture times and fingerprints, and
-creates local thumbnails. It does **not** write photo metadata. The agent
-visually inspects each photo and writes a private UTF-8 JSON proposal array:
+creates local thumbnails. It does **not** write photo metadata. It reads any
+existing EXIF, XMP and IPTC captions into `existingDescription`; when exactly
+one distinct, valid, non-placeholder caption exists, it prefills `description`
+with `descriptionSource: "existing"` so a good caption is kept rather than
+blanked. Conflicting or camera-placeholder captions (for example
+`OLYMPUS DIGITAL CAMERA`) are not prefilled. The agent visually inspects each
+photo and writes a private UTF-8 JSON proposal array:
 
 ```json
 [
@@ -73,7 +80,15 @@ python scripts\photo_review.py apply --state REVIEW_DIR\state.json --revision RE
 For feedback, include `--feedback-id ID` and proposals covering every photo
 in that pending feedback. The canvas refreshes from the same state and keeps
 draft comments separate. The user's explicit write button freezes all displayed
-descriptions, including uncertain ones. Use its exact request ID:
+descriptions, including uncertain ones. Without the canvas, show the user the
+complete list and, after the user explicitly authorizes writing it in chat,
+freeze the same revision with that authorization quoted:
+
+```powershell
+python scripts\photo_review.py approve --state REVIEW_DIR\state.json --revision REVISION --authorization "USER'S APPROVAL"
+```
+
+Either path yields a request ID. Use that exact ID:
 
 ```powershell
 python scripts\write_descriptions.py --state REVIEW_DIR\state.json --request-id REQUEST_ID --exiftool EXIFTOOL
@@ -81,9 +96,27 @@ python scripts\write_descriptions.py --state REVIEW_DIR\state.json --request-id 
 
 The writer reports verified and skipped counts and a private journal. It
 updates the canvas state itself. A technically ambiguous RAW is skipped; an
-eligible JPEG can still be written. A failed or interrupted write stops and
-retains its recovery copy. Do not retry the same request or restore over a
-possibly concurrent edit without inspecting the journal and the files.
+eligible JPEG can still be written. When ExifTool cleanly refuses a file (for
+example a broken IFD0 `OtherImageStart` pointer in edited Canon JPEGs) and the
+file is proven byte-identical afterwards, it is skipped with the reason and the
+run continues. Any other failed or interrupted write stops and retains its
+recovery copy. Do not retry the same request or restore over a possibly
+concurrent edit without inspecting the journal and the files.
+
+Phone and camera JPEGs commonly carry Multi-Picture (MPF) images such as
+gain maps or previews (Xiaomi, Sony, Canon), EXIF thumbnails, and directories
+written out of order. The writer accepts these only with proof: every indexed
+MPF image and identifiable JPEG trailer stream is byte-identical and still
+decodes, the complete trailer is byte-identical, MPF offsets move only by the
+primary image's size change, RAW/TIFF strips, tiles, previews and thumbnails
+keep identical byte hashes when relocated, and ExifTool's only accepted message
+is its re-sort of an out-of-order EXIF directory. The journal records
+`relocatedMetadata`, `exiftoolRepairs` and `repairedValidation`.
+TIFF verification decodes every page and SubIFD that tifffile can access;
+unsupported, undecodable or unhashable files are not reported as verified.
+Sony SR2 metadata is compared in decrypted form with only validated directory
+pointers normalized, while Sony hidden data is checked byte-for-byte.
+PSD files and `.THM` video thumbnails are not selected or written.
 
 See [SKILL.md](SKILL.md) and [safety.md](references/safety.md) for the full
 workflow and limits.
@@ -91,7 +124,9 @@ workflow and limits.
 ## Validation and limits
 
 Set `PHOTO_TEST_EXIFTOOL` to the executable path to run the integration cases;
-otherwise those tests are explicitly skipped:
+otherwise those tests are explicitly skipped. For the optional CR2 relocation
+regression, set `PHOTO_TEST_CR2` to a Canon sample with IFD2/IFD3 strips; the
+test modifies only a temporary copy:
 
 ```powershell
 python -m unittest discover -s tests -v

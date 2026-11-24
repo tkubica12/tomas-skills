@@ -26,13 +26,44 @@ automatically retry a stopped request. An interruption may leave state as
 `writing`; the journal is the source for determining how far the write got.
 
 The checks cover the formats and decoder actually exercised, not all possible
-camera formats, embedded previews or downstream photo applications. RAW image
-data may be intact while rendering depends on proprietary metadata. Keep that
+camera formats, embedded previews or downstream photo applications. Opaque
+non-JPEG trailer data is byte-hashed but not decoded, and unrecognized
+proprietary MakerNote-relative payloads are not independently decoded. RAW
+image data may be intact while rendering depends on proprietary metadata. Keep that
 metadata; never delete all RAW metadata. If a format cannot be decoded, image
 data cannot be hashed, a stream cannot be preserved, or validation changes,
 stop and retain the recovery copy instead of calling the file verified.
 
-Only a unique RAW with a matching basename and capture time is eligible.
+For paired writes, only a unique RAW with a matching basename and capture time
+is eligible. Explicitly selected standalone CR2, ARW, DNG and TIFF photographs
+do not need a pair; TIFF verification decodes all accessible pages and SubIFDs.
 Read-only formats and ambiguous pairs are reported and skipped. A user-approved
 description may overwrite that field; do not treat a low-confidence label as a
 new reason to withhold an already approved description.
+
+## Structural repairs versus new warnings
+
+ExifTool may re-sort EXIF directories that a camera wrote out of order, which
+also removes odd-offset findings, and it relocates embedded data when the
+metadata grows. These are accepted only when proven:
+
+- The only accepted write message is `Entries in <directory> were out of
+  sequence. Fixed.`, and validation before the write must show that same
+  directory out of order.
+- Validation after the write may only *lose* ordering, out-of-sequence and
+  odd-offset findings. Any new, changed or other removed finding fails the
+  file. The journal lists the repaired findings in `repairedValidation`.
+- MPF images (gain maps, previews, depth maps) and identifiable JPEGs after the
+  primary image must be byte-identical and fully decodable; the full trailer,
+  including padding, must hash identically; MPF offsets may change only by the
+  primary image's size change. The EXIF thumbnail must be byte-identical.
+- TIFF IFD offsets (strips, tiles, previews, thumbnails, `JpgFromRaw`) may move
+  only when the referenced bytes hash identically. Moved offsets are listed in
+  `relocatedMetadata`.
+- For supported Sony ARW files, ExifTool's complete decrypted SR2 block must be
+  identical after normalizing only validated directory pointers. Sony hidden
+  data must also hash identically at the referenced offsets. Unsupported
+  directory layouts are rejected.
+
+A clean ExifTool refusal that leaves the file byte-identical is a skip, not a
+success. Unparseable MPF indexes or payloads are skipped before writing.

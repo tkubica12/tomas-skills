@@ -12,7 +12,7 @@ const languages = {
         noComments: "Nejprve napište alespoň jeden komentář.",
         clearDrafts: "Nejprve odešlete nebo vymažte rozepsané komentáře.",
         sent: "Uloženo a odesláno asistentovi.", unknown: "Uloženo, ale doručení nelze potvrdit. Neopakujte automaticky; sdělte asistentovi ID: ",
-        result: (r, s) => `Zápis ${s}: ověřeno ${r.verifiedJpg || 0} JPG a ${r.verifiedRaw || 0} RAW; přeskočeno ${r.skippedJpg || 0} JPG a ${r.skippedRaw || 0} RAW; selhání ${r.failed || 0}.`,
+        result: (r, s) => `Zápis ${s}: ověřeno ${r.verifiedJpg || 0} JPG, ${r.verifiedRaw || 0} RAW a ${r.verifiedTiff || 0} TIFF; přeskočeno ${r.skippedJpg || 0} JPG, ${r.skippedRaw || 0} RAW a ${r.skippedTiff || 0} TIFF; selhání ${r.failed || 0}.`,
         status: s => s === "completed" ? "dokončen" : "zastaven"
     },
     en: {
@@ -26,7 +26,7 @@ const languages = {
         noComments: "Write at least one comment first.",
         clearDrafts: "Submit or clear draft comments before approving.",
         sent: "Saved and sent to the assistant.", unknown: "Saved, but delivery cannot be confirmed. Do not retry automatically; tell the assistant the ID: ",
-        result: (r, s) => `Write ${s}: ${r.verifiedJpg || 0} JPG and ${r.verifiedRaw || 0} RAW verified; ${r.skippedJpg || 0} JPG and ${r.skippedRaw || 0} RAW skipped; ${r.failed || 0} failures.`,
+        result: (r, s) => `Write ${s}: ${r.verifiedJpg || 0} JPG, ${r.verifiedRaw || 0} RAW and ${r.verifiedTiff || 0} TIFF verified; ${r.skippedJpg || 0} JPG, ${r.skippedRaw || 0} RAW and ${r.skippedTiff || 0} TIFF skipped; ${r.failed || 0} failures.`,
         status: s => s === "completed" ? "completed" : "stopped"
     }
 };
@@ -131,8 +131,10 @@ async function load(silent = false) {
         detail.append(node("div", photo.id, "name"), node("div", formatDate(photo.date), "muted"));
         if (["low", "unknown"].includes(photo.confidence)) detail.append(node("span", strings.uncertain, "badge"));
         detail.append(node("p", photo.description));
-        detail.append(node("div", photo.rawMatches.length === 1 ? `RAW: ${photo.rawMatches[0]}` :
-            photo.rawMatches.length ? strings.moreRaw : strings.noRaw, "muted"));
+        if (/\.(?:jpe?g)$/i.test(photo.id)) {
+            detail.append(node("div", photo.rawMatches.length === 1 ? `RAW: ${photo.rawMatches[0]}` :
+                photo.rawMatches.length ? strings.moreRaw : strings.noRaw, "muted"));
+        }
         const label = node("label", strings.comment);
         const textarea = node("textarea");
         textarea.placeholder = strings.placeholder;

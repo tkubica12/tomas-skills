@@ -112,7 +112,8 @@ def exiftool_path(value):
     return str(Path(candidate).resolve(strict=True))
 
 
-def exiftool(executable, arguments):
+def exiftool_run(executable, arguments):
+    """Run ExifTool and return (exit code, stdout, stderr) without judging stderr."""
     arguments = ["-charset", "filename=UTF8", "-charset", "UTF8", *map(str, arguments)]
     if any(any(char in arg for char in "\r\n\0") for arg in arguments):
         raise ValueError("An ExifTool argument contains a newline or NUL")
@@ -122,10 +123,18 @@ def exiftool(executable, arguments):
         capture_output=True,
         check=False,
     )
-    stderr = result.stderr.decode("utf-8", "replace").strip()
-    if result.returncode or stderr:
-        raise RuntimeError(f"ExifTool exit {result.returncode}: {stderr}")
-    return result.stdout.decode("utf-8", "strict")
+    return (
+        result.returncode,
+        result.stdout.decode("utf-8", "strict"),
+        result.stderr.decode("utf-8", "replace").strip(),
+    )
+
+
+def exiftool(executable, arguments):
+    code, stdout, stderr = exiftool_run(executable, arguments)
+    if code or stderr:
+        raise RuntimeError(f"ExifTool exit {code}: {stderr}")
+    return stdout
 
 
 def capture_date(entry):

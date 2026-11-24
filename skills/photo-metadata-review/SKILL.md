@@ -16,7 +16,8 @@ changes.
 ## 1. Establish scope and prepare
 
 - Use only the user-specified photos and directories. A directory means its
-  immediate JPG/JPEG children; `init --files` limits a review to exact names.
+  immediate JPG/JPEG children; `init --files` selects exact JPG/JPEG, standalone
+  CR2, ARW, DNG or TIFF names. Select standalone files without `--raw`.
   For requested recursive work, enumerate the authorized directories and
   review them separately. The RAW directory is explicit; do not infer one
   outside that scope.
@@ -73,6 +74,10 @@ change original photos while processing comments. Preserve draft comments and
 other pending state, and stop on stale-revision or delivery uncertainty.
 
 The canvas's explicit **write** action freezes the complete displayed list.
+Without the canvas, the user may approve the complete list shown in chat;
+record that by running `photo_review.py approve` with the current revision and
+the user's quoted authorization. Never infer approval. Existing valid captions
+are prefilled at initialization; keep them unless the inspection improves them.
 That approval covers every displayed description, including those marked
 uncertain: do not ask for a second approval or skip a description merely due
 to model confidence. Skip only actual technical ambiguities, unsafe writes or
@@ -81,15 +86,19 @@ files outside the frozen request. Respect any narrower user instruction.
 ## 4. Write and verify
 
 Run `scripts/write_descriptions.py` only for the exact pending request ID.
-The helper checks actual JPG/RAW pairing, supported formats and unchanged
-sources; it uses a verified temporary recovery copy for one file at a time.
+The helper checks actual JPG/RAW pairing where applicable, supported formats
+and unchanged sources; it uses a verified temporary recovery copy for one file
+at a time.
 It writes only the approved description fields and checks the written text,
 decoded image data, image-data SHA-256, unrelated metadata and file streams.
 It deletes a copy created by this operation only after that file passes all
 checks; on failure or interruption it retains the copy and reports its path.
 Never delete pre-existing backups or auto-restore over a concurrent user edit.
 If full decoding or preservation cannot be checked, stop rather than claim
-that a RAW is safe. See [references/safety.md](references/safety.md).
+that a RAW or TIFF is safe. MPF/gain-map JPEGs, out-of-order EXIF and relocated
+RAW strips are written only with byte-level payload proofs; report journal
+`repairedValidation` as repaired structure, distinct from new or worsened
+warnings, which fail. See [references/safety.md](references/safety.md).
 
 Update the canvas from the recorded result and report actual written, skipped
 and failed counts. Never claim completion from an exit code alone. A temporary
