@@ -140,8 +140,8 @@ class PhotoReviewTests(unittest.TestCase):
                 return ({"ExifIFD:DateTimeOriginal": "2026:03:04 12:34:56"}, "hash", [], {}, None)
             return original_preflight(tool, path, kind, baseline, writable)
 
-        def write_and_add_candidate(*args):
-            result = original_write(*args)
+        def write_and_add_candidate(*args, **kwargs):
+            result = original_write(*args, **kwargs)
             if args[2] == "JPG":
                 Image.new("RGB", (8, 8)).save(self.raw / "obrázek.DNG", "JPEG")
             return result
@@ -178,7 +178,11 @@ class PhotoReviewTests(unittest.TestCase):
         self.propose()
         request_id = self.approve()
         original_hash = common.digest(self.jpg)
+        actual = writer.exiftool_run
+
         def faulty(tool, arguments):
+            if Path(arguments[-1]) != self.jpg:
+                return actual(tool, arguments)
             self.jpg.write_bytes(b"interrupted")
             raise RuntimeError("Simulated interruption")
 
@@ -201,7 +205,8 @@ class PhotoReviewTests(unittest.TestCase):
 
         def faulty(tool, arguments):
             output = actual(tool, arguments)
-            self.jpg.write_bytes(b"corrupt")
+            if Path(arguments[-1]) == self.jpg:
+                self.jpg.write_bytes(b"corrupt")
             return output
 
         with mock.patch.object(writer, "exiftool_run", side_effect=faulty):
@@ -220,9 +225,10 @@ class PhotoReviewTests(unittest.TestCase):
 
         def concurrent_edit(tool, arguments):
             output = actual(tool, arguments)
-            external = common.load_json(self.state_path)
-            external["externalNote"] = "Keep this change"
-            common.save_json(self.state_path, external)
+            if Path(arguments[-1]) == self.jpg:
+                external = common.load_json(self.state_path)
+                external["externalNote"] = "Keep this change"
+                common.save_json(self.state_path, external)
             return output
 
         with mock.patch.object(writer, "exiftool_run", side_effect=concurrent_edit):
@@ -290,9 +296,10 @@ class PhotoReviewTests(unittest.TestCase):
 
         def corrupt_trailer(tool, arguments):
             output = actual(tool, arguments)
-            data = bytearray(self.jpg.read_bytes())
-            data[-200] ^= 0xFF
-            self.jpg.write_bytes(bytes(data))
+            if Path(arguments[-1]) == self.jpg:
+                data = bytearray(self.jpg.read_bytes())
+                data[-200] ^= 0xFF
+                self.jpg.write_bytes(bytes(data))
             return output
 
         with mock.patch.object(writer, "exiftool_run", side_effect=corrupt_trailer):
@@ -313,6 +320,128 @@ class PhotoReviewTests(unittest.TestCase):
         self.assertEqual((result["verifiedJpg"], result["skippedJpg"], result["failed"]), (0, 1, 0))
         self.assertEqual(common.digest(self.jpg), original_hash)
         self.assertEqual(list((self.review / "recovery").iterdir()), [])
+
+    def test_trial_warning_skips_original_before_write(self):
+        self.initialize()
+        self.propose()
+        original = common.fingerprint(self.jpg)
+        actual = writer.exiftool_run
+        written = []
+
+        def warning(tool, arguments):
+            written.append(Path(arguments[-1]))
+            code, output, stderr = actual(tool, arguments)
+            return code, output, stderr + "Warning: [minor] Maker notes could not be parsed - trial.jpg\n"
+
+        with mock.patch.object(writer, "exiftool_run", side_effect=warning):
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["verifiedJpg"], result["skippedJpg"], result["failed"]), (0, 1, 0))
+        self.assertEqual(common.fingerprint(self.jpg), original)
+        self.assertNotIn(self.jpg, written)
+        record = common.load_json(Path(result["journal"]))["files"][0]
+        self.assertIn("Maker notes could not be parsed", record["reason"])
+
+    def test_trial_metadata_change_skips_original_before_write(self):
+        self.initialize()
+        self.propose()
+        original = common.fingerprint(self.jpg)
+        actual = writer.metadata
+
+        def altered_metadata(tool, path):
+            entry = actual(tool, path)
+            if "photo-write-trial-" in str(path) and entry.get("IFD0:ImageDescription") == "Klášter u města.":
+                entry["IFD0:YCbCrPositioning"] = 9999
+            return entry
+
+        with mock.patch.object(writer, "metadata", side_effect=altered_metadata):
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["verifiedJpg"], result["skippedJpg"], result["failed"]), (0, 1, 0))
+        self.assertEqual(common.fingerprint(self.jpg), original)
+        record = common.load_json(Path(result["journal"]))["files"][0]
+        self.assertIn("IFD0:YCbCrPositioning", record["reason"])
+
+    def test_trial_retries_added_ycbcr_without_mandatory_tags(self):
+        common.exiftool(EXIFTOOL, [
+            "-api", "NoMandatory=1", "-overwrite_original_in_place",
+            "-IFD0:YCbCrPositioning=", self.jpg,
+        ])
+        self.initialize()
+        self.propose()
+        actual = writer.write_file
+        attempted = []
+
+        def inject_default_change(*args, **kwargs):
+            attempted.append((Path(args[1]), kwargs.get("no_mandatory", False)))
+            if Path(args[1]) != self.jpg and not kwargs.get("no_mandatory", False):
+                raise writer.UnsafeMetadataChange(["IFD0:YCbCrPositioning"])
+            return actual(*args, **kwargs)
+
+        with mock.patch.object(writer, "write_file", side_effect=inject_default_change):
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["verifiedJpg"], result["skippedJpg"], result["failed"]), (1, 0, 0))
+        self.assertEqual([option for _, option in attempted], [False, True, True])
+        self.assertEqual(attempted[-1][0], self.jpg)
+        self.assertNotIn("IFD0:YCbCrPositioning", writer.metadata(EXIFTOOL, self.jpg))
+        record = common.load_json(Path(result["journal"]))["files"][0]
+        self.assertTrue(record["exiftoolNoMandatory"])
+
+    def test_trial_does_not_retry_multiple_metadata_changes(self):
+        self.initialize()
+        self.propose()
+        original = common.fingerprint(self.jpg)
+        change = writer.UnsafeMetadataChange(["IFD0:Orientation", "IFD0:YCbCrPositioning"])
+        with mock.patch.object(writer, "write_file", side_effect=change) as write:
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["skippedJpg"], result["failed"]), (1, 0))
+        self.assertEqual(write.call_count, 1)
+        self.assertEqual(common.fingerprint(self.jpg), original)
+
+    def test_trial_does_not_retry_change_to_existing_ycbcr(self):
+        common.exiftool(EXIFTOOL, [
+            "-overwrite_original_in_place", "-IFD0:YCbCrPositioning#=2", self.jpg,
+        ])
+        self.initialize()
+        self.propose()
+        original = common.fingerprint(self.jpg)
+        change = writer.UnsafeMetadataChange(["IFD0:YCbCrPositioning"])
+        with mock.patch.object(writer, "write_file", side_effect=change) as write:
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["skippedJpg"], result["failed"]), (1, 0))
+        self.assertEqual(write.call_count, 1)
+        self.assertEqual(common.fingerprint(self.jpg), original)
+
+    def test_unexpected_trial_error_stops_without_writing_source(self):
+        self.initialize()
+        self.propose()
+        original = common.fingerprint(self.jpg)
+        with mock.patch.object(writer, "trial_jpeg_write", side_effect=RuntimeError("trial storage error")):
+            with self.assertRaisesRegex(RuntimeError, "trial storage error"):
+                writer.run(self.state_path, self.approve(), EXIFTOOL)
+        state = common.load_json(self.state_path)
+        self.assertEqual(state["writeRequest"]["status"], "stopped")
+        self.assertEqual(common.fingerprint(self.jpg), original)
+
+    def test_unsafe_jpeg_trial_skips_paired_raw(self):
+        raw = self.raw / "obrázek.ARW"
+        shutil.copy2(self.jpg, raw)
+        self.initialize(raw=True)
+        self.propose()
+        jpg_before, raw_before = common.fingerprint(self.jpg), common.fingerprint(raw)
+        actual = writer.file_preflight
+
+        def preflight(tool, path, kind, baseline, writable):
+            if kind == "RAW":
+                return ({"ExifIFD:DateTimeOriginal": "2026:03:04 12:34:56"}, "hash", [], {}, None)
+            return actual(tool, path, kind, baseline, writable)
+
+        with mock.patch.object(writer, "file_preflight", side_effect=preflight), \
+             mock.patch.object(writer, "trial_jpeg_write", side_effect=writer.SafetySkip("unsafe trial")), \
+             mock.patch.object(writer, "write_file") as write:
+            result = writer.run(self.state_path, self.approve(), EXIFTOOL)
+        self.assertEqual((result["skippedJpg"], result["skippedRaw"], result["failed"]), (1, 1, 0))
+        write.assert_not_called()
+        self.assertEqual(common.fingerprint(self.jpg), jpg_before)
+        self.assertEqual(common.fingerprint(raw), raw_before)
 
     def test_existing_caption_is_retained_at_initialization(self):
         common.exiftool(EXIFTOOL, [

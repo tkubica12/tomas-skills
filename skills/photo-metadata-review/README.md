@@ -95,7 +95,16 @@ python scripts\write_descriptions.py --state REVIEW_DIR\state.json --request-id 
 ```
 
 The writer reports verified and skipped counts and a private journal. It
-updates the canvas state itself. A technically ambiguous RAW is skipped; an
+updates the canvas state itself. Before changing each JPEG, it first performs
+the same approved write and verification on a private copy. If that trial
+shows unexpected metadata changes or write warnings, the JPEG and any paired
+RAW are skipped without writing the source. If the sole unexpected change is
+adding an absent IFD0 `YCbCrPositioning`, the helper retries on a fresh copy
+with ExifTool's `NoMandatory` option. Only a fully verified retry permits the
+same option on the source; the journal records `exiftoolNoMandatory`.
+This adds I/O and requires private
+disk space for the trial and its recovery copy. Other trial errors stop the
+request. A technically ambiguous RAW is skipped; an
 eligible JPEG can still be written. When ExifTool cleanly refuses a file (for
 example a broken IFD0 `OtherImageStart` pointer in edited Canon JPEGs) and the
 file is proven byte-identical afterwards, it is skipped with the reason and the

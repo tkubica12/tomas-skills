@@ -89,6 +89,11 @@ Run `scripts/write_descriptions.py` only for the exact pending request ID.
 The helper checks actual JPG/RAW pairing where applicable, supported formats
 and unchanged sources; it uses a verified temporary recovery copy for one file
 at a time.
+Before a JPEG write, it checks the exact approved write on a private copy;
+unexpected warnings or metadata changes skip the JPEG and its paired RAW
+without writing either source. An unwanted new `YCbCrPositioning` can be
+retried on a fresh copy using `NoMandatory`, with all checks still required.
+Other trial errors stop the run.
 It writes only the approved description fields and checks the written text,
 decoded image data, image-data SHA-256, unrelated metadata and file streams.
 It deletes a copy created by this operation only after that file passes all

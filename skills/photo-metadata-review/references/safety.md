@@ -18,6 +18,17 @@ its journal; do not automatically restore it over a file that another program
 or the user might have changed. The user may opt for separate long-term
 backups; never remove existing backups.
 
+Before a JPEG write, the writer also tries the exact approved description on a
+verified private copy, using the same preservation checks. Unexpected write
+warnings or metadata changes skip the JPEG and its paired RAW before either
+source is written; other trial errors stop the request. One exception is an
+added, previously absent IFD0 `YCbCrPositioning`: a fresh copy is retried
+with `NoMandatory`, and the option is used on the source only if all checks
+pass. The journal records this option. Trial copies are
+temporary, require extra disk space and I/O, and are not an independent backup.
+A successful trial cannot guarantee that a later source write will succeed:
+the normal recovery and post-write checks still apply.
+
 The `state.json.lock` directory coordinates this canvas and its Python helpers;
 it does not lock other photo software. A crash may leave it in place. First
 verify that no writer or canvas operation is running, inspect the journal and

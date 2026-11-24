@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -54,6 +55,16 @@ class SafetySkip(Exception):
 
 class WriteRefused(Exception):
     """ExifTool refused the file and it was proven byte-identical afterwards."""
+
+
+class UnsafeWrite(RuntimeError):
+    """A write would introduce unapproved metadata changes or warnings."""
+
+
+class UnsafeMetadataChange(UnsafeWrite):
+    def __init__(self, changed):
+        self.changed = changed
+        super().__init__(f"Unexpected metadata changes: {', '.join(changed)}")
 
 
 def extra_data(path):
@@ -543,7 +554,7 @@ def compare_metadata(before, after, relocated=()):
         and before.get(key) != after.get(key)
     )
     if changed:
-        raise RuntimeError(f"Unexpected metadata changes: {', '.join(changed)}")
+        raise UnsafeMetadataChange(changed)
 
 
 def writable_extensions(tool):
@@ -639,7 +650,8 @@ def file_preflight(tool, path, kind, baseline, writable):
     return before, decoded, warnings, attributes, structure
 
 
-def write_file(tool, source, kind, text, baseline, preflight, recovery, records, journal_path, journal, check_state):
+def write_file(tool, source, kind, text, baseline, preflight, recovery, records, journal_path, journal, check_state,
+               no_mandatory=False):
     before, decoded_before, warnings_before, attributes_before, structure_before = preflight
     backup = recovery / f"{uuid.uuid4().hex}-{source.name}"
     record = {
@@ -647,6 +659,8 @@ def write_file(tool, source, kind, text, baseline, preflight, recovery, records,
         "status": "backing_up", "recoveryCopy": str(backup),
         "sha256Before": baseline["sha256"],
     }
+    if no_mandatory:
+        record["exiftoolNoMandatory"] = True
     records.append(record)
     save_json(journal_path, journal)
     copy_original(source, backup)
@@ -656,7 +670,9 @@ def write_file(tool, source, kind, text, baseline, preflight, recovery, records,
     check_state()
     record["status"] = "writing"
     save_json(journal_path, journal)
+    options = ["-api", "NoMandatory=1"] if no_mandatory else []
     code, output, stderr = exiftool_run(tool, [
+        *options,
         "-overwrite_original_in_place",
         f"-IFD0:ImageDescription={text}",
         f"-XMP-dc:Description-x-default={text}",
@@ -676,8 +692,10 @@ def write_file(tool, source, kind, text, baseline, preflight, recovery, records,
             record["recoveryCopyRemoved"] = True
             save_json(journal_path, journal)
             raise WriteRefused(reason)
-    if code or not all(repair_warnings):
+    if code:
         raise RuntimeError(f"ExifTool exit {code}: {stderr}")
+    if not all(repair_warnings):
+        raise UnsafeWrite(f"ExifTool exit {code}: {stderr}")
     repaired_directories = sorted({match.group(1) for match in repair_warnings})
     if "1 image files updated" not in output and "1 image files unchanged" not in output:
         raise RuntimeError(f"Unexpected ExifTool result for {source.name}: {output.strip()}")
@@ -730,6 +748,50 @@ def write_file(tool, source, kind, text, baseline, preflight, recovery, records,
     record["recoveryCopyRemoved"] = True
     save_json(journal_path, journal)
     return after_fingerprint
+
+
+def trial_jpeg_write(tool, source, text, baseline, preflight, writable, recovery, check_state):
+    """Prove the approved write on a private copy before writing the source."""
+    check_source(source, baseline)
+    with tempfile.TemporaryDirectory(prefix="photo-write-trial-", dir=recovery.parent) as directory:
+        reason = None
+        no_mandatory = False
+        for no_mandatory in (False, True):
+            trial_root = Path(directory) / ("no-mandatory" if no_mandatory else "default")
+            trial_root.mkdir()
+            trial = trial_root / source.name
+            copy_original(source, trial)
+            trial_fingerprint = fingerprint(trial)
+            if trial_fingerprint["sha256"] != baseline["sha256"] or extra_data(trial) != preflight[3]:
+                raise RuntimeError(f"Trial-copy verification failed: {source.name}")
+            trial_ready = file_preflight(tool, trial, "JPG", trial_fingerprint, writable)
+            trial_recovery = trial_root / "recovery"
+            trial_recovery.mkdir()
+            trial_records = []
+            trial_journal = {"currentPhoto": source.name, "files": trial_records}
+            try:
+                write_file(
+                    tool, trial, "JPG", text, trial_fingerprint, trial_ready, trial_recovery,
+                    trial_records, trial_root / "journal.json", trial_journal, check_state,
+                    no_mandatory=no_mandatory,
+                )
+                break
+            except UnsafeMetadataChange as error:
+                if (not no_mandatory and error.changed == ["IFD0:YCbCrPositioning"]
+                        and "IFD0:YCbCrPositioning" not in preflight[0]):
+                    continue
+                reason = str(error).strip()
+                break
+            except (UnsafeWrite, WriteRefused) as error:
+                reason = str(error).strip()
+                break
+        check_source(source, baseline)
+        if extra_data(source) != preflight[3]:
+            raise SafetySkip(f"Filesystem streams changed since preflight: {source.name}")
+        check_state()
+        if reason is not None:
+            raise SafetySkip(f"Private trial write was unsafe; source not written: {reason}")
+        return no_mandatory
 
 
 def result_for(records, journal_path, error=None):
@@ -845,8 +907,20 @@ def run(state_path, request_id, tool):
                             skipped(records, photo["id"], "RAW", matches[0], error)
                             raw_ready = None
                 try:
+                    no_mandatory = trial_jpeg_write(
+                        tool, jpg, photo["description"], photo["fingerprint"], jpg_ready,
+                        writable, recovery, check_state,
+                    )
+                except SafetySkip as error:
+                    skipped(records, photo["id"], "JPG", photo["id"], error)
+                    if raw_ready:
+                        skipped(records, photo["id"], "RAW", raw.name, "Paired JPEG trial was unsafe")
+                    save_json(journal_path, journal)
+                    continue
+                try:
                     jpg_after = write_file(tool, jpg, "JPG", photo["description"], photo["fingerprint"],
-                                           jpg_ready, recovery, records, journal_path, journal, check_state)
+                                           jpg_ready, recovery, records, journal_path, journal, check_state,
+                                           no_mandatory=no_mandatory)
                 except WriteRefused:
                     if raw_ready:
                         skipped(records, photo["id"], "RAW", raw.name, "ExifTool refused the paired JPEG")
