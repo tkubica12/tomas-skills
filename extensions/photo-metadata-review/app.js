@@ -11,7 +11,6 @@ const languages = {
         writing: "zápis se zpracovává", stopped: "zápis je zastaven", refreshed: "Přehled je obnovený.",
         noComments: "Nejprve napište alespoň jeden komentář.",
         clearDrafts: "Nejprve odešlete nebo vymažte rozepsané komentáře.",
-        confirm: "Schválit zápis všech zobrazených popisů do JPG a odpovídajících RAW? Ověří se párování a bezpečnost zápisu.",
         sent: "Uloženo a odesláno asistentovi.", unknown: "Uloženo, ale doručení nelze potvrdit. Neopakujte automaticky; sdělte asistentovi ID: ",
         result: (r, s) => `Zápis ${s}: ověřeno ${r.verifiedJpg || 0} JPG a ${r.verifiedRaw || 0} RAW; přeskočeno ${r.skippedJpg || 0} JPG a ${r.skippedRaw || 0} RAW; selhání ${r.failed || 0}.`,
         status: s => s === "completed" ? "dokončen" : "zastaven"
@@ -26,7 +25,6 @@ const languages = {
         writing: "write in progress", stopped: "write stopped", refreshed: "Review refreshed.",
         noComments: "Write at least one comment first.",
         clearDrafts: "Submit or clear draft comments before approving.",
-        confirm: "Approve writing all displayed descriptions to JPG and matching RAW files? Pairing and write safety will be checked.",
         sent: "Saved and sent to the assistant.", unknown: "Saved, but delivery cannot be confirmed. Do not retry automatically; tell the assistant the ID: ",
         result: (r, s) => `Write ${s}: ${r.verifiedJpg || 0} JPG and ${r.verifiedRaw || 0} RAW verified; ${r.skippedJpg || 0} JPG and ${r.skippedRaw || 0} RAW skipped; ${r.failed || 0} failures.`,
         status: s => s === "completed" ? "completed" : "stopped"
@@ -189,7 +187,6 @@ document.getElementById("approve").addEventListener("click", async () => {
     try {
         await flushDrafts();
         if ([...document.querySelectorAll("textarea")].some(element => element.value.trim())) return show(strings.clearDrafts);
-        if (!confirm(strings.confirm)) return;
         const result = await post("approve", { revision });
         await load();
         show(result.delivery === "sent" ? strings.sent : `${strings.unknown}${result.id}`);

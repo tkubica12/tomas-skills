@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { runInNewContext } from "node:vm";
 import { openReview, startServer } from "../server.mjs";
 
 async function fixture(t, send = async () => {}) {
@@ -121,4 +122,63 @@ test("host, origin, token, thumbnail allowlist and shared lock protect mutations
     await mkdir(`${f.statePath}.lock`);
     assert.equal((await f.post("approve", { revision: view.revision })).status, 409);
     assert.equal(f.calls.length, 0);
+});
+
+test("one approval button click submits without a second confirmation", async () => {
+    class Element {
+        constructor(tag) {
+            this.tagName = tag.toUpperCase();
+            this.dataset = {};
+            this.children = [];
+            this.listeners = {};
+            this.value = "";
+            this.textContent = "";
+        }
+        append(...children) { this.children.push(...children); }
+        replaceChildren(...children) { this.children = children; }
+        addEventListener(name, callback) { this.listeners[name] = callback; }
+    }
+    const controls = Object.fromEntries(
+        ["title", "subtitle", "summary", "write-result", "submit", "refresh", "approve", "message", "photos"]
+            .map(id => [id, new Element("div")])
+    );
+    const textareas = [];
+    const document = {
+        documentElement: {},
+        activeElement: null,
+        getElementById: id => controls[id],
+        createElement: tag => {
+            const element = new Element(tag);
+            if (tag === "textarea") textareas.push(element);
+            return element;
+        },
+        querySelectorAll: selector => selector === "textarea" ? textareas : []
+    };
+    const state = {
+        revision: "revision-1", drafts: {},
+        data: {
+            language: "cs", feedback: [], writeRequest: null,
+            photos: [{ id: "one.jpg", date: null, description: "Museum", confidence: "low", rawMatches: [] }]
+        }
+    };
+    const requests = [];
+    const fetch = async (url, options = {}) => {
+        if (options.method === "POST") {
+            requests.push({ route: new URL(url).pathname.split("/").pop(), body: JSON.parse(options.body) });
+            state.data.writeRequest = { status: "pending" };
+            return { ok: true, json: async () => ({ delivery: "sent", id: "request" }) };
+        }
+        return { ok: true, json: async () => state };
+    };
+    const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+    runInNewContext(source, {
+        URL, document, fetch, location: { href: "http://127.0.0.1:1234/token/" },
+        setInterval: () => 0, setTimeout: () => 0, clearTimeout: () => {},
+        confirm: () => { throw new Error("Unexpected second confirmation"); }
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    await controls.approve.listeners.click();
+    assert.deepEqual(requests.map(request => request.route), ["approve"]);
+    assert.equal(requests[0].body.revision, "revision-1");
+    assert.equal(controls.message.textContent, "Uloženo a odesláno asistentovi.");
 });

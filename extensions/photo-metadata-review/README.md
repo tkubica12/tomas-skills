@@ -30,7 +30,8 @@ with input:
 Comments are saved as private drafts. **Send comments** freezes and sends one
 feedback batch; the agent updates proposals and marks that exact batch
 processed. **Approve metadata write** freezes all displayed descriptions and
-asks the agent to execute only that request. It approves uncertain
+asks the agent to execute only that request, without a second confirmation.
+It approves uncertain
 descriptions too; technical pairing and safety checks remain necessary.
 Sending is not completion: the canvas displays the writer's actual result.
 
