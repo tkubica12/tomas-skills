@@ -1,0 +1,3 @@
+Pillow==10.4.0
+rawpy==0.28.0
+tifffile==2025.12.20

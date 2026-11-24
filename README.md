@@ -4,9 +4,9 @@ Reusable skills for designing verifiable Goal Cards, researching a topic,
 explaining how it works, turning the result into a document people can both
 watch and read, producing narrated explanatory animation, publishing a website
 with private Blob-backed content, finding personal Gmail messages with a local
-CLI, and
-preparing tested customer discovery interviews. A Copilot canvas extension
-adds in-context review of rendered documents before sharing them.
+CLI, preparing tested customer discovery interviews, and identifying photos
+for review and metadata writing. Companion Copilot canvases support document
+and photo review.
 
 | Skill | What it does | Example result |
 | --- | --- | --- |
@@ -19,10 +19,12 @@ adds in-context review of rendered documents before sharing them.
 | [explanatory-video](skills/explanatory-video/README.md) | Authors Czech or English narrated explanatory animation in three duration profiles, with independent critique, keyless Azure speech, and human-feedback calibration. | Private pilot; no public sample |
 | [aca-web-publish](skills/aca-web-publish/README.md) | Publishes on ACA Express with private Cool-tier Blob Storage, reader allowlists and a temporary authenticated upload relay. | [Private-Blob website](examples/aca-web-publish/README.md) |
 | [customer-discovery-interview](skills/customer-discovery-interview/README.md) | Agrees discovery scope with you, generates a tested interview prompt for a customer project, and rehearses it with two subagents. The interview keeps a clean conversation record and a living requirements spec across sessions. | [Dispatch app move (simulated)](examples/customer-discovery-interview/README.md) |
+| [photo-metadata-review](skills/photo-metadata-review/README.md) | Identifies individual photos from visual evidence and context, reviews descriptions, and safely writes approved metadata to JPEG and matching supported RAW files. | Private photo review |
 
 | Canvas extension | What it does | Requires |
 | --- | --- | --- |
 | [document-review](extensions/document-review/README.md) | Review text and image variants in the original HTML slide context, save comments/favorites, and explicitly submit precise source edits or bounded generation requests. A companion to `html-docs`; generation is optional. | GitHub Copilot App with extension canvas support |
+| [photo-metadata-review](extensions/photo-metadata-review/README.md) | Review individual photo descriptions and comments, then explicitly approve a frozen metadata-write request. | GitHub Copilot App with extension canvas support |
 
 ## Install skills
 
@@ -40,6 +42,7 @@ gh skill install tkubica12/tomas-skills gmail-cli --pin gmail-cli-v1.0.0
 gh skill install tkubica12/tomas-skills explanatory-video --pin main
 gh skill install tkubica12/tomas-skills aca-web-publish
 gh skill install tkubica12/tomas-skills customer-discovery-interview
+gh skill install tkubica12/tomas-skills photo-metadata-review --pin main
 ```
 
 The default is project scope for GitHub Copilot. Add `--scope user` to make a
@@ -58,7 +61,7 @@ your client's skill directory. Copilot supports `.agents/skills` or
 `.github/skills` in a project, and `~/.agents/skills` or `~/.copilot/skills` for
 personal skills. Other clients may use different locations.
 
-## Install the canvas extension
+## Install a canvas extension
 
 In GitHub Copilot app, ask:
 
@@ -73,6 +76,11 @@ also covers manual and project-scoped installation, requirements, and limits.
 After installation, ask: "Open this HTML in Document review so I can annotate
 it." For generated sites, supply the local HTML preview and its editable
 Markdown or template source; a public website URL alone is not supported.
+
+For photo review, install the separate
+[`extensions/photo-metadata-review`](extensions/photo-metadata-review/README.md)
+folder in the same way. The skill creates a private review state and opens its
+canvas; it does not upload the selected photos.
 
 ## Use them together
 
@@ -161,6 +169,12 @@ clean source folder only: never include personal `artifacts`, saved review
 text, runtime locks, or installed dependencies. `gh skill publish` does not
 publish canvas extensions; those are installed from their published repository
 folder or a clean Gist package.
+
+For photo review, run
+`python -m unittest discover -s skills\photo-metadata-review\tests -v` with
+`PHOTO_TEST_EXIFTOOL` set to an ExifTool executable, and
+`node --test extensions\photo-metadata-review\tests\server.test.mjs`. Actual
+RAW-format support also requires isolated tests with the intended camera files.
 
 A public repository with the `agent-skills` topic can be discovered by
 `gh skill search`; third-party catalogs have their own indexing rules.

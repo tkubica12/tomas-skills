@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo metadata review</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1 id="title"></h1>
+    <p id="subtitle"></p>
+    <div id="summary" class="summary"></div>
+    <div id="write-result" class="summary" role="status" aria-live="polite"></div>
+    <div class="toolbar">
+      <button id="submit" class="primary"></button>
+      <button id="refresh"></button>
+      <button id="approve"></button>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+  </header>
+  <main id="photos"></main>
+  <noscript>JavaScript is required for photo review.</noscript>
+</body>
+</html>
