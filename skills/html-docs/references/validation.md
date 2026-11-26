@@ -139,6 +139,12 @@ Passing overflow alone is not sufficient.
 
 ## Shared-runtime regressions
 
+For the optional QR card generator and stylesheet, additionally run
+`node assets\test-qr.js`; see [QR cards](qr-codes.md) for author/test-only
+Python dependencies and document-specific rendered-pixel decoding checks.
+This tests bundled isolated HTML as well as actual rasterized PDF pages;
+physical scanners and viewing distances still need a manual check.
+
 Validate every fixture after changes:
 
 ```powershell

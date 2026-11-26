@@ -161,6 +161,9 @@ file, including during export.
      fragments.
    - [Writing rules](references/writing-rules.md): direct prose and claim
      discipline.
+   - [Optional QR cards](references/qr-codes.md), only when a supplied URL
+     benefits the audience: offline generation, quiet zone, restrained
+     decoration and independent decoding of final browser/PDF pixels.
    - [Visual storytelling](references/visual-storytelling.md), only when images
      help: claim-led briefs, text/crop-safe scenes, materials, references and
      invariants; optional reusable compositions and the separately installed

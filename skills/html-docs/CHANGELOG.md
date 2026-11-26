@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Optional QR card workflow, stylesheet and local Segno-based generator for
+  supplied HTTP(S) URLs, with four-module quiet zone, ECC H and a guarded
+  opt-in terminal icon. No QR is added to existing templates or slides.
+- Independent rendered-image decoding regression checks across eight palettes,
+  two viewport sizes, two card sizes and rasterized light/dark PDFs. Physical
+  cameras, projectors and printers remain a document-specific manual check.
+
 ## 1.6.0 — 2026-11-13
 
 **Chosen export palette and an illustrated example.**

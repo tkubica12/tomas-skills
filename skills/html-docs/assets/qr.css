@@ -1,0 +1,50 @@
+/* Optional machine-readable symbol: fixed canonical light ink/paper in every theme. */
+.qr-card {
+  --qr-ink: #161616;
+  --qr-paper: #ffffff;
+  width: 20rem;
+  max-width: 100%;
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+  break-inside: avoid;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.qr-frame { position: relative; isolation: isolate; margin: .75rem; }
+.qr-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translate(.6rem, .6rem) rotate(3deg);
+  border-radius: var(--radius);
+  background: var(--accent);
+}
+.qr-frame::after {
+  content: "";
+  position: absolute;
+  inset: -.65rem;
+  z-index: -2;
+  transform: rotate(-2.5deg);
+  border: 2px dashed var(--accent-border);
+  border-radius: calc(var(--radius) + .5rem);
+}
+.qr-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.qr-card figcaption { display: grid; gap: .3rem; }
+.qr-card figcaption strong { color: var(--accent); }
+.qr-url {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+@media print {
+  .qr-art { box-shadow: none; }
+}

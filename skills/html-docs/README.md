@@ -44,6 +44,16 @@ Or just: *“Use html-docs to make a one-page datasheet for …, with a PDF.”*
 - [Editable example source](https://github.com/tkubica12/tomas-skills/blob/main/examples/html-docs/queue-is-not-capacity.html)
 - [Changes by version](CHANGELOG.md)
 
+## Optional QR cards
+
+[QR cards](references/qr-codes.md) add an opt-in white card with offset accent
+backing, a dashed frame and an optional small terminal icon. Generate the
+actual supplied URL locally with `assets/qr.py`; no service or reader-side
+dependency is added. Keep the text destination, four-module quiet zone and
+functional patterns, and decode the final rendered pixels independently.
+ECC H and a small logo alone do not guarantee readability. The opening slide
+stays unchanged unless the author deliberately chooses it for the card.
+
 ## Optional PowerPoint export
 
 Version **1.5.0** adds `export-pptx.js` for people who must receive a `.pptx`.
