@@ -34,6 +34,9 @@
   display: block;
   width: 100%;
   height: auto;
+  box-sizing: border-box;
+  padding: var(--radius);
+  background: var(--qr-paper);
   border-radius: var(--radius);
   box-shadow: var(--shadow-2);
 }

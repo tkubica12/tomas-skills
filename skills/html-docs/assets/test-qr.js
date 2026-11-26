@@ -25,19 +25,46 @@ function generate(url, icon, name) {
     ...(icon ? ["--icon"] : [])], url);
   return fs.readFileSync(file, "utf8");
 }
-function decode(file, expected) {
+async function quietZone(page) {
+  return page.locator(".qr-art").evaluate(svg => {
+    const bounds = svg.getBoundingClientRect();
+    const style = getComputedStyle(svg);
+    const left = parseFloat(style.paddingLeft);
+    const top = parseFloat(style.paddingTop);
+    const width = bounds.width - left - parseFloat(style.paddingRight);
+    const height = bounds.height - top - parseFloat(style.paddingBottom);
+    return { x: bounds.x + left, y: bounds.y + top, width, height,
+      module: width / svg.viewBox.baseVal.width };
+  });
+}
+function decode(file, expected, zone) {
   const actual = run(["-c", `
-import cv2, sys
+import cv2, json, math, numpy as np, sys
 image = cv2.imread(sys.argv[1])
 if image is None:
     raise SystemExit("Unable to load rendered image")
+zone = json.loads(sys.argv[2])
+x, y, width, height, module = (zone[key] for key in ("x", "y", "width", "height", "module"))
+left, top = math.ceil(x), math.ceil(y)
+right, bottom = math.floor(x + width), math.floor(y + height)
+yy, xx = np.mgrid[top:bottom, left:right]
+# Test fully interior quiet-zone pixels on all four sides, including corners.
+# Leave half a pixel beside the matrix to exclude module-edge antialiasing.
+quiet = ((xx + .5 < x + 4 * module - .5) |
+         (xx + .5 > x + width - 4 * module + .5) |
+         (yy + .5 < y + 4 * module - .5) |
+         (yy + .5 > y + height - 4 * module + .5))
+pixels = image[top:bottom, left:right][quiet]
+if not len(pixels) or np.any(pixels < 250):
+    raise SystemExit("Rendered four-module quiet zone is not uninterrupted white, including corners: "
+                     + sys.argv[1] + " " + str(zone))
 value, points, straight = cv2.QRCodeDetector().detectAndDecode(image)
 if not value:
     raise SystemExit("Rendered QR did not decode")
 sys.stdout.buffer.write(value.encode("utf-8"))
-`, file]);
+`, file, JSON.stringify(zone)]);
   assert.equal(actual, expected, "rendered destination matches exact input");
-  checks++;
+  checks += 2;
 }
 
 (async () => {
@@ -57,7 +84,7 @@ sys.stdout.buffer.write(value.encode("utf-8"))
         '<title>QR regression fixture</title><style>' +
         fs.readFileSync(path.join(__dirname, "tokens.css"), "utf8") +
         '\nbody{background:var(--bg);color:var(--text);font-family:var(--font-sans);padding:48px}' +
-        '@page{size:A4;margin:16mm}</style><link rel="stylesheet" href="../../assets/qr.css">' +
+        '@page{size:A4;margin:60px}</style><link rel="stylesheet" href="../../assets/qr.css">' +
         '<body>' + fragment + "</body></html>");
       const isolated = path.join(output, "isolated");
       fs.mkdirSync(isolated, { recursive: true });
@@ -78,7 +105,9 @@ sys.stdout.buffer.write(value.encode("utf-8"))
             await page.locator(".qr-card").evaluate((node, size) => { node.style.width = size + "px"; }, size);
             const shot = path.join(output, `qr-${index}-${viewport.width}-${theme}-${accent}-${size}.png`);
             await page.locator(".qr-card").screenshot({ path: shot });
-            decode(shot, fixture.url);
+            const zone = await quietZone(page);
+            const card = await page.locator(".qr-card").boundingBox();
+            decode(shot, fixture.url, { ...zone, x: zone.x - card.x, y: zone.y - card.y });
           }
         }
         // Inspect actual PDF pixels, not just print-emulated HTML.
@@ -91,6 +120,8 @@ sys.stdout.buffer.write(value.encode("utf-8"))
             }, { theme, accent });
             const pdf = path.join(output, `qr-${index}-${theme}-${accent}.pdf`);
             await page.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
+            await page.emulateMedia({ media: "print" });
+            const zone = await quietZone(page);
             const png = pdf + ".png";
             run(["-c", `
 import pymupdf, sys
@@ -98,7 +129,11 @@ with pymupdf.open(sys.argv[1]) as doc:
     assert len(doc) == 1
     doc[0].get_pixmap(dpi=150).save(sys.argv[2])
 `, pdf, png]);
-            decode(png, fixture.url);
+            const scale = 150 / 96;
+            // Integer CSS-pixel margins avoid PDF page-margin unit rounding.
+            const margin = 60 * scale;
+            decode(png, fixture.url, { x: zone.x * scale + margin, y: zone.y * scale + margin,
+              width: zone.width * scale, height: zone.height * scale, module: zone.module * scale });
           }
         }
         await context.close();

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Preserve the entire white QR quiet zone at rounded card corners with
+  additional white padding outside the SVG viewport. Pixel regressions check
+  all four rendered margins and corners in screenshots and PDF rasters,
+  independently of successful decoding.
+
 - Optional QR card workflow, stylesheet and local Segno-based generator for
   supplied HTTP(S) URLs, with four-module quiet zone, ECC H and a guarded
   opt-in terminal icon. No QR is added to existing templates or slides.

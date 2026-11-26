@@ -59,7 +59,9 @@ Do not crop the SVG, mask its margins, invert it or apply image filters.
   survive the **final rendering**, not merely the source viewBox.
 - Keep backing, border, nearby text and other decoration outside that zone.
   Leave enough additional space that the outer frame cannot be mistaken for
-  the code. The rounded card corners must not reach the matrix.
+  the code. Rounded card corners must not clip any of the four white modules,
+  even at the outer corners. The stylesheet adds white CSS padding outside
+  the SVG viewport before rounding the card; retain that extra padding.
 - `--icon` adds a small terminal mark over data modules only. It refuses
   symbols whose center intersects functional patterns (including some larger
   versions). Do not force it through; omit the icon. ECC H is redundancy,
@@ -76,7 +78,9 @@ Do not crop the SVG, mask its margins, invert it or apply image filters.
 ## Verify the pixels people receive
 
 Use an independent decoder on browser screenshots of the **decorated figure**,
-and compare the decoded string with the exact input URL. Detecting corners,
+and compare the decoded string with the exact input URL. Also inspect the
+rendered four-module white ring, including all corners: successful decoding
+can tolerate clipping and does not prove that the quiet zone is intact. Detecting corners,
 counting modules or sampling an ideal source matrix does not prove decoding.
 Test at the intended slide scale and the smallest expected displayed size,
 at laptop and projector viewports, all eight palettes, offline with JavaScript
